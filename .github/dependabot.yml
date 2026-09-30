@@ -1,0 +1,16 @@
+# Opens a pull request when a GitHub Action used by the workflows, or the nginx base image in the
+# Dockerfile, has a new version (including security fixes). Merge it once the smoke test is green.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
