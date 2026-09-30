@@ -119,6 +119,11 @@ Open `http://<your-server>:8090` and sign in with your `DASH_PASSWORD`.
 2. **Updating:** when TrueNAS sees a newer image, the app shows **Update available**, and **Update** pulls it and restarts. If your TrueNAS version doesn't show the badge for custom apps, **Stop** and **Start** the app. The `pull_policy: always` line makes it fetch the newest image on start.
    To check which version is running, open **Settings → About** in Money: *Money version* shows the commit and build date (e.g. `c78fd51 · 2026-09-30`). It should match the latest commit on the repo's main page.
 3. If the image fails to pull with a "denied" or "unauthorized" error, make the package public. On GitHub, open your profile → **Packages** → the package → **Package settings → Change visibility → Public**.
+4. **App icon (optional):** TrueNAS has no icon setting for apps installed via YAML, but you can set one in the app's own metadata file. In **System → Shell**, run `sudo nano /mnt/.ix-apps/app_configs/<app-name>/metadata.yaml`, and set the `icon:` line to:
+   ```
+   icon: https://raw.githubusercontent.com/Muffy0906/firefly-money/main/docs/icon.png
+   ```
+   Save and refresh the Apps page. Edit this per-app file, not `/mnt/.ix-apps/metadata.yaml`, which TrueNAS rewrites on updates. The logo is also in `docs/icon.svg`.
 
 ### Running behind a reverse proxy
 
@@ -180,5 +185,3 @@ This is an independent project. It is not affiliated with or endorsed by Firefly
 [PolyForm Strict 1.0.0](LICENSE): you may use Money for any noncommercial purpose, such as personal or household use or use by a charity or school. You may not change it, share or distribute copies, or sell it.
 
 Want to use it commercially, change it, or contribute? Please ask first by opening an issue.
-
-Versions released before this change stay under the MIT License they were published with.
