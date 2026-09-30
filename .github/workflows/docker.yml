@@ -1,0 +1,59 @@
+# Builds the Docker image and publishes it to GitHub Container Registry (ghcr.io)
+# on every push to main and for version tags like v1.2.0.
+name: Docker image
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=short
+          # GitHub doesn't recognise the PolyForm license and would label the image NOASSERTION,
+          # overriding the Dockerfile's label, so set it here too.
+          labels: |
+            org.opencontainers.image.licenses=PolyForm-Strict-1.0.0
+
+      # e.g. "c78fd51 · 2026-09-30", or "v1.2.0 (c78fd51 · 2026-09-30)" for a release tag (no commas: build-args may split on them)
+      - name: Version stamp
+        run: |
+          v="${GITHUB_SHA::7} · $(date -u +%Y-%m-%d)"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then v="$GITHUB_REF_NAME ($v)"; fi
+          echo "MONEY_VERSION=$v" >> "$GITHUB_ENV"
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: MONEY_VERSION=${{ env.MONEY_VERSION }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

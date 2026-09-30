@@ -1,0 +1,47 @@
+# Password check: the page sends the password in an X-Dash-Key header.
+map $http_x_dash_key $dash_ok {
+    default 0;
+    "${DASH_PASSWORD}" 1;
+}
+
+server {
+    listen 80;
+
+    # Compress the page and API responses (much faster over Wi-Fi)
+    gzip on;
+    gzip_proxied any;
+    gzip_min_length 1024;
+    gzip_types application/json application/vnd.api+json text/csv application/javascript image/svg+xml application/manifest+json;
+
+
+    # Installable app: manifest, icon and offline service worker
+    location = /manifest.webmanifest { default_type application/manifest+json; return 200 '{"name":"Money","short_name":"Money","start_url":"/","scope":"/","display":"standalone","background_color":"#161618","theme_color":"#161618","icons":[{"src":"/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"},{"src":"/icon.svg","sizes":"512x512","type":"image/svg+xml","purpose":"maskable"}]}'; }
+    location = /icon.svg { default_type image/svg+xml; add_header Cache-Control "max-age=86400"; return 200 '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><rect width="180" height="180" rx="40" fill="#1f1f23"/><path d="M38 122l36-36 24 24 44-46M112 62h32v32" fill="none" stroke="#39ff9f" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/></svg>'; }
+    location = /sw.js { default_type application/javascript; add_header Cache-Control "no-cache"; return 200 'const C="money-v1",N="/__money-updated";self.addEventListener("install",e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>c.add("/")))});self.addEventListener("activate",e=>e.waitUntil(self.clients.claim()));const ver=r=>r&&(r.headers.get("etag")||r.headers.get("last-modified"));self.addEventListener("fetch",e=>{const r=e.request;if(r.method!=="GET")return;const u=new URL(r.url);if(u.origin!==location.origin)return;if(r.mode==="navigate"){e.respondWith(caches.open(C).then(c=>Promise.all([c.match("/"),c.match(N)]).then(([old,note])=>{const net=fetch(r).then(res=>{if(res.ok){const v=ver(res);c.put("/",res.clone());if(old&&v&&ver(old)!==v){c.put(N,new Response(v));self.clients.matchAll({includeUncontrolled:true,type:"window"}).then(cs=>cs.forEach(x=>x.postMessage("money-updated")))}}return res});if(!old)return net.catch(()=>new Response("Offline",{status:503}));e.waitUntil(net.catch(()=>{}).then(()=>note&&note.text().then(t=>{if(t===ver(old))return c.delete(N)})));return old})));return}if(!u.pathname.startsWith("/api/"))return;e.respondWith(fetch(r).then(res=>{if(res.ok){const cp=res.clone();caches.open(C).then(c=>c.put(r,cp))}return res}).catch(()=>caches.match(r).then(m=>m||new Response(JSON.stringify({message:"Offline"}),{status:503,headers:{"Content-Type":"application/json"}}))))});'; }
+
+    # The app page. Mounted as a template so nginx copies it at startup (as root),
+    # which avoids file-permission problems on TrueNAS. Only index.html is ever served.
+    location / {
+        root /etc/nginx/conf.d;
+        default_type text/html;
+        add_header Cache-Control "no-cache";
+        add_header X-Content-Type-Options "nosniff";
+        add_header Referrer-Policy "no-referrer";
+        try_files /index.html =404;
+    }
+
+    # Proxy to Firefly III. Requires the dashboard password; the Firefly token
+    # never leaves the server.
+    location /api/ {
+        if ($http_x_dash_key = "") { add_header X-Dash-Auth required always; return 401; }
+        if ($dash_ok = 0)          { add_header X-Dash-Auth required always; return 401; }
+
+        limit_except GET POST PUT DELETE { deny all; }
+        proxy_pass ${FIREFLY_URL}/api/;
+        proxy_set_header Authorization "Bearer ${FIREFLY_TOKEN}";
+        proxy_set_header X-Dash-Key "";
+        proxy_set_header Accept "application/vnd.api+json";
+        proxy_read_timeout 60s;
+        client_max_body_size 50m;
+    }
+}

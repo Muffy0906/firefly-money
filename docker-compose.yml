@@ -1,0 +1,37 @@
+# Money: a modern frontend for Firefly III.
+# Copy .env.example to .env, fill it in, then: docker compose up -d
+# To update: docker compose pull && docker compose up -d   (on TrueNAS: click "Update" on the app)
+services:
+  money:
+    # Built automatically from this repo by GitHub Actions.
+    image: ghcr.io/muffy0906/firefly-money:latest
+    container_name: money
+    restart: unless-stopped
+    ports:
+      - "${MONEY_PORT:-8090}:80"
+    environment:
+      # Where nginx reaches Firefly III (container name, LAN IP or URL; no trailing slash).
+      # Also used for the "Open Firefly III" link in the sidebar.
+      FIREFLY_URL: ${FIREFLY_URL}
+      # A Firefly III Personal Access Token (Options → Profile → OAuth → Personal access tokens).
+      # It stays on the server; the browser never sees it.
+      FIREFLY_TOKEN: ${FIREFLY_TOKEN}
+      # The password you type on the Money sign-in screen.
+      DASH_PASSWORD: ${DASH_PASSWORD}
+
+    # Prefer running your local copy of the files instead of the published image?
+    # Comment out "image:" above, and uncomment these lines:
+    # image: nginx:1.27-alpine
+    # environment:  (keep the three variables above, and add:)
+    #   NGINX_ENVSUBST_FILTER: "^(FIREFLY_URL|FIREFLY_TOKEN|DASH_PASSWORD)$"
+    # volumes:
+    #   - ./app/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+    #   - ./app/index.html:/etc/nginx/templates/index.html.template:ro
+
+# TrueNAS: adds the "Web UI" button on the app's page. Other Docker hosts ignore this.
+x-portals:
+  - name: Web UI
+    scheme: http
+    host: 0.0.0.0
+    port: 8090
+    path: /
