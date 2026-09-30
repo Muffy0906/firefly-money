@@ -1,6 +1,6 @@
 # Money: a modern frontend for Firefly III.
 # nginx fills in FIREFLY_URL / FIREFLY_TOKEN / DASH_PASSWORD from the environment at startup.
-FROM nginx:1.27-alpine
+FROM nginx:1.31-alpine
 
 # Which build this is, e.g. "c78fd51 · 2026-09-30" (set by the GitHub workflow). Shown in Settings → About.
 ARG MONEY_VERSION=""
