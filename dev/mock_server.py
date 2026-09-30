@@ -160,6 +160,12 @@ class H(BaseHTTPRequestHandler):
                 conf = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'app', 'default.conf.template')).read()
                 body = re.search(r"location = /sw\.js \{.*?return 200 '(.*?)'; \}", conf).group(1).encode()
                 self.send_response(200); self.send_header('Content-Type', 'application/javascript'); self.end_headers(); self.wfile.write(body)
+            elif u.path.startswith('/assets/'):   # the app's stylesheet and scripts
+                root = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(INDEX)), 'assets'))
+                f = os.path.realpath(os.path.join(root, u.path[len('/assets/'):]))
+                if not f.startswith(root + os.sep) or not os.path.isfile(f): self.send_response(404); self.end_headers(); return
+                ctype = {'.css': 'text/css', '.js': 'application/javascript'}.get(os.path.splitext(f)[1], 'application/octet-stream')
+                body = open(f, 'rb').read(); self.send_response(200); self.send_header('Content-Type', ctype); self.end_headers(); self.wfile.write(body)
             else: self.send_response(404); self.end_headers()
             return
         if LATENCY: time.sleep(LATENCY)        # simulate a real Firefly server (set LATENCY=0.15)

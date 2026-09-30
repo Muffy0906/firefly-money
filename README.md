@@ -2,7 +2,7 @@
 
 Money is a fast, mobile-friendly web app for [Firefly III](https://www.firefly-iii.org/), the self-hosted personal finance manager. It sits beside your existing Firefly server and talks to it through the Firefly API. It doesn't change or replace Firefly, and your data never leaves your server.
 
-It's a single HTML file served by a small nginx container. Nothing to build and no dependencies.
+It's plain HTML, CSS and JavaScript served by a small nginx container. Nothing to build and no dependencies.
 
 ![Overview](docs/screenshots/overview.png)
 
@@ -50,11 +50,11 @@ It's a single HTML file served by a small nginx container. Nothing to build and 
 
 ```
 Browser ──(password in a header)──▶ nginx container ──(your Firefly token)──▶ Firefly III API
-          serves index.html          checks the password,
+          serves the app             checks the password,
                                      adds the token, proxies /api/
 ```
 
-- nginx serves `index.html` and proxies `/api/*` to Firefly III.
+- nginx serves the app (`index.html` and its `assets/`) and proxies `/api/*` to Firefly III.
 - Your Firefly **access token lives only in the nginx container**. It's added on the server side and never sent to the browser.
 - The browser has to send the **dashboard password** (`X-Dash-Key` header) with every API call. Without it nginx answers `401`.
 
@@ -87,7 +87,7 @@ Open `http://<your-server>:8090` and sign in with your `DASH_PASSWORD`.
 
 **Updating:** `docker compose pull && docker compose up -d`. To stay on a fixed version instead of `latest`, use a release tag such as `:1.2.0`. Those images are built when you push a tag like `v1.2.0`.
 
-**Prefer plain files?** The comments at the bottom of `docker-compose.yml` show how to run the stock `nginx` image with `app/index.html` and `app/default.conf.template` mounted from a folder. In that setup, you update by replacing the files and restarting the container.
+**Prefer plain files?** The comments at the bottom of `docker-compose.yml` show how to run the stock `nginx` image with `app/index.html`, `app/default.conf.template` and the `app/assets` folder mounted from a folder. In that setup, you update by replacing the files and restarting the container.
 
 ### TrueNAS SCALE (24.10 and newer)
 
@@ -152,8 +152,11 @@ It implements only the endpoints the UI needs. Writes are accepted but not saved
 
 ## Development
 
-- Everything is in **`app/index.html`**: plain HTML, CSS and JavaScript with no framework and no build step. The script is split into sections (core, polish, planning, insights, part 2) that attach functions to a global `App` object used by inline handlers.
-- A few settings sit at the top of the main script (for example `LOAN_MONTHLY_PAYMENT`, the fallback used for loan "months to go" estimates).
+- The app is plain HTML, CSS and JavaScript with no framework and no build step:
+  - **`app/index.html`**: the page itself (nginx fills in `FIREFLY_URL` and the version stamp at startup).
+  - **`app/assets/money.css`**: all styles and themes.
+  - **`app/assets/js/`**: the scripts, loaded in this order and sharing one global scope: `core.js` (API, lists, router, main pages), `extras.js` (bulk edit, reconcile, rules, recurring, reports, settings), `polish.js` (quick add, undo, palette, date picker), `planning.js` (forecast, categorize inbox, loan planner, offline), `insights.js` (insight cards), `ui.js` (privacy, gestures, inline edits, dashboard, charts, natural-language quick add) and `shell.js` (the iPhone app shell). Functions used by inline handlers hang off a global `App` object.
+- A few settings sit at the top of `app/assets/js/core.js` (for example `LOAN_MONTHLY_PAYMENT`, the fallback used for loan "months to go" estimates).
 - Per-device preferences (theme, dashboard layout, privacy/density, forecast options, dismissed insights) are stored in `localStorage` under `money.*` / `moneyTheme`. Everything else lives in Firefly.
 - **Publishing a new version:** push to `main`, and GitHub Actions builds a new `latest` image in a few minutes (see the repo's **Actions** tab). For a numbered release, push a tag: `git tag v1.2.0 && git push --tags`.
 - **Smoke test:** opens every page and every "new …" form on desktop and phone sizes against the demo server, and fails on any JavaScript error:
