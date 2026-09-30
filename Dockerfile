@@ -9,6 +9,8 @@ ENV NGINX_ENVSUBST_FILTER="^(FIREFLY_URL|FIREFLY_TOKEN|DASH_PASSWORD|MONEY_VERSI
 
 COPY app/default.conf.template /etc/nginx/templates/default.conf.template
 COPY app/index.html /etc/nginx/templates/index.html.template
+# Stylesheet and scripts: plain files, served as they are from /assets/
+COPY app/assets /usr/share/nginx/html/assets
 
 LABEL org.opencontainers.image.title="Money" \
       org.opencontainers.image.description="A modern, mobile-friendly frontend for Firefly III" \

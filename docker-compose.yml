@@ -27,6 +27,7 @@ services:
     # volumes:
     #   - ./app/default.conf.template:/etc/nginx/templates/default.conf.template:ro
     #   - ./app/index.html:/etc/nginx/templates/index.html.template:ro
+    #   - ./app/assets:/usr/share/nginx/html/assets:ro
 
 # TrueNAS: adds the "Web UI" button on the app's page. Other Docker hosts ignore this.
 x-portals:

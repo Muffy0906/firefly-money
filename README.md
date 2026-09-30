@@ -2,7 +2,7 @@
 
 Money is a fast, mobile-friendly web app for [Firefly III](https://www.firefly-iii.org/), the self-hosted personal finance manager. It sits beside your existing Firefly server and talks to it through the Firefly API. It doesn't change or replace Firefly, and your data never leaves your server.
 
-It's a single HTML file served by a small nginx container. Nothing to build and no dependencies.
+It's plain HTML, CSS and JavaScript served by a small nginx container. Nothing to build and no dependencies.
 
 ![Overview](docs/screenshots/overview.png)
 
@@ -50,11 +50,11 @@ It's a single HTML file served by a small nginx container. Nothing to build and 
 
 ```
 Browser ──(password in a header)──▶ nginx container ──(your Firefly token)──▶ Firefly III API
-          serves index.html          checks the password,
+          serves the app             checks the password,
                                      adds the token, proxies /api/
 ```
 
-- nginx serves `index.html` and proxies `/api/*` to Firefly III.
+- nginx serves the app (`index.html` and its `assets/`) and proxies `/api/*` to Firefly III.
 - Your Firefly **access token lives only in the nginx container**. It's added on the server side and never sent to the browser.
 - The browser has to send the **dashboard password** (`X-Dash-Key` header) with every API call. Without it nginx answers `401`.
 
@@ -87,7 +87,7 @@ Open `http://<your-server>:8090` and sign in with your `DASH_PASSWORD`.
 
 **Updating:** `docker compose pull && docker compose up -d`. To stay on a fixed version instead of `latest`, use a release tag such as `:1.2.0`. Those images are built when you push a tag like `v1.2.0`.
 
-**Prefer plain files?** The comments at the bottom of `docker-compose.yml` show how to run the stock `nginx` image with `app/index.html` and `app/default.conf.template` mounted from a folder. In that setup, you update by replacing the files and restarting the container.
+**Prefer plain files?** The comments at the bottom of `docker-compose.yml` show how to run the stock `nginx` image with `app/index.html`, `app/default.conf.template` and the `app/assets` folder mounted from a folder. In that setup, you update by replacing the files and restarting the container.
 
 ### TrueNAS SCALE (24.10 and newer)
 
@@ -119,6 +119,11 @@ Open `http://<your-server>:8090` and sign in with your `DASH_PASSWORD`.
 2. **Updating:** when TrueNAS sees a newer image, the app shows **Update available**, and **Update** pulls it and restarts. If your TrueNAS version doesn't show the badge for custom apps, **Stop** and **Start** the app. The `pull_policy: always` line makes it fetch the newest image on start.
    To check which version is running, open **Settings → About** in Money: *Money version* shows the commit and build date (e.g. `c78fd51 · 2026-09-30`). It should match the latest commit on the repo's main page.
 3. If the image fails to pull with a "denied" or "unauthorized" error, make the package public. On GitHub, open your profile → **Packages** → the package → **Package settings → Change visibility → Public**.
+4. **App icon (optional):** TrueNAS has no icon setting for apps installed via YAML, but you can set one in the app's own metadata file. In **System → Shell**, run `sudo nano /mnt/.ix-apps/app_configs/<app-name>/metadata.yaml`, and set the `icon:` line to:
+   ```
+   icon: https://raw.githubusercontent.com/Muffy0906/firefly-money/main/docs/icon.png
+   ```
+   Save and refresh the Apps page. Edit this per-app file, not `/mnt/.ix-apps/metadata.yaml`, which TrueNAS rewrites on updates. The logo is also in `docs/icon.svg`.
 
 ### Running behind a reverse proxy
 
@@ -147,8 +152,11 @@ It implements only the endpoints the UI needs. Writes are accepted but not saved
 
 ## Development
 
-- Everything is in **`app/index.html`**: plain HTML, CSS and JavaScript with no framework and no build step. The script is split into sections (core, polish, planning, insights, part 2) that attach functions to a global `App` object used by inline handlers.
-- A few settings sit at the top of the main script (for example `LOAN_MONTHLY_PAYMENT`, the fallback used for loan "months to go" estimates).
+- The app is plain HTML, CSS and JavaScript with no framework and no build step:
+  - **`app/index.html`**: the page itself (nginx fills in `FIREFLY_URL` and the version stamp at startup).
+  - **`app/assets/money.css`**: all styles and themes.
+  - **`app/assets/js/`**: the scripts, loaded in this order and sharing one global scope: `core.js` (API, lists, router, main pages), `extras.js` (bulk edit, reconcile, rules, recurring, reports, settings), `polish.js` (quick add, undo, palette, date picker), `planning.js` (forecast, categorize inbox, loan planner, offline), `insights.js` (insight cards), `ui.js` (privacy, gestures, inline edits, dashboard, charts, natural-language quick add) and `shell.js` (the iPhone app shell). Functions used by inline handlers hang off a global `App` object.
+- A few settings sit at the top of `app/assets/js/core.js` (for example `LOAN_MONTHLY_PAYMENT`, the fallback used for loan "months to go" estimates).
 - Per-device preferences (theme, dashboard layout, privacy/density, forecast options, dismissed insights) are stored in `localStorage` under `money.*` / `moneyTheme`. Everything else lives in Firefly.
 - **Publishing a new version:** push to `main`, and GitHub Actions builds a new `latest` image in a few minutes (see the repo's **Actions** tab). For a numbered release, push a tag: `git tag v1.2.0 && git push --tags`.
 - **Smoke test:** opens every page and every "new …" form on desktop and phone sizes against the demo server, and fails on any JavaScript error:
@@ -180,5 +188,3 @@ This is an independent project. It is not affiliated with or endorsed by Firefly
 [PolyForm Strict 1.0.0](LICENSE): you may use Money for any noncommercial purpose, such as personal or household use or use by a charity or school. You may not change it, share or distribute copies, or sell it.
 
 Want to use it commercially, change it, or contribute? Please ask first by opening an issue.
-
-Versions released before this change stay under the MIT License they were published with.

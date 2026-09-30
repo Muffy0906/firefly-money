@@ -1,3 +1,5 @@
 *
 !app/index.html
 !app/default.conf.template
+!app/assets
+!app/assets/**
