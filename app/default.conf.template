@@ -4,6 +4,14 @@ map $http_x_dash_key $dash_ok {
     "${DASH_PASSWORD}" 1;
 }
 
+# The page links the stylesheet and scripts with ?v=<build version>, and each build gets a new
+# version, so a versioned URL never changes content: browsers may keep it for a year without asking
+# again. Without a version (a local build has no stamp), they check with the server on every use.
+map $arg_v $asset_cache {
+    default "public, max-age=31536000, immutable";
+    ""      "no-cache";
+}
+
 server {
     listen 80;
 
@@ -19,10 +27,10 @@ server {
     location = /icon.svg { default_type image/svg+xml; add_header Cache-Control "max-age=86400"; return 200 '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><rect width="180" height="180" rx="40" fill="#1f1f23"/><path d="M38 122l36-36 24 24 44-46M112 62h32v32" fill="none" stroke="#39ff9f" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/></svg>'; }
     location = /sw.js { default_type application/javascript; add_header Cache-Control "no-cache"; return 200 'const C="money-v1",N="/__money-updated";self.addEventListener("install",e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>fetch("/").then(res=>{if(res.ok){c.put("/",res.clone());return keep(c,res)}})))});self.addEventListener("activate",e=>e.waitUntil(self.clients.claim()));const ver=r=>r&&(r.headers.get("etag")||r.headers.get("last-modified"));const keep=(c,res)=>res.text().then(h=>Promise.all(h.split(String.fromCharCode(34)).filter(x=>x.startsWith("/assets/")).map(x=>c.match(x).then(m=>m||c.add(x)).catch(()=>{})))).catch(()=>{});self.addEventListener("fetch",e=>{const r=e.request;if(r.method!=="GET")return;const u=new URL(r.url);if(u.origin!==location.origin)return;if(r.mode==="navigate"){e.respondWith(caches.open(C).then(c=>Promise.all([c.match("/"),c.match(N)]).then(([old,note])=>{const net=fetch(r).then(res=>{if(res.ok){const v=ver(res);c.put("/",res.clone());keep(c,res.clone());if(old&&v&&ver(old)!==v){c.put(N,new Response(v));self.clients.matchAll({includeUncontrolled:true,type:"window"}).then(cs=>cs.forEach(x=>x.postMessage("money-updated")))}}return res});if(!old)return net.catch(()=>new Response("Offline",{status:503}));e.waitUntil(net.catch(()=>{}).then(()=>note&&note.text().then(t=>{if(t===ver(old))return c.delete(N)})));return old})));return}if(u.pathname.startsWith("/assets/")){e.respondWith(caches.open(C).then(c=>c.match(r).then(m=>{const net=fetch(r).then(res=>{if(res.ok)c.put(r,res.clone());return res});if(m){e.waitUntil(net.catch(()=>{}));return m}return net})));return}if(!u.pathname.startsWith("/api/"))return;e.respondWith(fetch(r).then(res=>{if(res.ok){const cp=res.clone();caches.open(C).then(c=>c.put(r,cp))}return res}).catch(()=>caches.match(r).then(m=>m||new Response(JSON.stringify({message:"Offline"}),{status:503,headers:{"Content-Type":"application/json"}}))))});'; }
 
-    # The app's stylesheet and scripts. The page links them with ?v=<version>, so a new version is fetched fresh.
+    # The app's stylesheet and scripts (cached as $asset_cache above says)
     location /assets/ {
         root /usr/share/nginx/html;
-        add_header Cache-Control "no-cache";
+        add_header Cache-Control $asset_cache;
         add_header X-Content-Type-Options "nosniff";
     }
 
