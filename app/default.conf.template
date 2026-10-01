@@ -35,8 +35,9 @@ server {
         add_header X-Content-Type-Options "nosniff";
         add_header Referrer-Policy "no-referrer";
         # Only this server may supply scripts, styles, images and API calls, and no other site may frame the page.
-        # 'unsafe-inline' stays for now: the page's markup uses inline onclick/onchange handlers.
-        add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
+        # No inline script either (markup handlers are data-on* attributes, see assets/js/events.js).
+        # Styles stay 'unsafe-inline' for the style="" attributes; CSS can't run script.
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
         add_header X-Frame-Options "DENY";
         add_header Cross-Origin-Opener-Policy "same-origin";
         add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()";

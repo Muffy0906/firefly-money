@@ -15,17 +15,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Money">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<script>
-  // Inside the iPhone app (or installed to the Home Screen): use the app-style shell.
-  (function () {
-    var d = document.documentElement, native = !!window.MONEY_NATIVE;
-    var standalone = window.navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
-    if (native || standalone) d.classList.add('shell');
-    if (native) { d.classList.add('native'); if (window.MONEY_NATIVE_TABS) d.classList.add('native-tabs');
-      var m = document.querySelector('meta[name=viewport]'); if (m) m.content += ', maximum-scale=1, user-scalable=no'; }
-  })();
-</script>
-<script>try { var t = localStorage.getItem('moneyTheme'); if (t && t !== 'auto') document.documentElement.setAttribute('data-theme', t); } catch (e) {}</script>
+<script src="/assets/js/boot.js?v=${MONEY_VERSION}"></script>
 <link rel="stylesheet" href="/assets/money.css?v=${MONEY_VERSION}">
 </head>
 <body>
@@ -50,19 +40,19 @@
     <div class="foot">
       <div class="label">Theme</div>
       <div class="themes" id="themes"></div>
-      <div class="toggles"><button type="button" data-tg="privacy" onclick="App.togglePrivacy()"></button><button type="button" data-tg="compact" onclick="App.toggleDensity()"></button></div>
+      <div class="toggles"><button type="button" data-tg="privacy" data-onclick="App.togglePrivacy()"></button><button type="button" data-tg="compact" data-onclick="App.toggleDensity()"></button></div>
       <a id="ffLink" href="${FIREFLY_URL}" target="_blank" rel="noopener">Open Firefly III ↗</a>
-      <button type="button" onclick="App.signOut()">Sign out</button>
+      <button type="button" data-onclick="App.signOut()">Sign out</button>
     </div>
   </aside>
   <main id="view"></main>
 </div>
 
-<button id="fab" class="fab" type="button" onclick="App.quickAdd()" aria-label="Add transaction (N)" title="Add transaction (N)" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+<button id="fab" class="fab" type="button" data-onclick="App.quickAdd()" aria-label="Add transaction (N)" title="Add transaction (N)" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
 <nav id="tabbar" class="tabbar" hidden></nav>
-<div id="palette" class="palette" hidden onclick="if(event.target===this)App.closePalette()">
+<div id="palette" class="palette" hidden data-onclick="App.palBackdrop(event,this)">
   <div class="palette-box"><input id="palQ" type="text" placeholder="Jump to a page, account, budget… or type to search transactions" autocomplete="off"
-    oninput="App.palFilter()" onkeydown="App.palKey(event)"><div id="palList" class="pal-list"></div>
+    data-oninput="App.palFilter()" data-onkeydown="App.palKey(event)"><div id="palList" class="pal-list"></div>
     <div class="pal-foot"><span>↑↓ to move</span><span>Enter to open</span><span>Esc to close</span></div></div>
 </div>
 <div id="undo" class="undo" role="status" aria-live="polite" hidden></div>
@@ -70,11 +60,12 @@
 <div id="pickpop" class="pickpop" hidden></div>
 <div id="ptr" class="ptr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></div>
 <div id="tip" class="tip" hidden></div>
-<div id="scrim" class="scrim" onclick="App.closeDrawer()"></div>
+<div id="scrim" class="scrim" data-onclick="App.closeDrawer()"></div>
 <aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-label="Details" aria-hidden="true"></aside>
 <dialog id="confirm"></dialog>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+<script src="/assets/js/events.js?v=${MONEY_VERSION}"></script>
 <script src="/assets/js/core.js?v=${MONEY_VERSION}"></script>
 <script src="/assets/js/extras.js?v=${MONEY_VERSION}"></script>
 

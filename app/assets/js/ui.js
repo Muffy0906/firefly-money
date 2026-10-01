@@ -89,7 +89,7 @@ function pick(node) {
     : [{ v: '', l: 'No budget' }, ...L.budgets.filter(b => b.active || b.id === sp.budget_id).map(b => ({ v: b.id, l: b.name }))];
   pickCtx = { tr, meta, k, items, cur: k === 'category' ? sp.category : sp.budget_id, idx: 0, q: '' };
   const box = el('pickpop');
-  box.innerHTML = '<input type="text" id="pkq" autocomplete="off" placeholder="' + (k === 'category' ? 'Find or create a category' : 'Find a budget') + '" oninput="App.pickFilter(this.value)" onkeydown="App.pickKey(event)"><div class="pk-list" id="pkList"></div>';
+  box.innerHTML = '<input type="text" id="pkq" autocomplete="off" placeholder="' + (k === 'category' ? 'Find or create a category' : 'Find a budget') + '" data-oninput="App.pickFilter(this.value)" data-onkeydown="App.pickKey(event)"><div class="pk-list" id="pkList"></div>';
   box.hidden = false;
   const r = node.getBoundingClientRect(), w = Math.min(280, innerWidth - 24);
   box.style.width = w + 'px';
@@ -109,7 +109,7 @@ function pickList() {
 function pickFilter(q) { pickCtx.q = q; pickCtx.idx = q ? 0 : Math.max(0, pickList().findIndex(x => String(x.v) === String(pickCtx.cur || ''))); drawPick(); }
 function drawPick() {
   const c = pickCtx, list = pickList();
-  el('pkList').innerHTML = list.map((x, i) => '<div class="pal-item' + (i === c.idx ? ' on' : '') + '" onmouseenter="App.pickHover(' + i + ')" onmousedown="event.preventDefault();App.pickChoose(' + i + ')">' +
+  el('pkList').innerHTML = list.map((x, i) => '<div class="pal-item' + (i === c.idx ? ' on' : '') + '" data-onmouseenter="App.pickHover(' + i + ')" data-onmousedown="event.preventDefault();App.pickChoose(' + i + ')">' +
     '<span>' + esc(x.l) + '</span>' + (String(x.v) === String(c.cur) && !x.create ? '<span class="k">✓</span>' : '') + '</div>').join('') || '<div class="empty" style="padding:10px 14px">Nothing matches.</div>';
   const on = el('pkList').querySelector('.on'); if (on) on.scrollIntoView({ block: 'nearest' });
 }
@@ -227,7 +227,7 @@ const DASH_WIDE = ['flow', 'cashflow', 'recent'];
 const DASH_NAMES = { safe: 'Safe to spend', attention: 'Needs attention', spending: 'Where it went', budgets: 'Budgets', cash: 'Cash & savings', cards: 'Credit cards',
   loans: 'Loans', bills: 'Coming up', heatmap: 'Daily spending', flow: 'Money flow', cashflow: 'Cash flow', recent: 'Recent transactions' };
 const dashLayout = () => ({ order: [], hidden: [], wide: null, ...LS.get('dash', {}) });
-function dashButton() { return S.dashEdit ? '' : '<button class="btn small" onclick="App.dashEdit(true)" title="Reorder, resize or hide cards">Customize</button>'; }
+function dashButton() { return S.dashEdit ? '' : '<button class="btn small" data-onclick="App.dashEdit(true)" title="Reorder, resize or hide cards">Customize</button>'; }
 function dashboard(W) {
   const L = dashLayout(), keys = W.map(w => w[0]), map = Object.fromEntries(W), wide = L.wide || DASH_WIDE, edit = !!S.dashEdit;
   const order = [...L.order.filter(k => keys.includes(k)), ...keys.filter(k => !L.order.includes(k))];
@@ -236,12 +236,12 @@ function dashboard(W) {
     const off = L.hidden.includes(k); if (off && !edit) return '';
     return '<div class="w' + (wide.includes(k) ? ' wide' : '') + (off ? ' off' : '') + '" data-w="' + k + '"' + (edit ? ' draggable="true"' : '') + '>' +
       (edit ? '<div class="wctl"><span class="grip" title="Drag to move">⠿</span><strong>' + esc(DASH_NAMES[k] || k) + '</strong><span class="grow"></span>' +
-        '<button type="button" onclick="App.dashMove(\'' + k + '\',-1)" aria-label="Move up">↑</button><button type="button" onclick="App.dashMove(\'' + k + '\',1)" aria-label="Move down">↓</button>' +
-        '<button type="button" onclick="App.dashWide(\'' + k + '\')">' + (wide.includes(k) ? 'Narrow' : 'Wide') + '</button>' +
-        '<button type="button" onclick="App.dashHide(\'' + k + '\')">' + (off ? 'Show' : 'Hide') + '</button></div>' : '') + html + '</div>';
+        '<button type="button" data-onclick="App.dashMove(\'' + k + '\',-1)" aria-label="Move up">↑</button><button type="button" data-onclick="App.dashMove(\'' + k + '\',1)" aria-label="Move down">↓</button>' +
+        '<button type="button" data-onclick="App.dashWide(\'' + k + '\')">' + (wide.includes(k) ? 'Narrow' : 'Wide') + '</button>' +
+        '<button type="button" data-onclick="App.dashHide(\'' + k + '\')">' + (off ? 'Show' : 'Hide') + '</button></div>' : '') + html + '</div>';
   };
   return (edit ? '<div class="dash-bar"><span>Drag cards (or use the arrows) to reorder. Wide cards span the full width.</span><span class="grow"></span>' +
-      '<button class="link" onclick="App.dashReset()">Reset</button><button class="btn small primary" onclick="App.dashEdit(false)">Done</button></div>' : '') +
+      '<button class="link" data-onclick="App.dashReset()">Reset</button><button class="btn small primary" data-onclick="App.dashEdit(false)">Done</button></div>' : '') +
     '<div class="cards' + (edit ? ' editing' : '') + '" id="dash">' + order.map(card).join('') + '</div>';
 }
 function dashSave(mut) {
@@ -320,7 +320,7 @@ function heatmapPanel(cur, groups) {
     const pct = v ? Math.round(18 + 82 * Math.sqrt(v / max)) : 0;
     cells += '<button type="button" class="hm-cell' + (fut ? ' fut' : '') + (iso === t ? ' today' : '') + '"' + (v ? ' style="--p:' + pct + '%"' : '') +
       ' data-tip="' + esc(fmtDay(iso) + (v ? ' · ' + money(v) + ' · ' + cnt[iso] + ' purchase' + (cnt[iso] === 1 ? '' : 's') : fut ? '' : ' · nothing spent')) + '"' +
-      (v ? ' onclick="location.hash=\'#/transactions?search=date_on:' + iso + '\'"' : ' disabled') + '><span>' + d + '</span></button>';
+      (v ? ' data-onclick="App.go(\'#/transactions?search=date_on:' + iso + '\')"' : ' disabled') + '><span>' + d + '</span></button>';
   }
   const top = Object.entries(by).sort((a, b) => b[1] - a[1])[0];
   const passed = cur.start.slice(0, 7) === t.slice(0, 7) ? +t.slice(8, 10) : dim, free = Math.max(0, passed - days);
@@ -355,7 +355,7 @@ function sankeyPanel(sources, income, cats, cur) {
   const share = (n, of) => of ? ' (' + Math.round(n.v / of * 100) + '%)' : '';
   left.forEach(n => { links += '<path class="lk" d="' + band(xl + NW, n.y, xm, my1, n.h) + '" fill="' + col(n) + '" data-tip="' + esc(n.name + ' → ' + money0(n.v) + share(n, total)) + '"/>'; my1 += n.h; });
   right.forEach(n => { links += '<path class="lk" d="' + band(xm + NW, my2, xr, n.y, n.h) + '" fill="' + col(n) + '" data-tip="' + esc(n.name + ' · ' + money0(n.v) + share(n, n.kind === 'kept' ? inc : spend) + (n.kind === 'kept' ? ' of income' : n.kind === 'out' ? ' of spending' : '')) + '"' +
-    (n.id ? ' style="cursor:pointer" onclick="location.hash=\'#/transactions?category=' + n.id + '\'"' : '') + '/>'; my2 += n.h; });
+    (n.id ? ' style="cursor:pointer" data-onclick="App.go(\'#/transactions?category=' + n.id + '\')"' : '') + '/>'; my2 += n.h; });
   const label = (n, anchor, x) => '<text x="' + x + '" y="' + (n.ly - 2) + '" text-anchor="' + anchor + '" class="sk-name">' + esc(n.name.length > (narrow ? 14 : 24) ? n.name.slice(0, narrow ? 13 : 23) + '…' : n.name) + '</text>' +
     '<text x="' + x + '" y="' + (n.ly + 12) + '" text-anchor="' + anchor + '" class="sk-amt amtx">' + money0(n.v) + '</text>';
   // Keep two-line labels from colliding: push each label down past the previous one, then pull the column back up if it overflows

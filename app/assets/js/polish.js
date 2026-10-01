@@ -139,18 +139,18 @@ function liveRuleFilter(q) {
 function drawTabbar(active) {
   const tb = el('tabbar'); tb.hidden = false;
   const t = (r, label, ic) => '<a href="#/' + r + '" class="' + (r === active ? 'on' : '') + '">' + icon(ic) + '<span>' + label + '</span></a>';
-  tb.innerHTML = t('', 'Home', 'overview') + t('transactions', 'Activity', 'transactions') + '<button type="button" class="plus" onclick="App.quickAdd()" aria-label="Add transaction"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>' +
-    t('budgets', 'Budgets', 'budgets') + '<button type="button" onclick="App.moreSheet()">' + icon('categories') + '<span>More</span></button>';
+  tb.innerHTML = t('', 'Home', 'overview') + t('transactions', 'Activity', 'transactions') + '<button type="button" class="plus" data-onclick="App.quickAdd()" aria-label="Add transaction"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>' +
+    t('budgets', 'Budgets', 'budgets') + '<button type="button" data-onclick="App.moreSheet()">' + icon('categories') + '<span>More</span></button>';
 }
 function moreSheet() {
-  openDrawer('Menu', '<div class="list">' + NAV.map(([r, label, ic]) => '<a class="row" href="#/' + r + '" onclick="App.closeDrawer()" style="padding:14px 0;align-items:center"><span class="name" style="display:flex;gap:12px;align-items:center">' +
+  openDrawer('Menu', '<div class="list">' + NAV.map(([r, label, ic]) => '<a class="row" href="#/' + r + '" data-onclick="App.closeDrawer()" style="padding:14px 0;align-items:center"><span class="name" style="display:flex;gap:12px;align-items:center">' +
     '<span style="width:20px;display:inline-flex">' + icon(ic) + '</span>' + label + '</span><span class="neutral">›</span></a>').join('') + '</div>' +
     '<div class="eyebrow" style="margin-top:22px">Theme</div><div class="themes" id="themes2" style="padding:6px 0 0"></div>' +
-    '<div class="toggles sheet"><button type="button" class="btn" data-tg="privacy" onclick="App.togglePrivacy()"></button><button type="button" class="btn" data-tg="compact" onclick="App.toggleDensity()"></button></div>' +
-    '<div style="margin-top:22px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn" onclick="App.openPalette()">Search everything</button>' +
+    '<div class="toggles sheet"><button type="button" class="btn" data-tg="privacy" data-onclick="App.togglePrivacy()"></button><button type="button" class="btn" data-tg="compact" data-onclick="App.toggleDensity()"></button></div>' +
+    '<div style="margin-top:22px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn" data-onclick="App.openPalette()">Search everything</button>' +
     (el('ffLink').hidden ? '' : '<a class="btn" href="' + el('ffLink').getAttribute('href') + '" target="_blank" rel="noopener">Open Firefly III ↗</a>') +
-    (window.MONEY_NATIVE ? '<button class="btn" onclick="window.webkit.messageHandlers.native.postMessage(\'settings\')">App settings</button>' : '') +
-    '<button class="btn" onclick="App.signOut()">Sign out</button></div>');
+    (window.MONEY_NATIVE ? '<button class="btn" data-onclick="App.nativeSettings()">App settings</button>' : '') +
+    '<button class="btn" data-onclick="App.signOut()">Sign out</button></div>');
   el('themes2').innerHTML = el('themes').innerHTML; if (App.drawToggles) App.drawToggles();
   el('themes2').querySelectorAll('button').forEach(b => b.style.cssText += ';width:34px;height:34px;border-radius:50%;border:2px solid var(--line);display:inline-block;padding:0');
 }
@@ -168,7 +168,7 @@ function bindSwipe() {
     }, { passive: true });
     tr.addEventListener('touchend', () => {
       tr.classList.remove('swiping'); tr.style.transform = '';
-      if (active && dx < -80) { tr.onclick = null; softDeleteTx([tr.dataset.gid]); }
+      if (active && dx < -80) { tr.removeAttribute('data-onclick'); softDeleteTx([tr.dataset.gid]); }
       tr.classList.remove('swipe-del'); active = false;
     });
   });
@@ -260,7 +260,7 @@ function palFilter() {
   palIdx = 0; drawPal();
 }
 function drawPal() {
-  el('palList').innerHTML = palShown.length ? palShown.map((it, i) => '<div class="pal-item' + (i === palIdx ? ' on' : '') + '" data-i="' + i + '" onmousemove="App.palHover(' + i + ')" onclick="App.palRun(' + i + ')"><span>' + esc(it.label) + '</span><span class="k">' + esc(it.kind) + '</span></div>').join('')
+  el('palList').innerHTML = palShown.length ? palShown.map((it, i) => '<div class="pal-item' + (i === palIdx ? ' on' : '') + '" data-i="' + i + '" data-onmousemove="App.palHover(' + i + ')" data-onclick="App.palRun(' + i + ')"><span>' + esc(it.label) + '</span><span class="k">' + esc(it.kind) + '</span></div>').join('')
     : '<div class="pal-item"><span class="neutral">No matches</span></div>';
   const on = el('palList').querySelector('.on'); if (on) on.scrollIntoView({ block: 'nearest' });
 }

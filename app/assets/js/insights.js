@@ -89,10 +89,10 @@ async function insightCards({ cur, future, budgets, limits, cards, trend }) {
   const shown = out.filter(x => !hidden[x.id]).sort((a, b) => b.score - a.score).slice(0, 4);
   if (!shown.length) return '';
   return '<div class="insights" id="insights" aria-label="Insights">' + shown.map(x =>
-    '<div class="insight t-' + x.tone + '" role="link" tabindex="0" data-ins="' + esc(x.id) + '" onclick="location.hash=\'' + x.href + '\'" onkeydown="if(event.key===\'Enter\')this.click()">' +
+    '<div class="insight t-' + x.tone + '" role="link" tabindex="0" data-ins="' + esc(x.id) + '" data-onclick="App.go(\'' + x.href + '\')" data-onkeydown="App.enterClick(event,this)">' +
       '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + INS_ICON[x.ic] + '</svg></span>' +
       '<span><div class="t">' + esc(x.title) + '</div><div class="d">' + esc(x.detail) + '</div></span>' +
-      '<button class="x" type="button" aria-label="Dismiss" title="Hide this" onclick="event.stopPropagation();App.hideInsight(this)">×</button></div>').join('') + '</div>';
+      '<button class="x" type="button" aria-label="Dismiss" title="Hide this" data-onclick="event.stopPropagation();App.hideInsight(this)">×</button></div>').join('') + '</div>';
 }
 function hideInsight(btn) {
   const card = btn.closest('.insight'), id = card.dataset.ins, box = el('insights');
