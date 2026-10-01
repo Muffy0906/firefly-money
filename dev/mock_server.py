@@ -147,6 +147,11 @@ def handle(path, q, method):
         return page([g for g in TX if jd(g)[key] == m.group(2) and in_range(g, q)], q)
     return page([], q)
 
+# The page's security headers (Content-Security-Policy and friends), taken from the nginx config so both stay the same
+_conf = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'app', 'default.conf.template')).read()
+PAGE_HEADERS = re.findall(r'add_header ([\w-]+) "(.*?)";', re.search(r'location / \{(.*?)\n    \}', _conf, re.S).group(1))
+PAGE_HEADERS = [(k, v) for k, v in PAGE_HEADERS if k != 'Cache-Control']
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a): pass
     def _go(self, method):
@@ -155,6 +160,7 @@ class H(BaseHTTPRequestHandler):
             if u.path in ('/', '/index.html'):
                 body = open(INDEX, 'rb').read().replace(b'${MONEY_VERSION}', os.environ.get('MONEY_VERSION', 'demo').encode())
                 self.send_response(200); self.send_header('Content-Type', 'text/html')
+                for k, v in PAGE_HEADERS: self.send_header(k, v)
                 self.send_header('ETag', '"%s"' % hashlib.md5(body).hexdigest()); self.end_headers(); self.wfile.write(body)
             elif u.path == '/sw.js':          # the service worker, taken from the nginx config so both stay the same
                 conf = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'app', 'default.conf.template')).read()

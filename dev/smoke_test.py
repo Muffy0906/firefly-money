@@ -12,8 +12,9 @@ PAGES = ['', 'forecast', 'transactions', 'inbox', 'accounts', 'account/1', 'acco
          'bills', 'recurring', 'piggy', 'rules', 'reports', 'settings']
 SHOTS = sys.argv[sys.argv.index('--shots') + 1] if '--shots' in sys.argv else None
 # The page for the current hash has painted (not the previous page or the loading skeleton) and no animation is running
-PAINTED = """(() => { const r = parseHash(); return !S.vtRun && S.pageKey && S.pageKey.startsWith(r.name + '/' + r.id + '?')
-  && document.querySelector('#view .head .actions, #view .error'); })()"""
+# (a function, not an expression: Playwright evals expressions, which the Content-Security-Policy refuses)
+PAINTED = """() => { const r = parseHash(); return !S.vtRun && S.pageKey && S.pageKey.startsWith(r.name + '/' + r.id + '?')
+  && document.querySelector('#view .head .actions, #view .error'); }"""
 
 
 async def goto(page, route):
@@ -28,6 +29,8 @@ async def check(pw, width, height, mobile):
     page = await ctx.new_page()
     errors = []
     page.on('pageerror', lambda e: errors.append(f'{page.url}: {e}'))
+    # anything the Content-Security-Policy blocks (the mock server sends the same policy as nginx)
+    page.on('console', lambda m: 'Content Security Policy' in m.text and errors.append(f'{page.url}: {m.text}'))
     for p in PAGES:
         await goto(page, p)
         await page.wait_for_timeout(300)
@@ -79,7 +82,7 @@ async def screenshots(pw, out):
         ctx = await br.new_context(viewport={'width': w, 'height': h}, is_mobile=mobile, has_touch=mobile, device_scale_factor=2 if mobile else 1)
         await ctx.add_init_script("localStorage.setItem('moneyKey','demo');" + (f"localStorage.setItem('moneyTheme','{theme}');" if theme else ''))
         pg = await ctx.new_page(); await pg.goto(BASE + '#/' + route)
-        await pg.wait_for_function(PAINTED); await pg.wait_for_function("!document.querySelector('#view .sk, #view [aria-busy]')"); await pg.wait_for_timeout(1200)
+        await pg.wait_for_function(PAINTED); await pg.wait_for_function("() => !document.querySelector('#view .sk, #view [aria-busy]')"); await pg.wait_for_timeout(1200)
         if action: await action(pg)
         await pg.screenshot(path=f'{out}/{name}.png', full_page=full); await ctx.close()
     async def open_tx(pg):
