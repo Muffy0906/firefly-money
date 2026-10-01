@@ -27,13 +27,13 @@ function renderBulk(progress) {
   bar.innerHTML = progress ? '<strong>' + esc(progress) + '</strong>' :
     '<strong>' + n + ' selected</strong>' +
     '<input type="text" id="bk-cat" list="bk-dlcat" placeholder="Category" style="width:170px"><datalist id="bk-dlcat">' + L.categories.map(c => '<option value="' + esc(c.name) + '">').join('') + '</datalist>' +
-    '<button class="btn small" onclick="App.bulk(\'category\')">Set category</button>' +
+    '<button class="btn small" data-onclick="App.bulk(\'category\')">Set category</button>' +
     '<select id="bk-bud" style="width:170px">' + opt('', 'Choose budget…', '') + opt('0', 'No budget', '') + L.budgets.filter(b => b.active).map(b => opt(b.id, b.name, '')).join('') + '</select>' +
-    '<button class="btn small" onclick="App.bulk(\'budget\')">Set budget</button>' +
+    '<button class="btn small" data-onclick="App.bulk(\'budget\')">Set budget</button>' +
     '<input type="text" id="bk-tag" list="bk-dltag" placeholder="Tag" style="width:130px"><datalist id="bk-dltag">' + L.tags.map(t => '<option value="' + esc(t.name) + '">').join('') + '</datalist>' +
-    '<button class="btn small" onclick="App.bulk(\'tag\')">Add tag</button>' +
-    '<button class="btn small danger" onclick="App.bulk(\'delete\')">Delete</button>' +
-    '<button class="link" onclick="App.selAll(false)">Clear</button>';
+    '<button class="btn small" data-onclick="App.bulk(\'tag\')">Add tag</button>' +
+    '<button class="btn small danger" data-onclick="App.bulk(\'delete\')">Delete</button>' +
+    '<button class="link" data-onclick="App.selAll(false)">Clear</button>';
 }
 async function bulk(kind) {
   const groups = [...(S.sel || [])].map(id => S.txMeta[id] && S.txMeta[id].g).filter(Boolean);
@@ -87,23 +87,23 @@ async function loadTxExtras(gid, jids) {
     if (!el('txExtras')) return;
     const attHtml = atts.length ? '<div class="list">' + atts.map(a => {
       const at = a.attributes;
-      return '<div class="row"><span class="name"><button class="link" onclick="App.downloadAtt(\'' + a.id + '\',\'' + esc(String(at.filename).replace(/'/g, '')) + '\')">' + esc(at.title || at.filename) + '</button> <span class="sub-s">' + fmtSize(at.size) + '</span></span>' +
-        '<button class="link" onclick="App.deleteAtt(\'' + a.id + '\')">Remove</button></div>';
+      return '<div class="row"><span class="name"><button class="link" data-onclick="App.downloadAtt(\'' + a.id + '\',\'' + esc(String(at.filename).replace(/'/g, '')) + '\')">' + esc(at.title || at.filename) + '</button> <span class="sub-s">' + fmtSize(at.size) + '</span></span>' +
+        '<button class="link" data-onclick="App.deleteAtt(\'' + a.id + '\')">Remove</button></div>';
     }).join('') + '</div>' : '<p class="empty" style="padding-top:0">No files attached.</p>';
     const linkHtml = others.length ? '<div class="list">' + others.map(({ l, mine, g }) => {
       const t = typeById[String(l.attributes.link_type_id)] || {}, phrase = mine ? t.outward : t.inward;
       return '<div class="row"><span class="name"><span class="sub-s">' + esc(phrase || 'linked to') + '</span><br>' +
-        (g ? '<button class="link" onclick="App.editTx(\'' + g.id + '\')">' + esc(g.title || g.splits[0].description) + '</button> <span class="sub-s">' + fmtDay(g.date) + ' · ' + money(g.total) + '</span>' : 'Transaction #' + esc(mine ? l.attributes.inward_id : l.attributes.outward_id)) +
-        '</span><button class="link" onclick="App.deleteLink(\'' + l.id + '\')">Unlink</button></div>';
+        (g ? '<button class="link" data-onclick="App.editTx(\'' + g.id + '\')">' + esc(g.title || g.splits[0].description) + '</button> <span class="sub-s">' + fmtDay(g.date) + ' · ' + money(g.total) + '</span>' : 'Transaction #' + esc(mine ? l.attributes.inward_id : l.attributes.outward_id)) +
+        '</span><button class="link" data-onclick="App.deleteLink(\'' + l.id + '\')">Unlink</button></div>';
     }).join('') + '</div>' : '<p class="empty" style="padding-top:0">Not linked to anything.</p>';
     const dirOpts = types.flatMap(t => { const a = t.attributes; return a.inward === a.outward ? [opt(t.id + ':out', a.outward, '')] : [opt(t.id + ':out', a.outward, ''), opt(t.id + ':in', a.inward, '')]; }).join('');
     box.innerHTML =
       '<div class="extra"><h3>Attachments</h3>' + attHtml +
-        '<label style="margin:12px 0 0">Add files<input type="file" id="attFile" multiple onchange="App.uploadAtt(\'' + jids[0] + '\', this)"></label></div>' +
+        '<label style="margin:12px 0 0">Add files<input type="file" id="attFile" multiple data-onchange="App.uploadAtt(\'' + jids[0] + '\', this)"></label></div>' +
       '<div class="extra"><h3>Linked transactions</h3>' + linkHtml +
         (types.length ? '<div style="margin-top:12px"><div class="grid2"><label>This transaction…<select id="lnkType">' + dirOpts + '</select></label>' +
-          '<label>…this one<input type="search" id="lnkQ" placeholder="Search description" onkeydown="if(event.key===\'Enter\'){event.preventDefault();App.findLink()}"></label></div>' +
-          '<button class="btn small" type="button" onclick="App.findLink()">Find</button><div id="lnkResults" style="margin-top:10px"></div></div>' : '') +
+          '<label>…this one<input type="search" id="lnkQ" placeholder="Search description" data-onkeydown="App.linkKey(event)"></label></div>' +
+          '<button class="btn small" type="button" data-onclick="App.findLink()">Find</button><div id="lnkResults" style="margin-top:10px"></div></div>' : '') +
       '</div>';
     S.extrasCtx = { gid, jids };
   } catch (e) { if (el('txExtras')) el('txExtras').innerHTML = '<p class="sub-s">' + esc(e.message) + '</p>'; }
@@ -131,7 +131,7 @@ async function findLink() {
     const res = await api('/search/transactions', { params: { query: q, search: q, limit: 8, page: 1 } });
     const gs = arr(res).map(normGroup).filter(g => g.id !== S.extrasCtx.gid);
     el('lnkResults').innerHTML = gs.length ? '<div class="list">' + gs.map(g => '<div class="row"><span class="name">' + esc(g.title || g.splits[0].description) + ' <span class="sub-s">' + fmtDay(g.date) + ' · ' + money(g.total) + '</span></span>' +
-      '<button class="btn small" type="button" onclick="App.makeLink(\'' + g.splits[0].jid + '\')">Link</button></div>').join('') + '</div>' : '<p class="empty">No matches.</p>';
+      '<button class="btn small" type="button" data-onclick="App.makeLink(\'' + g.splits[0].jid + '\')">Link</button></div>').join('') + '</div>' : '<p class="empty">No matches.</p>';
   });
 }
 async function makeLink(otherJid) {
@@ -165,12 +165,12 @@ VIEWS.reconcile = async (r, paint) => {
   paint('<p style="margin:0 0 6px"><a class="link" href="#/account/' + a.id + '">← ' + esc(a.name) + '</a></p>' +
     head('Reconcile ' + a.name, 'Tick off each transaction that appears on your statement until the difference is zero.', '') +
     '<section class="panel" style="margin-bottom:20px"><div class="grid2" style="grid-template-columns:repeat(3,1fr);gap:0 16px">' +
-      '<label>Statement start<input type="date" id="rc-start" value="' + start + '" onchange="App.recDates()"></label>' +
-      '<label>Statement end<input type="date" id="rc-end" value="' + end + '" onchange="App.recDates()"></label>' +
-      '<label>' + (owed ? 'Statement balance owed' : 'Statement ending balance') + '<input type="number" step="0.01" id="rc-bal" value="' + esc(r.q.balance || '') + '" oninput="App.recCalc()" placeholder="From your statement"></label>' +
+      '<label>Statement start<input type="date" id="rc-start" value="' + start + '" data-onchange="App.recDates()"></label>' +
+      '<label>Statement end<input type="date" id="rc-end" value="' + end + '" data-onchange="App.recDates()"></label>' +
+      '<label>' + (owed ? 'Statement balance owed' : 'Statement ending balance') + '<input type="number" step="0.01" id="rc-bal" value="' + esc(r.q.balance || '') + '" data-oninput="App.recCalc()" placeholder="From your statement"></label>' +
     '</div><div class="kpis" id="rc-kpis" style="margin:4px 0 0"></div><div id="rc-actions" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px"></div></section>' +
-    '<section class="panel flush">' + (rows.length ? '<table class="tbl"><thead><tr><th class="sel"><input type="checkbox" onchange="App.recAll(this.checked)" aria-label="Tick all"></th><th>Date</th><th>Description</th><th class="r">Amount</th></tr></thead><tbody>' +
-      rows.map(x => '<tr><td class="sel"><input type="checkbox" data-rec="' + x.jid + '"' + (S.rec.checked.has(x.jid) ? ' checked' : '') + (x.rec ? ' disabled title="Already reconciled"' : '') + ' onchange="App.recTick(this)"></td>' +
+    '<section class="panel flush">' + (rows.length ? '<table class="tbl"><thead><tr><th class="sel"><input type="checkbox" data-onchange="App.recAll(this.checked)" aria-label="Tick all"></th><th>Date</th><th>Description</th><th class="r">Amount</th></tr></thead><tbody>' +
+      rows.map(x => '<tr><td class="sel"><input type="checkbox" data-rec="' + x.jid + '"' + (S.rec.checked.has(x.jid) ? ' checked' : '') + (x.rec ? ' disabled title="Already reconciled"' : '') + ' data-onchange="App.recTick(this)"></td>' +
         '<td class="date">' + fmtDay(x.date) + '</td><td class="desc">' + esc(x.desc) + (x.rec ? ' <span class="chip good">Reconciled</span>' : '') + '</td>' +
         '<td class="amt ' + (x.amt < 0 ? 'neg' : 'pos') + '">' + (x.amt > 0 ? '+' : '') + money(x.amt) + '</td></tr>').join('') + '</tbody></table>'
       : '<div class="center-empty">No transactions in this period.</div>') + '</section>');
@@ -188,8 +188,8 @@ function recCalc() {
     '<div class="kpi"><div class="eyebrow">Ticked balance</div><div class="val num">' + money(disp(cleared)) + '</div></div>' +
     '<div class="kpi"><div class="eyebrow">Difference</div><div class="val num ' + (diff === null ? '' : diff === 0 ? 'pos' : 'neg') + '">' + (diff === null ? '—' : diff === 0 ? 'Balanced ✓' : money(disp(diff))) + '</div></div>';
   el('rc-actions').innerHTML =
-    '<button class="btn primary" onclick="App.recFinish()"' + (newly ? '' : ' disabled') + '>Mark ' + newly + ' as reconciled</button>' +
-    (diff ? '<button class="btn" onclick="App.recAdjust()">Add a ' + money(Math.abs(diff)) + ' adjustment</button>' : '');
+    '<button class="btn primary" data-onclick="App.recFinish()"' + (newly ? '' : ' disabled') + '>Mark ' + newly + ' as reconciled</button>' +
+    (diff ? '<button class="btn" data-onclick="App.recAdjust()">Add a ' + money(Math.abs(diff)) + ' adjustment</button>' : '');
   R.diff = diff;
 }
 function recTick(cb) { cb.checked ? S.rec.checked.add(cb.dataset.rec) : S.rec.checked.delete(cb.dataset.rec); recCalc(); }
@@ -255,33 +255,33 @@ VIEWS.rules = async (r, paint) => {
     if (q && !shown.length) return '';
     return '<details class="panel flush rulegroup" style="margin-bottom:14px"' + (q ? ' open' : '') + '><summary><div><div class="desc">' + esc(g.attributes.title) +
       (g.attributes.active === false ? ' <span class="chip">Inactive</span>' : '') + '</div><div class="sub-s">' + list.length + ' rule' + (list.length === 1 ? '' : 's') +
-      (g.attributes.description ? ' · ' + esc(g.attributes.description) : '') + '</div></div><div style="display:flex;gap:8px" onclick="event.preventDefault()">' +
-      '<button class="btn small" onclick="App.runRules(\'group\',\'' + g.id + '\')">Run…</button><button class="btn small" onclick="App.ruleForm(null,\'' + g.id + '\')">+ Rule</button>' +
-      '<button class="btn small" onclick="App.groupForm(\'' + g.id + '\')">Edit</button></div></summary>' +
+      (g.attributes.description ? ' · ' + esc(g.attributes.description) : '') + '</div></div><div style="display:flex;gap:8px" data-onclick="event.preventDefault()">' +
+      '<button class="btn small" data-onclick="App.runRules(\'group\',\'' + g.id + '\')">Run…</button><button class="btn small" data-onclick="App.ruleForm(null,\'' + g.id + '\')">+ Rule</button>' +
+      '<button class="btn small" data-onclick="App.groupForm(\'' + g.id + '\')">Edit</button></div></summary>' +
       (shown.length ? '<table class="tbl"><tbody>' + shown.map(x => {
         const at = x.attributes;
-        return '<tr' + (at.active ? '' : ' style="opacity:.55"') + '><td class="sel"><input type="checkbox" title="Active"' + (at.active ? ' checked' : '') + ' onchange="App.toggleRule(\'' + x.id + '\',this.checked)"></td>' +
+        return '<tr' + (at.active ? '' : ' style="opacity:.55"') + '><td class="sel"><input type="checkbox" title="Active"' + (at.active ? ' checked' : '') + ' data-onchange="App.toggleRule(\'' + x.id + '\',this.checked)"></td>' +
           '<td data-text="' + esc((at.title + ' ' + ruleSummary(at)).toLowerCase()) + '"><div class="desc">' + esc(at.title) + (at.stop_processing ? ' <span class="chip">Stops group</span>' : '') + (at.trigger === 'update-journal' ? ' <span class="chip">On update</span>' : '') + '</div><div class="sub-s">' + esc(ruleSummary(at)) + '</div></td>' +
-          '<td class="act"><button class="btn small" onclick="App.runRules(\'rule\',\'' + x.id + '\')">Run…</button> <button class="btn small" onclick="App.ruleForm(\'' + x.id + '\')">Edit</button></td></tr>';
+          '<td class="act"><button class="btn small" data-onclick="App.runRules(\'rule\',\'' + x.id + '\')">Run…</button> <button class="btn small" data-onclick="App.ruleForm(\'' + x.id + '\')">Edit</button></td></tr>';
       }).join('') + '</tbody></table>' : '<div class="center-empty" style="padding:24px">No rules in this group.</div>') + '</details>';
   }).join('');
   paint(head('Rules', rules.length + ' rule' + (rules.length === 1 ? '' : 's') + ' in ' + groups.length + ' group' + (groups.length === 1 ? '' : 's') + '. Groups run top to bottom when a transaction is added.',
-      '<button class="btn" onclick="App.groupForm()">+ New group</button><button class="btn primary" onclick="App.ruleForm()">+ New rule</button>') +
-    '<div class="toolbar"><form class="search" onsubmit="event.preventDefault();location.hash=\'#/rules\'+(this.q.value.trim()?\'?q=\'+encodeURIComponent(this.q.value.trim()):\'\')">' + icon('search') +
-      '<input type="search" name="q" placeholder="Search rules by name, text or category" value="' + esc(r.q.q || '') + '" oninput="App.liveRuleFilter(this.value)"></form>' + (q ? '<a class="link" href="#/rules">Clear</a>' : '') + '</div>' +
+      '<button class="btn" data-onclick="App.groupForm()">+ New group</button><button class="btn primary" data-onclick="App.ruleForm()">+ New rule</button>') +
+    '<div class="toolbar"><form class="search" data-onsubmit="event.preventDefault();App.rulesSearch(this)">' + icon('search') +
+      '<input type="search" name="q" placeholder="Search rules by name, text or category" value="' + esc(r.q.q || '') + '" data-oninput="App.liveRuleFilter(this.value)"></form>' + (q ? '<a class="link" href="#/rules">Clear</a>' : '') + '</div>' +
     (html || '<section class="panel"><div class="center-empty">' + (q ? 'No rules match.' : 'No rules yet.') + '</div></section>'));
 };
 async function toggleRule(id, on) {
   const at = S.rules[id];
-  await withAuth(async () => { const row = document.querySelector('input[onchange*="toggleRule(\'' + id + '\'"]'); if (row) row.closest('tr').style.opacity = on ? '' : '.55';
+  await withAuth(async () => { const row = document.querySelector('input[data-onchange*="toggleRule(\'' + id + '\'"]'); if (row) row.closest('tr').style.opacity = on ? '' : '.55';
     await api('/rules/' + id, { method: 'PUT', body: { title: at.title, rule_group_id: String(at.rule_group_id), active: on } }); at.active = on; toast(on ? 'Rule turned on' : 'Rule turned off'); });
 }
 function condRow(kind, t, i) {
   const list = kind === 't' ? TRIGGERS : ACTIONS, has = list.some(x => x[0] === t.type);
-  return '<div class="editor-row" data-' + kind + '="' + i + '"><select data-f="type" onchange="App.ruleRowType(this)">' + (has ? '' : opt(t.type, t.type, t.type)) + list.map(x => opt(x[0], x[1], t.type)).join('') + '</select>' +
+  return '<div class="editor-row" data-' + kind + '="' + i + '"><select data-f="type" data-onchange="App.ruleRowType(this)">' + (has ? '' : opt(t.type, t.type, t.type)) + list.map(x => opt(x[0], x[1], t.type)).join('') + '</select>' +
     '<input type="text" data-f="value" value="' + esc(t.value || '') + '"' + (noVal.has(t.type) ? ' disabled placeholder="No value needed"' : ' placeholder="Value"') + '>' +
     '<span style="display:flex;gap:6px;align-items:center">' + (kind === 't' ? '<label class="check" style="margin:0;font-size:12px" title="Match when this is NOT true"><input type="checkbox" data-f="prohibited"' + (t.prohibited ? ' checked' : '') + '>Not</label>' : '') +
-    '<button type="button" class="x" onclick="this.closest(\'.editor-row\').remove()" aria-label="Remove">×</button></span></div>';
+    '<button type="button" class="x" data-onclick="App.removeRow(this)" aria-label="Remove">×</button></span></div>';
 }
 function ruleRowType(sel) { const inp = sel.parentElement.querySelector('[data-f=value]'); const nv = noVal.has(sel.value); inp.disabled = nv; inp.placeholder = nv ? 'No value needed' : 'Value'; if (nv) inp.value = ''; }
 function ruleForm(id, groupId) {
@@ -289,18 +289,18 @@ function ruleForm(id, groupId) {
     triggers: [{ type: 'description_contains', value: '' }], actions: [{ type: 'set_category', value: '' }] };
   S.form = { id };
   openDrawer(id ? 'Edit rule' : 'New rule',
-    '<form id="ruleForm" onsubmit="event.preventDefault();App.saveRule()"><label>Name<input type="text" id="r-title" value="' + esc(at.title) + '" required></label>' +
+    '<form id="ruleForm" data-onsubmit="event.preventDefault();App.saveRule()"><label>Name<input type="text" id="r-title" value="' + esc(at.title) + '" required></label>' +
     '<div class="grid2"><label>Group<select id="r-group">' + S.ruleGroups.map(g => opt(g.id, g.attributes.title, String(at.rule_group_id))).join('') + '</select></label>' +
     '<label>Runs<select id="r-when">' + opt('store-journal', 'When a transaction is added', at.trigger) + opt('update-journal', 'When a transaction is changed', at.trigger) + '</select></label></div>' +
     '<label>Match<select id="r-strict">' + opt('1', 'All of these conditions', at.strict ? '1' : '0') + opt('0', 'Any of these conditions', at.strict ? '1' : '0') + '</select></label>' +
     '<div id="r-trig">' + at.triggers.filter(t => t.type !== 'user_action' || at.triggers.length === 1).map((t, i) => condRow('t', t, i)).join('') + '</div>' +
-    '<button type="button" class="btn small" onclick="App.ruleAdd(\'t\')" style="margin-bottom:18px">+ Condition</button>' +
+    '<button type="button" class="btn small" data-onclick="App.ruleAdd(\'t\')" style="margin-bottom:18px">+ Condition</button>' +
     '<div class="eyebrow">Then</div><div id="r-act">' + at.actions.map((t, i) => condRow('a', t, i)).join('') + '</div>' +
-    '<button type="button" class="btn small" onclick="App.ruleAdd(\'a\')" style="margin-bottom:18px">+ Action</button>' +
+    '<button type="button" class="btn small" data-onclick="App.ruleAdd(\'a\')" style="margin-bottom:18px">+ Action</button>' +
     '<label class="check"><input type="checkbox" id="r-stop"' + (at.stop_processing ? ' checked' : '') + '> Stop running the rest of this group when this rule matches</label>' +
     '<label class="check"><input type="checkbox" id="r-active"' + (at.active ? ' checked' : '') + '> Active</label><button type="submit" hidden></button></form>',
-    (id ? '<button class="btn danger" onclick="App.deleteRule(\'' + id + '\')">Delete</button>' : '') + '<span class="grow"></span><button class="btn" onclick="App.closeDrawer()">Cancel</button>' +
-    '<button class="btn primary" id="ruleSave" onclick="el(\'ruleForm\').requestSubmit()">' + (id ? 'Save rule' : 'Create rule') + '</button>');
+    (id ? '<button class="btn danger" data-onclick="App.deleteRule(\'' + id + '\')">Delete</button>' : '') + '<span class="grow"></span><button class="btn" data-onclick="App.closeDrawer()">Cancel</button>' +
+    '<button class="btn primary" id="ruleSave" data-onclick="App.submit(\'ruleForm\')">' + (id ? 'Save rule' : 'Create rule') + '</button>');
 }
 function ruleAdd(kind) {
   const box = el(kind === 't' ? 'r-trig' : 'r-act'), div = document.createElement('div');
@@ -335,11 +335,11 @@ function groupForm(id) {
   const g = id ? S.ruleGroups.find(x => String(x.id) === id).attributes : { title: '', description: '', active: true };
   S.form = { id };
   openDrawer(id ? 'Edit rule group' : 'New rule group',
-    '<form id="grpForm" onsubmit="event.preventDefault();App.saveGroup()"><label>Name<input type="text" id="g-title" value="' + esc(g.title) + '" required></label>' +
+    '<form id="grpForm" data-onsubmit="event.preventDefault();App.saveGroup()"><label>Name<input type="text" id="g-title" value="' + esc(g.title) + '" required></label>' +
     '<label>Description<input type="text" id="g-desc" value="' + esc(g.description || '') + '"></label>' +
     '<label class="check"><input type="checkbox" id="g-active"' + (g.active !== false ? ' checked' : '') + '> Active</label><button type="submit" hidden></button></form>',
-    (id ? '<button class="btn danger" onclick="App.deleteGroup(\'' + id + '\')">Delete</button>' : '') + '<span class="grow"></span><button class="btn" onclick="App.closeDrawer()">Cancel</button>' +
-    '<button class="btn primary" id="grpSave" onclick="el(\'grpForm\').requestSubmit()">Save</button>');
+    (id ? '<button class="btn danger" data-onclick="App.deleteGroup(\'' + id + '\')">Delete</button>' : '') + '<span class="grow"></span><button class="btn" data-onclick="App.closeDrawer()">Cancel</button>' +
+    '<button class="btn primary" id="grpSave" data-onclick="App.submit(\'grpForm\')">Save</button>');
 }
 async function saveGroup() {
   const id = S.form.id, body = { title: el('g-title').value.trim(), description: el('g-desc').value.trim(), active: el('g-active').checked };
@@ -359,7 +359,7 @@ function runRules(kind, id) {
     '<p class="sub-s" style="margin-top:0">Apply ' + (kind === 'rule' ? 'this rule' : 'every rule in this group') + ' to transactions that already exist. Preview first to see what would change.</p>' +
     '<div class="grid2"><label>From<input type="date" id="rr-start" value="' + cur.start + '"></label><label>To<input type="date" id="rr-end" value="' + cur.end + '"></label></div>' +
     '<div id="rr-out"></div>',
-    '<span class="grow"></span><button class="btn" onclick="App.previewRules()">Preview matches</button><button class="btn primary" id="rrGo" onclick="App.applyRules()">Run now</button>');
+    '<span class="grow"></span><button class="btn" data-onclick="App.previewRules()">Preview matches</button><button class="btn primary" id="rrGo" data-onclick="App.applyRules()">Run now</button>');
 }
 async function previewRules() {
   const { kind, id } = S.form, out = el('rr-out');
@@ -392,13 +392,13 @@ VIEWS.recurring = async (r, paint) => {
     const next = (at.repetitions || []).flatMap(p => p.occurrences || []).sort().filter(d => String(d).slice(0, 10) >= todayIso()).slice(0, 3);
     const sign = at.type === 'withdrawal' ? 'neg' : at.type === 'deposit' ? 'pos' : 'neutral';
     const ends = at.repeat_until ? 'until ' + fmtDate(at.repeat_until) : at.nr_of_repetitions ? at.nr_of_repetitions + ' times' : '';
-    return '<tr class="click" onclick="App.recurForm(\'' + x.id + '\')"' + (at.active === false ? ' style="opacity:.5"' : '') + '><td><div class="desc">' + esc(at.title) + (at.active === false ? ' <span class="chip">Inactive</span>' : '') + '</div>' +
+    return '<tr class="click" data-onclick="App.recurForm(\'' + x.id + '\')"' + (at.active === false ? ' style="opacity:.5"' : '') + '><td><div class="desc">' + esc(at.title) + (at.active === false ? ' <span class="chip">Inactive</span>' : '') + '</div>' +
       '<div class="sub-s">' + esc(rep.description || '') + (ends ? ' · ' + ends : '') + '</div></td>' +
       '<td class="flow hide-s">' + esc(t.source_name || '') + ' → ' + esc(t.destination_name || '') + '</td>' +
       '<td class="hide-s">' + (next.length ? next.map(d => '<span class="chip">' + fmtDay(d) + '</span>').join('') : '<span class="neutral">—</span>') + '</td>' +
       '<td class="amt ' + sign + '">' + money(num(t.amount)) + '</td></tr>';
   }).join('');
-  paint(head('Recurring', 'Transactions Firefly creates for you automatically on a schedule', '<button class="btn primary" onclick="App.recurForm()">+ New recurring</button>') +
+  paint(head('Recurring', 'Transactions Firefly creates for you automatically on a schedule', '<button class="btn primary" data-onclick="App.recurForm()">+ New recurring</button>') +
     '<section class="panel flush">' + (rows ? '<table class="tbl"><thead><tr><th>Name</th><th class="hide-s">From → To</th><th class="hide-s">Next</th><th class="r">Amount</th></tr></thead><tbody>' + rows + '</tbody></table>'
       : '<div class="center-empty">Nothing recurring yet. Add rent, a salary or a subscription and Firefly will create it for you each time.</div>') + '</section>' +
     '<p class="sub-s" style="margin-top:14px">Firefly creates these transactions on its daily cron job, so make sure the cron is set up in your Firefly install.</p>');
@@ -412,10 +412,10 @@ function recurForm(id, forceType) {
   const counter = type === 'deposit' ? t.source_name : t.destination_name;
   const firstDate = at ? String(at.first_date).slice(0, 10) : todayIso();
   const endMode = at && at.repeat_until ? 'date' : at && at.nr_of_repetitions ? 'count' : 'never';
-  const typeBtn = (v, l) => '<button type="button" class="' + (type === v ? 'on' : '') + '" onclick="App.recurType(\'' + v + '\')">' + l + '</button>';
+  const typeBtn = (v, l) => '<button type="button" class="' + (type === v ? 'on' : '') + '" data-onclick="App.recurType(\'' + v + '\')">' + l + '</button>';
   const counterList = type === 'withdrawal' ? [...L.expense, ...L.own.filter(isLiab)] : [...L.revenue, ...L.own.filter(isLiab)];
   openDrawer(id ? 'Edit recurring transaction' : 'New recurring transaction',
-    '<form id="recForm" onsubmit="event.preventDefault();App.saveRecur()">' +
+    '<form id="recForm" data-onsubmit="event.preventDefault();App.saveRecur()">' +
     '<div class="seg">' + typeBtn('withdrawal', 'Expense') + typeBtn('deposit', 'Income') + typeBtn('transfer', 'Transfer') + '</div>' +
     '<label>Name<input type="text" id="rc-title" value="' + esc(at ? at.title : '') + '" required placeholder="e.g. Rent"></label>' +
     '<div class="grid2"><label>Amount<input type="number" step="0.01" min="0.01" id="rc-amount" value="' + (t.amount ? num(t.amount) : '') + '" required></label>' +
@@ -432,14 +432,14 @@ function recurForm(id, forceType) {
       '<select id="rc-freq" style="flex:1">' + ['monthly', 'weekly', 'yearly', 'daily'].map(v => opt(v, REPEAT_LABEL[v] + '(s)', rep.type || 'monthly')).join('') + '</select></div></label></div>' +
     '<p class="hint">It repeats on the same day as the first date (e.g. the 1st of each month).</p>' +
     '<div class="grid2"><label>If it falls on a weekend<select id="rc-weekend">' + [[1, 'Create it anyway'], [2, 'Skip it'], [3, 'Move to the Friday before'], [4, 'Move to the Monday after']].map(([v, l]) => opt(v, l, rep.weekend || 1)).join('') + '</select></label>' +
-    '<label>Ends<select id="rc-endmode" onchange="App.recurEnds()">' + opt('never', 'Never', endMode) + opt('date', 'On a date', endMode) + opt('count', 'After a number of times', endMode) + '</select></label></div>' +
+    '<label>Ends<select id="rc-endmode" data-onchange="App.recurEnds()">' + opt('never', 'Never', endMode) + opt('date', 'On a date', endMode) + opt('count', 'After a number of times', endMode) + '</select></label></div>' +
     '<div class="grid2"><label id="rc-until-l"' + (endMode === 'date' ? '' : ' hidden') + '>End date<input type="date" id="rc-until" value="' + esc(at && at.repeat_until ? String(at.repeat_until).slice(0, 10) : '') + '"></label>' +
     '<label id="rc-count-l"' + (endMode === 'count' ? '' : ' hidden') + '>Number of times<input type="number" min="1" id="rc-count" value="' + esc(at && at.nr_of_repetitions || '') + '"></label></div>' +
     '<label>Notes<textarea id="rc-notes" rows="2">' + esc(at ? at.notes || '' : '') + '</textarea></label>' +
     '<label class="check"><input type="checkbox" id="rc-rules"' + (!at || at.apply_rules ? ' checked' : '') + '> Run my rules on each transaction it creates</label>' +
     '<label class="check"><input type="checkbox" id="rc-active"' + (!at || at.active !== false ? ' checked' : '') + '> Active</label><button type="submit" hidden></button></form>',
-    (id ? '<button class="btn danger" onclick="App.deleteRecur(\'' + id + '\')">Delete</button>' : '') + '<span class="grow"></span><button class="btn" onclick="App.closeDrawer()">Cancel</button>' +
-    '<button class="btn primary" id="recSave" onclick="el(\'recForm\').requestSubmit()">' + (id ? 'Save' : 'Create') + '</button>');
+    (id ? '<button class="btn danger" data-onclick="App.deleteRecur(\'' + id + '\')">Delete</button>' : '') + '<span class="grow"></span><button class="btn" data-onclick="App.closeDrawer()">Cancel</button>' +
+    '<button class="btn primary" id="recSave" data-onclick="App.submit(\'recForm\')">' + (id ? 'Save' : 'Create') + '</button>');
 }
 function recurType(t) {
   const keep = ['rc-title', 'rc-amount', 'rc-desc', 'rc-cat', 'rc-first', 'rc-every', 'rc-notes'].map(k => [k, el(k) ? el(k).value : '']);
@@ -541,10 +541,10 @@ VIEWS.reports = async (r, paint) => {
   const presetBtn = (k, l) => '<a class="btn small' + (R.preset === k ? ' primary' : '') + '" href="#/reports?preset=' + k + '">' + l + '</a>';
   const accRows = own.map((a, i) => ({ a, s: balStart[i], e: balEnd[i] })).filter(x => x.s !== null && x.e !== null && (x.s || x.e))
     .map(({ a, s, e }) => '<tr><td class="desc">' + esc(a.name) + '</td><td class="amt hide-s">' + money(s) + '</td><td class="amt">' + money(e) + '</td><td class="amt ' + (e - s > 0 ? 'pos' : e - s < 0 ? 'neg' : 'neutral') + '">' + (e - s > 0 ? '+' : '') + money(e - s) + '</td></tr>').join('');
-  paint(head('Reports', fmtDate(R.start) + ' – ' + fmtDate(R.end), '<button class="btn" onclick="window.print()">Print</button>') +
+  paint(head('Reports', fmtDate(R.start) + ' – ' + fmtDate(R.end), '<button class="btn" data-onclick="App.print()">Print</button>') +
     '<div class="toolbar"><div style="display:flex;gap:6px;flex-wrap:wrap">' + presetBtn('this-month', 'This month') + presetBtn('last-month', 'Last month') + presetBtn('last-3', 'Last 3 months') +
       presetBtn('this-year', 'This year') + presetBtn('last-year', 'Last year') + presetBtn('last-12', 'Last 12 months') + '</div>' +
-      '<form style="display:flex;gap:8px;align-items:center" onsubmit="event.preventDefault();location.hash=\'#/reports?start=\'+this.s.value+\'&end=\'+this.e.value">' +
+      '<form style="display:flex;gap:8px;align-items:center" data-onsubmit="event.preventDefault();App.reportsRange(this)">' +
       '<input type="date" name="s" value="' + R.start + '"><span class="neutral">to</span><input type="date" name="e" value="' + R.end + '"><button class="btn small">Apply</button></form></div>' +
     '<div class="kpis"><div class="kpi"><div class="eyebrow">Earned</div><div class="val num pos">' + money0(earned) + '</div></div>' +
       '<div class="kpi"><div class="eyebrow">Spent</div><div class="val num neg">' + money0(spent) + '</div></div>' +
@@ -577,27 +577,27 @@ VIEWS.settings = async (r, paint) => {
   const yr = new Date().getFullYear();
   const cur = '<section class="panel"><h2>Currencies</h2><p class="lead">Your main currency is <strong>' + esc(S.currency) + '</strong>. Enabled currencies can be used for foreign amounts and accounts.</p><div class="list">' +
     enabled.map(c => '<div class="row"><span class="name">' + esc(c.code) + ' · ' + esc(c.name) + (c.code === S.currency ? ' <span class="chip good">Main</span>' : '') + '</span><span style="display:flex;gap:8px">' +
-      (c.code !== S.currency ? '<button class="link" onclick="App.currency(\'' + c.code + '\',\'primary\')">Make main</button><button class="link" onclick="App.currency(\'' + c.code + '\',\'disable\')">Disable</button>' : '') + '</span></div>').join('') +
-    '</div><form style="display:flex;gap:8px;margin-top:14px" onsubmit="event.preventDefault();App.currency(this.c.value,\'enable\')"><select name="c" style="flex:1">' + disabled.map(c => opt(c.code, c.code + ' · ' + c.name, '')).join('') + '</select><button class="btn">Enable</button></form></section>';
+      (c.code !== S.currency ? '<button class="link" data-onclick="App.currency(\'' + c.code + '\',\'primary\')">Make main</button><button class="link" data-onclick="App.currency(\'' + c.code + '\',\'disable\')">Disable</button>' : '') + '</span></div>').join('') +
+    '</div><form style="display:flex;gap:8px;margin-top:14px" data-onsubmit="event.preventDefault();App.currency(this.c.value,\'enable\')"><select name="c" style="flex:1">' + disabled.map(c => opt(c.code, c.code + ' · ' + c.name, '')).join('') + '</select><button class="btn">Enable</button></form></section>';
   S.rates = rates || [];
   const showAll = r.q.rates === 'all';
   const rateHtml = rates === null ? '' : '<section class="panel"><h2>Exchange rates</h2><p class="lead">Used to convert foreign amounts in reports.</p>' +
     (rates.length ? '<div class="list">' + rates.slice(0, showAll ? 500 : 6).map(x => { const a = x.attributes; return '<div class="row"><span class="name">1 ' + esc(a.from_currency_code || a.from) + ' = ' + esc(num(a.rate)) + ' ' + esc(a.to_currency_code || a.to) +
-      ' <span class="sub-s">on ' + fmtDate(a.date) + '</span></span><button class="link" onclick="App.deleteRate(\'' + x.id + '\')">Remove</button></div>'; }).join('') + '</div>' +
+      ' <span class="sub-s">on ' + fmtDate(a.date) + '</span></span><button class="link" data-onclick="App.deleteRate(\'' + x.id + '\')">Remove</button></div>'; }).join('') + '</div>' +
       (rates.length > 6 ? '<p style="margin:10px 0 0"><a class="link" href="#/settings' + (showAll ? '' : '?rates=all') + '">' + (showAll ? 'Show fewer' : 'Show all ' + rates.length + ' rates') + '</a></p>' : '') : '<p class="empty">No rates yet.</p>') +
-    '<form style="margin-top:14px" onsubmit="event.preventDefault();App.addRate(this)"><div class="grid2">' +
+    '<form style="margin-top:14px" data-onsubmit="event.preventDefault();App.addRate(this)"><div class="grid2">' +
     '<label>From<select name="f">' + enabled.map(c => opt(c.code, c.code, S.currency)).join('') + '</select></label>' +
     '<label>To<select name="t">' + enabled.map(c => opt(c.code, c.code, (enabled.find(x => x.code !== S.currency) || {}).code)).join('') + '</select></label>' +
     '<label>Rate<input type="number" step="any" min="0" name="r" required></label><label>Date<input type="date" name="d" value="' + todayIso() + '" required></label></div><button class="btn small">Add rate</button></form></section>';
   const exp = '<section class="panel"><h2>Export data</h2><p class="lead">Download CSV files you can open in Excel or Numbers.</p>' +
     '<div class="grid2"><label>From (transactions only)<input type="date" id="ex-start" value="' + (yr - 1) + '-01-01"></label><label>To<input type="date" id="ex-end" value="' + todayIso() + '"></label></div>' +
-    '<div style="display:flex;flex-wrap:wrap;gap:8px">' + EXPORTS.map(([k, l]) => '<button class="btn small" onclick="App.exportData(\'' + k + '\', this)">' + l + '</button>').join('') + '</div></section>';
+    '<div style="display:flex;flex-wrap:wrap;gap:8px">' + EXPORTS.map(([k, l]) => '<button class="btn small" data-onclick="App.exportData(\'' + k + '\', this)">' + l + '</button>').join('') + '</div></section>';
   const TRIG = [['STORE_TRANSACTION', 'A transaction is added'], ['UPDATE_TRANSACTION', 'A transaction is changed'], ['DESTROY_TRANSACTION', 'A transaction is deleted']];
   const hookHtml = hooks === null ? '' : '<section class="panel"><h2>Webhooks</h2><p class="lead">Firefly calls these web addresses when transactions change — for automations like Home Assistant or n8n.</p>' +
     (hooks.length ? '<div class="list">' + hooks.map(x => { const a = x.attributes, tr = a.trigger || (a.triggers || [])[0];
-      return '<div class="row"><span class="name"><label class="check" style="margin:0;display:inline-flex"><input type="checkbox"' + (a.active ? ' checked' : '') + ' onchange="App.toggleHook(\'' + x.id + '\',this.checked)"> ' + esc(a.title) + '</label>' +
-        '<br><span class="sub-s">' + esc((TRIG.find(t => t[0] === tr) || [0, tr])[1]) + ' → ' + esc(a.url) + '</span></span><button class="link" onclick="App.deleteHook(\'' + x.id + '\')">Delete</button></div>'; }).join('') + '</div>' : '<p class="empty">No webhooks.</p>') +
-    '<form onsubmit="event.preventDefault();App.addHook(this)" style="margin-top:14px"><div class="grid2"><label>Name<input type="text" name="t" required></label><label>When<select name="w">' + TRIG.map(([v, l]) => opt(v, l, '')).join('') + '</select></label></div>' +
+      return '<div class="row"><span class="name"><label class="check" style="margin:0;display:inline-flex"><input type="checkbox"' + (a.active ? ' checked' : '') + ' data-onchange="App.toggleHook(\'' + x.id + '\',this.checked)"> ' + esc(a.title) + '</label>' +
+        '<br><span class="sub-s">' + esc((TRIG.find(t => t[0] === tr) || [0, tr])[1]) + ' → ' + esc(a.url) + '</span></span><button class="link" data-onclick="App.deleteHook(\'' + x.id + '\')">Delete</button></div>'; }).join('') + '</div>' : '<p class="empty">No webhooks.</p>') +
+    '<form data-onsubmit="event.preventDefault();App.addHook(this)" style="margin-top:14px"><div class="grid2"><label>Name<input type="text" name="t" required></label><label>When<select name="w">' + TRIG.map(([v, l]) => opt(v, l, '')).join('') + '</select></label></div>' +
     '<label>URL<input type="text" name="u" placeholder="https://…" required></label><div class="grid2"><label>Send<select name="r">' + opt('TRANSACTIONS', 'The transaction', '') + opt('ACCOUNTS', 'The accounts involved', '') + opt('NONE', 'Nothing (just ping)', '') + '</select></label><span></span></div>' +
     '<button class="btn small">Add webhook</button></form></section>';
   const ab = (about && about.data) || {};

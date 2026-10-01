@@ -312,7 +312,7 @@ function txRows(groups, opts = {}) {
     const buds = [...new Set(g.splits.map(s => s.budget_name).filter(Boolean))];
     const tags = [...new Set(g.splits.flatMap(s => s.tags))].filter(t => !/^Data Import on/.test(t));
     const fx = g.splits.filter(s => s.fa && s.fc).map(s => '<span class="chip">' + esc(s.fc) + ' ' + esc(num(s.fa).toFixed(2)) + '</span>').join('');
-    const inl = k => multi ? '' : ' inl" data-k="' + k + '" onclick="event.stopPropagation();App.pick(this)" title="Change ' + k;
+    const inl = k => multi ? '' : ' inl" data-k="' + k + '" data-onclick="event.stopPropagation();App.pick(this)" title="Change ' + k;
     const chips = '<span class="cat-s' + inl('category') + '">' + (cats.length ? esc(cats.join(', ')) : g.type === 'withdrawal' ? 'Uncategorized' : g.type === 'deposit' ? 'Income' : 'Transfer') + '</span>' + fx +
       (multi ? '<span class="chip">' + g.splits.length + ' splits</span>' : '') +
       buds.map(b => '<span class="chip' + inl('budget') + '">Budget · ' + esc(b) + '</span>').join('') +
@@ -325,8 +325,8 @@ function txRows(groups, opts = {}) {
       dh = close + '<tbody class="day"><tr class="dayhead" data-day="' + day + '"><td colspan="' + cols + '"><div><span>' + esc(dayLabel(day)) + '</span>' +
         (Math.abs(net) >= .005 ? '<span class="num ' + (net < 0 ? '' : 'pos') + '">' + (net > 0 ? '+' : '') + money(net) + '</span>' : '') + '</div></td></tr>';
     }
-    return dh + '<tr class="click" data-gid="' + g.id + '" data-day="' + day + '" onclick="App.editTx(\'' + g.id + '\')">' +
-      (opts.select ? '<td class="sel" onclick="event.stopPropagation()"><input type="checkbox" data-sel="' + g.id + '" onchange="App.selChanged()"' + ((S.sel || new Set()).has(g.id) ? ' checked' : '') + ' aria-label="Select"></td>' : '') +
+    return dh + '<tr class="click" data-gid="' + g.id + '" data-day="' + day + '" data-onclick="App.editTx(\'' + g.id + '\')">' +
+      (opts.select ? '<td class="sel" data-onclick="event.stopPropagation()"><input type="checkbox" data-sel="' + g.id + '" data-onchange="App.selChanged()"' + ((S.sel || new Set()).has(g.id) ? ' checked' : '') + ' aria-label="Select"></td>' : '') +
       '<td><div class="txmain">' + avatarHtml(g) + '<div class="txt"><div class="desc">' + esc(desc) + '</div><div class="meta">' + chips + '</div></div></div></td>' +
       '<td class="flow hide-s"><span>' + flow + '</span></td>' +
       '<td class="catcol hide-s"><span class="' + (cats.length ? '' : 'neutral') + inl('category') + '">' + (cats.length ? esc(cats.join(', ')) : '—') + '</span></td>' +
@@ -367,7 +367,7 @@ const NAV = [['', 'Overview', 'overview'], ['forecast', 'Forecast', 'forecast'],
   ['budgets', 'Budgets', 'budgets'], ['categories', 'Categories & tags', 'categories'], ['bills', 'Bills', 'bills'], ['recurring', 'Recurring', 'recurring'],
   ['piggy', 'Piggy banks', 'piggy'], ['rules', 'Rules', 'rules'], ['reports', 'Reports', 'reports'], ['settings', 'Settings', 'settings']];
 function drawNav(active) {
-  el('nav').innerHTML = NAV.map(([r, label, ic]) => '<a href="#/' + r + '" class="' + (r === active ? 'on' : '') + '" onmouseenter="App.prefetch(\'' + r + '\')">' + icon(ic) + '<span>' + label + '</span></a>').join('');
+  el('nav').innerHTML = NAV.map(([r, label, ic]) => '<a href="#/' + r + '" class="' + (r === active ? 'on' : '') + '" data-onmouseenter="App.prefetch(\'' + r + '\')">' + icon(ic) + '<span>' + label + '</span></a>').join('');
   if (window.App && App.drawTabbar) App.drawTabbar(active);
 }
 function toast(msg) {
@@ -423,7 +423,7 @@ function openDrawer(title, bodyHtml, footHtml) {
     return;
   }
   d.innerHTML = '<div class="grab" aria-hidden="true"></div><header>' + (h ? drawerHeroHtml({ ...h, kicker: title === 'Loading…' ? h.kicker : title }) : '<h2>' + esc(title) + '</h2>') +
-    '<button class="round" type="button" onclick="App.closeDrawer()" aria-label="Close">×</button></header>' +
+    '<button class="round" type="button" data-onclick="App.closeDrawer()" aria-label="Close">×</button></header>' +
     '<div class="body" id="drawerBody">' + bodyHtml + '</div>' + (footHtml ? '<footer>' + footHtml + '</footer>' : '');
   if (!wasOpen) S.drawerReturn = document.activeElement;
   d.setAttribute('aria-label', title === 'Loading…' && h ? h.name : title);
@@ -461,9 +461,9 @@ function monthNav() {
   const r = monthRange(S.y, S.m);
   const ahead = (S.y - today.getFullYear()) * 12 + (S.m - today.getMonth());
   const isNow = ahead >= 12;   // allow planning up to a year ahead
-  return '<div class="month"><button class="round" onclick="App.shiftMonth(-1)" aria-label="Previous month">‹</button><span>' + r.label +
-    '</span><button class="round" onclick="App.shiftMonth(1)" aria-label="Next month"' + (isNow ? ' disabled' : '') + '>›</button>' +
-    (ahead !== 0 ? '<button class="btn small" style="margin-left:6px" onclick="App.thisMonth()">Today</button>' : '') + '</div>';
+  return '<div class="month"><button class="round" data-onclick="App.shiftMonth(-1)" aria-label="Previous month">‹</button><span>' + r.label +
+    '</span><button class="round" data-onclick="App.shiftMonth(1)" aria-label="Next month"' + (isNow ? ' disabled' : '') + '>›</button>' +
+    (ahead !== 0 ? '<button class="btn small" style="margin-left:6px" data-onclick="App.thisMonth()">Today</button>' : '') + '</div>';
 }
 function head(title, sub, actions) {
   return '<div class="head"><div><h1>' + esc(title) + '</h1>' + (sub ? '<p class="sub">' + sub + '</p>' : '') + '</div><div class="actions">' + (actions || '') + '</div></div>';
@@ -580,7 +580,7 @@ async function route(opts = {}) {
   } catch (e) {
     if (e instanceof AuthError) return showLogin(e.message);
     if (opts.quiet && S.pageLive) { toast('Couldn’t refresh: ' + e.message); return; }
-    paint('<div class="error"><strong>Couldn’t load this page.</strong><br>' + esc(e.message) + '<br><br><button class="btn small" onclick="App.reload()">Try again</button></div>');
+    paint('<div class="error"><strong>Couldn’t load this page.</strong><br>' + esc(e.message) + '<br><br><button class="btn small" data-onclick="App.reload()">Try again</button></div>');
   }
 }
 // The page on screen was drawn from out-of-date data: fetch what it needs again and redraw only if it changed.
@@ -855,12 +855,12 @@ VIEWS.transactions = async (r, paint) => {
   paint(
     head(scope || 'Transactions', search ? 'Search results across all dates' : total + ' transaction' + (total === 1 ? '' : 's') + ' in ' + cur.label +
       (scope ? ' · <a class="link" href="#/transactions">Show all</a>' : ''),
-      (search ? '' : monthNav()) + '<button class="btn primary" onclick="App.newTx()">+ New transaction</button>') +
+      (search ? '' : monthNav()) + '<button class="btn primary" data-onclick="App.newTx()">+ New transaction</button>') +
     '<div class="tabs">' + tab('all', 'All') + tab('withdrawal', 'Expenses') + tab('deposit', 'Income') + tab('transfer', 'Transfers') + '</div>' +
-    '<div class="toolbar"><form class="search" onsubmit="event.preventDefault();App.search(this.q.value)">' + icon('search') +
+    '<div class="toolbar"><form class="search" data-onsubmit="event.preventDefault();App.search(this.q.value)">' + icon('search') +
       '<input type="search" name="q" placeholder="Search all transactions — try: amazon, category:Gas, amount_more:100" value="' + esc(search) + '"></form>' +
-      (search ? '<button class="link" onclick="App.search(\'\')">Clear search</button>' : '') +
-      (groups.length ? '<label class="check selall"><input type="checkbox" onchange="App.selAll(this.checked)"> Select all</label>' : '') + '</div>' +
+      (search ? '<button class="link" data-onclick="App.search(\'\')">Clear search</button>' : '') +
+      (groups.length ? '<label class="check selall"><input type="checkbox" data-onchange="App.selAll(this.checked)"> Select all</label>' : '') + '</div>' +
     '<div id="bulkbar" class="bulkbar" hidden></div>' +
     '<section class="panel flush">' + txRows(groups, { select: true, empty: search ? 'Nothing matches that search.' : 'No transactions this month.' }) +
       (page < pages ? '<div class="more" id="feedMore"><span class="spin"></span>Loading older transactions…</div>' : '') +
@@ -904,7 +904,7 @@ async function editTx(id) {
     };
     if (!['withdrawal', 'deposit', 'transfer'].includes(g.type)) {
       openDrawer('Transaction', '<p>This is a <strong>' + esc(g.type) + '</strong> transaction (' + money(g.total) + ' on ' + fmtDate(g.date) + '). Edit it in Firefly III.</p>',
-        '<button class="btn danger" onclick="App.deleteTx()">Delete</button><span class="grow"></span><button class="btn" onclick="App.closeDrawer()">Close</button>');
+        '<button class="btn danger" data-onclick="App.deleteTx()">Delete</button><span class="grow"></span><button class="btn" data-onclick="App.closeDrawer()">Close</button>');
       return;
     }
     renderTxForm();
@@ -920,7 +920,7 @@ function accountOptions(sel, allowEmpty) {
 }
 function renderTxForm() {
   const f = S.form, L = S.lists, multi = f.splits.length > 1;
-  const typeBtn = (t, label) => '<button type="button" class="' + (f.type === t ? 'on' : '') + '" onclick="App.txType(\'' + t + '\')">' + label + '</button>';
+  const typeBtn = (t, label) => '<button type="button" class="' + (f.type === t ? 'on' : '') + '" data-onclick="App.txType(\'' + t + '\')">' + label + '</button>';
   const counterList = f.type === 'withdrawal' ? [...L.expense, ...L.own.filter(isLiab)] : [...L.revenue, ...L.own.filter(isLiab)];
   let accountsHtml;
   if (f.type === 'transfer') {
@@ -930,10 +930,10 @@ function renderTxForm() {
   }
   const splitHtml = f.splits.map((s, i) =>
     '<div class="split" data-i="' + i + '">' +
-      (multi ? '<div class="split-head"><span>Split ' + (i + 1) + '</span><button type="button" class="link" onclick="App.removeSplit(' + i + ')">Remove</button></div>' : '') +
+      (multi ? '<div class="split-head"><span>Split ' + (i + 1) + '</span><button type="button" class="link" data-onclick="App.removeSplit(' + i + ')">Remove</button></div>' : '') +
       '<label>Description<input type="text" data-k="description" value="' + esc(s.description) + '" required></label>' +
       '<div class="grid2"><label>Amount<input type="number" data-k="amount" value="' + esc(s.amount) + '" step="0.01" min="0.01" inputmode="decimal" required></label>' +
-        (f.type !== 'transfer' ? '<label>' + (f.type === 'withdrawal' ? 'Paid to' : 'Received from') + '<input type="text" data-k="counter" list="dl-counter" value="' + esc(s.counter) + '" placeholder="Name" onchange="App.payeeFill(' + i + ', this.value)"></label>' : '<span></span>') + '</div>' +
+        (f.type !== 'transfer' ? '<label>' + (f.type === 'withdrawal' ? 'Paid to' : 'Received from') + '<input type="text" data-k="counter" list="dl-counter" value="' + esc(s.counter) + '" placeholder="Name" data-onchange="App.payeeFill(' + i + ', this.value)"></label>' : '<span></span>') + '</div>' +
       '<div class="grid2"><label>Category<input type="text" data-k="category" list="dl-cat" value="' + esc(s.category) + '" placeholder="None"></label>' +
         (f.type === 'withdrawal' ? '<label>Budget<select data-k="budget">' + opt('', 'None', s.budget) + L.budgets.filter(b => b.active || b.id === s.budget).map(b => opt(b.id, b.name, s.budget)).join('') + '</select></label>' : '<span></span>') + '</div>' +
       '<div class="grid2">' + (f.type === 'withdrawal' ? '<label>Bill<select data-k="bill">' + opt('', 'None', s.bill) + L.bills.map(b => opt(b.id, b.name, s.bill)).join('') + '</select></label>' : '<span></span>') +
@@ -943,21 +943,21 @@ function renderTxForm() {
       '<label>Notes<textarea data-k="notes" rows="2">' + esc(s.notes) + '</textarea></label>' +
     '</div>').join('');
   const body =
-    '<form id="txForm" onsubmit="event.preventDefault();App.saveTx(this)">' +
+    '<form id="txForm" data-onsubmit="event.preventDefault();App.saveTx(this)">' +
     (f.id ? '' : '<div class="nlq">' + icon('spark') + '<input type="text" id="nlq" value="' + esc(f.nl || '') + '" placeholder="Describe it — e.g. starbucks 5.40 amex yesterday" autocomplete="off" enterkeyhint="done" ' +
-      'oninput="App.nlParse(this.value)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();App.nlParse(this.value,true)}"><div id="nlChips" class="nlchips">' + (f.nlChips || '') + '</div></div>') +
+      'data-oninput="App.nlParse(this.value)" data-onkeydown="App.nlKey(event,this)"><div id="nlChips" class="nlchips">' + (f.nlChips || '') + '</div></div>') +
     '<div class="seg">' + typeBtn('withdrawal', 'Expense') + typeBtn('deposit', 'Income') + typeBtn('transfer', 'Transfer') + '</div>' +
     '<label>Date<input type="date" id="f-date" value="' + esc(f.date) + '" required></label>' + accountsHtml +
     (multi ? '<label>Title for the whole transaction<input type="text" id="f-title" value="' + esc(f.title) + '" required></label>' : '') +
     splitHtml +
-    '<button type="button" class="btn small" onclick="App.addSplit()" style="margin-bottom:18px">+ Split into another part</button>' +
+    '<button type="button" class="btn small" data-onclick="App.addSplit()" style="margin-bottom:18px">+ Split into another part</button>' +
     '<label class="check"><input type="checkbox" id="f-rules"' + (f.rules ? ' checked' : '') + '> Run my Firefly rules on this transaction</label>' +
     '<datalist id="dl-counter">' + counterList.map(a => '<option value="' + esc(a.name) + '">').join('') + '</datalist>' +
     '<datalist id="dl-cat">' + L.categories.map(c => '<option value="' + esc(c.name) + '">').join('') + '</datalist>' +
     '<datalist id="dl-tags">' + L.tags.map(t => '<option value="' + esc(t.name) + '">').join('') + '</datalist>' +
     '<button type="submit" hidden></button></form>' + (f.id ? '<div id="txExtras"><p class="sub-s">Loading attachments and links…</p></div>' : '');
-  const foot = (f.id ? '<button class="btn danger" type="button" onclick="App.deleteTx()">Delete</button>' : '') + '<span class="grow"></span>' +
-    '<button class="btn" type="button" onclick="App.closeDrawer()">Cancel</button><button class="btn primary" type="button" id="txSave" onclick="el(\'txForm\').requestSubmit()">' + (f.id ? 'Save changes' : 'Add transaction') + '</button>';
+  const foot = (f.id ? '<button class="btn danger" type="button" data-onclick="App.deleteTx()">Delete</button>' : '') + '<span class="grow"></span>' +
+    '<button class="btn" type="button" data-onclick="App.closeDrawer()">Cancel</button><button class="btn primary" type="button" id="txSave" data-onclick="App.submit(\'txForm\')">' + (f.id ? 'Save changes' : 'Add transaction') + '</button>';
   const wasOpen = el('drawer').classList.contains('open') && el('txForm');
   const scroll = wasOpen ? el('drawerBody').scrollTop : 0;
   openDrawer(f.id ? 'Edit transaction' : 'New transaction', body, foot);
@@ -1087,9 +1087,9 @@ VIEWS.accounts = async (r, paint) => {
     total = items.length + ' ' + (tab === 'expense' ? 'payees' : 'income sources');
   }
   const body = items.length ? '<table class="tbl"><thead><tr>' + cols + '</tr></thead><tbody>' +
-    items.sort((a, b) => a.name.localeCompare(b.name)).map(a => '<tr class="click" onclick="location.hash=\'#/account/' + a.id + '\'"' + (a.active ? '' : ' style="opacity:.5"') + '>' + row(a) + '</tr>').join('') +
+    items.sort((a, b) => a.name.localeCompare(b.name)).map(a => '<tr class="click" data-onclick="App.go(\'#/account/' + a.id + '\')"' + (a.active ? '' : ' style="opacity:.5"') + '>' + row(a) + '</tr>').join('') +
     '</tbody></table>' : '<div class="center-empty">Nothing here yet.</div>';
-  paint(head('Accounts', total, '<button class="btn primary" onclick="App.accountForm(null,\'' + (tab === 'assets' ? 'asset' : tab === 'cards' ? 'card' : tab === 'liabilities' ? 'liability' : tab) + '\')">+ New account</button>') +
+  paint(head('Accounts', total, '<button class="btn primary" data-onclick="App.accountForm(null,\'' + (tab === 'assets' ? 'asset' : tab === 'cards' ? 'card' : tab === 'liabilities' ? 'liability' : tab) + '\')">+ New account</button>') +
     '<div class="tabs">' + tabLink('assets', 'Bank accounts') + tabLink('cards', 'Credit cards') + tabLink('liabilities', 'Loans & debts') + tabLink('expense', 'Payees') + tabLink('revenue', 'Income sources') + '</div>' +
     '<section class="panel flush">' + body + '</section>' +
     (inactiveCount ? '<p style="margin-top:14px"><a class="link" href="' + hashWith({ inactive: show ? '' : '1' }) + '">' + (show ? 'Hide' : 'Show') + ' ' + inactiveCount + ' inactive</a></p>' : ''));
@@ -1111,18 +1111,18 @@ VIEWS.account = async (r, paint) => {
   const inflow = groups.reduce((s, g) => s + Math.max(0, signed(g, a.id)), 0), outflow = groups.reduce((s, g) => s + Math.max(0, -signed(g, a.id)), 0);
   const subtitle = '<span style="text-transform:capitalize">' + (isCard(a) ? 'Credit card' : isLiab(a) ? esc(a.liabType || 'Liability') : a.type === 'expense' ? 'Payee' : a.type === 'revenue' ? 'Income source' : (ROLE_LABEL[a.role] || 'Account')) + '</span>' +
     (a.active ? '' : ' · inactive') + (a.number ? ' · ' + esc(a.number) : '') +
-    (isLiab(a) ? (a.plan && a.plan.amount ? ' · pays ' + esc(planText(a.plan)) : ' · <button class="link" onclick="App.accountForm(\'' + a.id + '\',\'liability\')">set a monthly payment</button>') : '');
+    (isLiab(a) ? (a.plan && a.plan.amount ? ' · pays ' + esc(planText(a.plan)) : ' · <button class="link" data-onclick="App.accountForm(\'' + a.id + '\',\'liability\')">set a monthly payment</button>') : '');
   const PER = 50, pages = Math.max(1, Math.ceil(groups.length / PER)), page = 1;
   const shown = groups.slice(0, PER);
   if (paint.live) S.feed = { next: 2, pages, opts: { accountId: own ? a.id : '' }, more: async n => groups.slice((n - 1) * PER, n * PER) };
-  const rangeBtn = (k, l) => '<button type="button" class="' + (range === k ? 'on' : '') + '" onclick="location.hash=\'' + hashWith({ range: k, page: '' }) + '\'">' + l + '</button>';
+  const rangeBtn = (k, l) => '<button type="button" class="' + (range === k ? 'on' : '') + '" data-onclick="App.go(\'' + hashWith({ range: k, page: '' }) + '\')">' + l + '</button>';
   const owedStyle = isLiab(a) || isCard(a);
   paint(
     '<p style="margin:0 0 6px"><a class="link" href="#/accounts">← Accounts</a></p>' +
     head(a.name, subtitle, (range === 'month' ? monthNav() : '') +
-      (own ? '<button class="btn" onclick="App.newTxFor(\'' + a.id + '\')">+ Transaction</button>' : '') +
+      (own ? '<button class="btn" data-onclick="App.newTxFor(\'' + a.id + '\')">+ Transaction</button>' : '') +
       (isAsset(a) || isLiab(a) ? '<a class="btn" href="#/reconcile/' + a.id + '">Reconcile</a>' : '') +
-      '<button class="btn" onclick="App.accountForm(\'' + a.id + '\',\'' + kind + '\')">Edit</button>') +
+      '<button class="btn" data-onclick="App.accountForm(\'' + a.id + '\',\'' + kind + '\')">Edit</button>') +
     '<div class="seg" style="margin:-8px 0 20px">' + rangeBtn('month', 'Month') + rangeBtn('year', 'Last 12 months') + rangeBtn('all', 'All time') + '</div>' +
     '<div class="kpis">' +
       (own ? '<div class="kpi"><div class="eyebrow">' + (owedStyle ? 'Balance' : 'Current balance') + '</div><div class="val num">' + headline + '</div></div>' : '') +
@@ -1170,8 +1170,8 @@ async function accountForm(id, kind) {
   S.form = { kind: kind || 'asset', id };
   const k = S.form.kind;
   const kinds = [['asset', 'Bank account'], ['card', 'Credit card'], ['liability', 'Loan or debt'], ['expense', 'Payee'], ['revenue', 'Income source']];
-  let f = '<form id="accForm" onsubmit="event.preventDefault();App.saveAccount()">';
-  if (!id) f += '<label>Kind of account<select id="a-kind" onchange="App.accountForm(null,this.value)">' + kinds.map(([v, l]) => opt(v, l, k)).join('') + '</select></label>';
+  let f = '<form id="accForm" data-onsubmit="event.preventDefault();App.saveAccount()">';
+  if (!id) f += '<label>Kind of account<select id="a-kind" data-onchange="App.accountForm(null,this.value)">' + kinds.map(([v, l]) => opt(v, l, k)).join('') + '</select></label>';
   f += '<label>Name<input type="text" id="a-name" value="' + esc(a ? a.name : '') + '" required></label>';
   if (k === 'asset') {
     f += '<label>Type<select id="a-role">' + ['defaultAsset', 'savingAsset', 'sharedAsset', 'cashWalletAsset'].map(v => opt(v, ROLE_LABEL[v], a ? a.role : 'defaultAsset')).join('') + '</select></label>';
@@ -1201,8 +1201,8 @@ async function accountForm(id, kind) {
   if (id && (k === 'asset' || k === 'card' || k === 'liability')) f += '<label class="check"><input type="checkbox" id="a-networth"' + (a.netWorth ? ' checked' : '') + '> Include in net worth</label>';
   f += '<button type="submit" hidden></button></form>';
   openDrawer(id ? 'Edit account' : 'New account', f,
-    (id ? '<button class="btn danger" type="button" onclick="App.deleteAccount(\'' + id + '\')">Delete</button>' : '') + '<span class="grow"></span><button class="btn" onclick="App.closeDrawer()">Cancel</button>' +
-    '<button class="btn primary" id="accSave" onclick="el(\'accForm\').requestSubmit()">' + (id ? 'Save' : 'Create account') + '</button>');
+    (id ? '<button class="btn danger" type="button" data-onclick="App.deleteAccount(\'' + id + '\')">Delete</button>' : '') + '<span class="grow"></span><button class="btn" data-onclick="App.closeDrawer()">Cancel</button>' +
+    '<button class="btn primary" id="accSave" data-onclick="App.submit(\'accForm\')">' + (id ? 'Save' : 'Create account') + '</button>');
 }
 async function saveAccount() {
   const { kind, id } = S.form, v = x => el(x) ? el(x).value.trim() : '';
@@ -1276,11 +1276,11 @@ VIEWS.budgets = async (r, paint) => {
         (pct > 100 ? '<span class="up">' + money(b.spent - b.lim.amount) + ' over</span>' : money(b.lim.amount - b.spent) + ' left · ' + pct.toFixed(0) + '% used') + '</div>' : '<div class="sub-s">No amount set for ' + cur.short + '</div>') +
       (b.auto ? '<span class="chip" title="Auto-budget">Auto ' + esc(b.auto) + ' · ' + money0(b.autoAmt) + '/mo</span>' : '') + '</td>' +
       '<td class="amt">' + money(b.spent) + '</td>' +
-      '<td class="r"><input class="inline num" type="number" min="0" step="1" placeholder="Set…" value="' + (b.lim ? b.lim.amount : '') + '" onchange="App.setLimit(\'' + b.id + '\',this)" aria-label="Budget for ' + esc(b.name) + '"></td>' +
-      '<td class="act"><button class="btn small" onclick="App.budgetForm(\'' + b.id + '\')">Edit</button></td></tr>';
+      '<td class="r"><input class="inline num" type="number" min="0" step="1" placeholder="Set…" value="' + (b.lim ? b.lim.amount : '') + '" data-onchange="App.setLimit(\'' + b.id + '\',this)" aria-label="Budget for ' + esc(b.name) + '"></td>' +
+      '<td class="act"><button class="btn small" data-onclick="App.budgetForm(\'' + b.id + '\')">Edit</button></td></tr>';
   }).join('');
   const inactiveCount = bs.filter(b => !b.active).length;
-  paint(head('Budgets', 'Set how much you plan to spend each month', monthNav() + '<button class="btn primary" onclick="App.budgetForm()">+ New budget</button>') +
+  paint(head('Budgets', 'Set how much you plan to spend each month', monthNav() + '<button class="btn primary" data-onclick="App.budgetForm()">+ New budget</button>') +
     '<div class="kpis">' + (available ? '<div class="kpi"><div class="eyebrow">Available to budget</div><div class="val num">' + money0(available) + '</div><div class="sub-s">' +
         (available - totLim >= 0 ? money0(available - totLim) + ' not yet assigned' : '<span class="up">' + money0(totLim - available) + ' more assigned than available</span>') + '</div></div>' : '') +
       '<div class="kpi"><div class="eyebrow">Budgeted</div><div class="val num">' + money0(totLim) + '</div></div>' +
@@ -1307,15 +1307,15 @@ async function budgetForm(id) {
   const L = await lists(true), b = id ? L.budgets.find(x => x.id === id) : null;
   S.form = { id };
   openDrawer(id ? 'Edit budget' : 'New budget',
-    '<form id="budForm" onsubmit="event.preventDefault();App.saveBudget()"><label>Name<input type="text" id="b-name" value="' + esc(b ? b.name : '') + '" required></label>' +
+    '<form id="budForm" data-onsubmit="event.preventDefault();App.saveBudget()"><label>Name<input type="text" id="b-name" value="' + esc(b ? b.name : '') + '" required></label>' +
     (!id ? '<label>Amount for ' + monthRange(S.y, S.m).label + ' (optional)<input type="number" min="0" step="1" id="b-amount"></label>' : '') +
     (() => { const bc = (S.budgetCache || {})[id] || {}; return '<div class="grid2"><label>Auto-budget<select id="b-auto">' +
       [['none', 'Off'], ['reset', 'Same amount every month'], ['rollover', 'Roll over what’s left'], ['adjusted', 'Adjust for overspending']].map(([v, l]) => opt(v, l, bc.auto || 'none')).join('') +
       '</select></label><label>Monthly amount<input type="number" min="0" step="1" id="b-autoamt" value="' + (bc.autoAmt || '') + '"></label></div><p class="hint">Auto-budget sets this budget’s amount at the start of each month for you.</p>'; })() +
     '<label>Notes<textarea id="b-notes" rows="3">' + esc(b ? b.notes : '') + '</textarea></label>' +
     (id ? '<label class="check"><input type="checkbox" id="b-active"' + (b.active ? ' checked' : '') + '> Active</label>' : '') + '<button type="submit" hidden></button></form>',
-    (id ? '<button class="btn danger" onclick="App.deleteThing(\'budgets\',\'' + id + '\',\'budget\')">Delete</button>' : '') + '<span class="grow"></span><button class="btn" onclick="App.closeDrawer()">Cancel</button>' +
-    '<button class="btn primary" id="budSave" onclick="el(\'budForm\').requestSubmit()">' + (id ? 'Save' : 'Create budget') + '</button>');
+    (id ? '<button class="btn danger" data-onclick="App.deleteThing(\'budgets\',\'' + id + '\',\'budget\')">Delete</button>' : '') + '<span class="grow"></span><button class="btn" data-onclick="App.closeDrawer()">Cancel</button>' +
+    '<button class="btn primary" id="budSave" data-onclick="App.submit(\'budForm\')">' + (id ? 'Save' : 'Create budget') + '</button>');
 }
 async function saveBudget() {
   const id = S.form.id, name = el('b-name').value.trim();
@@ -1353,24 +1353,24 @@ VIEWS.categories = async (r, paint) => {
       '<td class="amt">' + (x.now ? money(x.now) : '<span class="neutral">—</span>') + '</td>' +
       '<td class="r hide-s sub-s">' + (x.prev ? (Math.abs(d) < 1 ? 'Same' : '<span class="' + (d > 0 ? 'up' : 'down') + '">' + (d > 0 ? '+' : '−') + money0(Math.abs(d)) + '</span>') + ' vs ' + money0(x.prev) : '') + '</td>' +
       '<td class="amt hide-s">' + (x.inc ? '<span class="pos">' + money(x.inc) + '</span>' : '<span class="neutral">—</span>') + '</td>' +
-      '<td class="act"><button class="btn small" onclick="App.categoryForm(\'' + x.id + '\')">Edit</button></td></tr>';
+      '<td class="act"><button class="btn small" data-onclick="App.categoryForm(\'' + x.id + '\')">Edit</button></td></tr>';
   }).join('');
-  const tags = L.tags.map(t => '<span class="chip"><a href="#/transactions?tag=' + t.id + '">' + esc(t.name) + '</a><button title="Delete tag" onclick="App.deleteTag(\'' + t.id + '\')">×</button></span>').join('');
-  paint(head('Categories & tags', '', monthNav() + '<button class="btn primary" onclick="App.categoryForm()">+ New category</button>') +
+  const tags = L.tags.map(t => '<span class="chip"><a href="#/transactions?tag=' + t.id + '">' + esc(t.name) + '</a><button title="Delete tag" data-onclick="App.deleteTag(\'' + t.id + '\')">×</button></span>').join('');
+  paint(head('Categories & tags', '', monthNav() + '<button class="btn primary" data-onclick="App.categoryForm()">+ New category</button>') +
     '<section class="panel flush" style="margin-bottom:28px">' + (rows ? '<table class="tbl"><thead><tr><th>Category</th><th class="r">Spent in ' + cur.short + '</th><th class="r hide-s">vs ' + prev.short + '</th><th class="r hide-s">Earned</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>'
       : '<div class="center-empty">No categories yet.</div>') + '</section>' +
     '<section class="panel"><div class="panel-head"><div><h2>Tags</h2><p class="lead">Click a tag to see its transactions</p></div></div>' +
-      '<form onsubmit="event.preventDefault();App.addTag(this.t)" style="display:flex;gap:10px;margin-bottom:18px;max-width:420px"><input type="text" name="t" placeholder="New tag name" style="flex:1" required><button class="btn">Add tag</button></form>' +
+      '<form data-onsubmit="event.preventDefault();App.addTag(this.t)" style="display:flex;gap:10px;margin-bottom:18px;max-width:420px"><input type="text" name="t" placeholder="New tag name" style="flex:1" required><button class="btn">Add tag</button></form>' +
       (tags ? '<div class="tagcloud">' + tags + '</div>' : '<p class="empty">No tags yet.</p>') + '</section>');
 };
 async function categoryForm(id) {
   const L = await lists(), c = id ? L.categories.find(x => x.id === id) : null;
   S.form = { id };
   openDrawer(id ? 'Edit category' : 'New category',
-    '<form id="catForm" onsubmit="event.preventDefault();App.saveCategory()"><label>Name<input type="text" id="c-name" value="' + esc(c ? c.name : '') + '" required></label>' +
+    '<form id="catForm" data-onsubmit="event.preventDefault();App.saveCategory()"><label>Name<input type="text" id="c-name" value="' + esc(c ? c.name : '') + '" required></label>' +
     '<label>Notes<textarea id="c-notes" rows="3">' + esc(c ? c.notes : '') + '</textarea></label><button type="submit" hidden></button></form>',
-    (id ? '<button class="btn danger" onclick="App.deleteThing(\'categories\',\'' + id + '\',\'category\')">Delete</button>' : '') + '<span class="grow"></span><button class="btn" onclick="App.closeDrawer()">Cancel</button>' +
-    '<button class="btn primary" id="catSave" onclick="el(\'catForm\').requestSubmit()">' + (id ? 'Save' : 'Create category') + '</button>');
+    (id ? '<button class="btn danger" data-onclick="App.deleteThing(\'categories\',\'' + id + '\',\'category\')">Delete</button>' : '') + '<span class="grow"></span><button class="btn" data-onclick="App.closeDrawer()">Cancel</button>' +
+    '<button class="btn primary" id="catSave" data-onclick="App.submit(\'catForm\')">' + (id ? 'Save' : 'Create category') + '</button>');
 }
 async function saveCategory() {
   const id = S.form.id, name = el('c-name').value.trim();
@@ -1418,10 +1418,10 @@ VIEWS.bills = async (r, paint) => {
       due ? '<span class="chip warn">Due ' + fmtDay(due) + '</span>' : '<span class="chip">Next ' + esc(at.next_expected_match ? fmtDate(at.next_expected_match) : '—') + '</span>';
     const amt = num(at.amount_min) === num(at.amount_max) ? money(num(at.amount_min)) : money0(num(at.amount_min)) + '–' + money0(num(at.amount_max));
     return heading + '<tr' + (at.active === false ? ' style="opacity:.5"' : '') + '><td><a class="desc" href="#/transactions?bill=' + b.id + '" style="text-decoration:none">' + esc(at.name) + '</a><div class="sub-s">' + every + '</div></td>' +
-      '<td>' + status + '</td><td class="amt">' + amt + '</td><td class="act"><button class="btn small" onclick="App.billForm(\'' + b.id + '\')">Edit</button></td></tr>';
+      '<td>' + status + '</td><td class="amt">' + amt + '</td><td class="act"><button class="btn small" data-onclick="App.billForm(\'' + b.id + '\')">Edit</button></td></tr>';
   }).join('');
   S.billCache = Object.fromEntries(bills.map(b => [String(b.id), b.attributes]));
-  paint(head('Bills', 'About ' + money0(monthly) + ' a month across ' + active.length + ' active bill' + (active.length === 1 ? '' : 's'), monthNav() + '<button class="btn primary" onclick="App.billForm()">+ New bill</button>') +
+  paint(head('Bills', 'About ' + money0(monthly) + ' a month across ' + active.length + ' active bill' + (active.length === 1 ? '' : 's'), monthNav() + '<button class="btn primary" data-onclick="App.billForm()">+ New bill</button>') +
     '<section class="panel flush">' + (rows ? '<table class="tbl"><thead><tr><th>Bill</th><th>' + cur.label + '</th><th class="r">Amount</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>'
       : '<div class="center-empty">No bills yet. Add rent, subscriptions or insurance to see what’s coming.</div>') + '</section>' +
     '<p class="sub-s" style="margin-top:14px">Firefly marks a bill paid when a transaction is linked to it — pick the bill in the transaction form, or let your rules do it.</p>');
@@ -1430,7 +1430,7 @@ function billForm(id) {
   const at = id ? (S.billCache || {})[id] : null;
   S.form = { id };
   openDrawer(id ? 'Edit bill' : 'New bill',
-    '<form id="billForm" onsubmit="event.preventDefault();App.saveBill()"><label>Name<input type="text" id="bl-name" value="' + esc(at ? at.name : '') + '" required></label>' +
+    '<form id="billForm" data-onsubmit="event.preventDefault();App.saveBill()"><label>Name<input type="text" id="bl-name" value="' + esc(at ? at.name : '') + '" required></label>' +
     '<div class="grid2"><label>Lowest amount<input type="number" step="0.01" min="0" id="bl-min" value="' + esc(at ? num(at.amount_min) : '') + '" required></label>' +
     '<label>Highest amount<input type="number" step="0.01" min="0" id="bl-max" value="' + esc(at ? num(at.amount_max) : '') + '" required></label></div><p class="hint">Use the same number twice for a fixed amount.</p>' +
     '<label>' + (id ? 'First due date' : 'Next due date') + '<input type="date" id="bl-date" value="' + esc(at ? String(at.date).slice(0, 10) : todayIso()) + '" required></label>' +
@@ -1440,8 +1440,8 @@ function billForm(id) {
     '<datalist id="dl-groups">' + [...new Set(Object.values(S.billCache || {}).map(x => x.object_group_title).filter(Boolean))].map(g => '<option value="' + esc(g) + '">').join('') + '</datalist>' +
     '<label>Notes<textarea id="bl-notes" rows="3">' + esc(at ? at.notes || '' : '') + '</textarea></label>' +
     '<label class="check"><input type="checkbox" id="bl-active"' + (!at || at.active !== false ? ' checked' : '') + '> Active</label><button type="submit" hidden></button></form>',
-    (id ? '<button class="btn danger" onclick="App.deleteThing(\'bills\',\'' + id + '\',\'bill\')">Delete</button>' : '') + '<span class="grow"></span><button class="btn" onclick="App.closeDrawer()">Cancel</button>' +
-    '<button class="btn primary" id="billSave" onclick="el(\'billForm\').requestSubmit()">' + (id ? 'Save' : 'Create bill') + '</button>');
+    (id ? '<button class="btn danger" data-onclick="App.deleteThing(\'bills\',\'' + id + '\',\'bill\')">Delete</button>' : '') + '<span class="grow"></span><button class="btn" data-onclick="App.closeDrawer()">Cancel</button>' +
+    '<button class="btn primary" id="billSave" data-onclick="App.submit(\'billForm\')">' + (id ? 'Save' : 'Create bill') + '</button>');
 }
 async function saveBill() {
   const id = S.form.id, v = x => el(x).value.trim();
@@ -1473,14 +1473,14 @@ VIEWS.piggy = async (r, paint) => {
   const cards = piggies.map((p, i) => {
     const heading = p.group && (i === 0 || piggies[i - 1].group !== p.group) ? '<div class="eyebrow" style="grid-column:1/-1;margin:6px 0 -6px">' + esc(p.group) + '</div>' : '';
     const pct = p.target ? Math.min(100, p.current / p.target * 100) : 0;
-    return heading + '<section class="panel"><div class="panel-head"><h2>' + esc(p.name) + '</h2><button class="btn small" onclick="App.piggyForm(\'' + p.id + '\')">Edit</button></div>' +
+    return heading + '<section class="panel"><div class="panel-head"><h2>' + esc(p.name) + '</h2><button class="btn small" data-onclick="App.piggyForm(\'' + p.id + '\')">Edit</button></div>' +
       '<p class="lead">' + esc(p.accounts.map(a => a.name || (L.byId[a.id] || {}).name).filter(Boolean).join(', ') || 'No account') + (p.targetDate ? ' · by ' + fmtDate(p.targetDate) : '') + '</p>' +
       '<div class="total num" style="margin-bottom:2px">' + money0(p.current) + ' <span class="neutral" style="font-size:16px">of ' + money0(p.target) + '</span></div>' +
       '<div class="track"><div class="fill good" style="width:' + pct.toFixed(1) + '%"></div></div>' +
       '<div class="sub-s" style="margin-bottom:16px">' + pct.toFixed(0) + '% saved' + (p.left > 0 ? ' · ' + money0(p.left) + ' to go' : ' · Goal reached') + (p.perMonth > 0 ? ' · about ' + money0(p.perMonth) + '/month' : '') + '</div>' +
-      '<div style="display:flex;gap:8px"><button class="btn small" onclick="App.piggyMoney(\'' + p.id + '\',1)">+ Add money</button><button class="btn small" onclick="App.piggyMoney(\'' + p.id + '\',-1)">− Take out</button></div></section>';
+      '<div style="display:flex;gap:8px"><button class="btn small" data-onclick="App.piggyMoney(\'' + p.id + '\',1)">+ Add money</button><button class="btn small" data-onclick="App.piggyMoney(\'' + p.id + '\',-1)">− Take out</button></div></section>';
   }).join('');
-  paint(head('Piggy banks', piggies.length ? money0(saved) + ' saved toward ' + money0(goal) + ' in goals' : 'Set money aside for goals', '<button class="btn primary" onclick="App.piggyForm()">+ New piggy bank</button>') +
+  paint(head('Piggy banks', piggies.length ? money0(saved) + ' saved toward ' + money0(goal) + ' in goals' : 'Set money aside for goals', '<button class="btn primary" data-onclick="App.piggyForm()">+ New piggy bank</button>') +
     (cards ? '<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))">' + cards + '</div>' :
       '<section class="panel"><div class="center-empty">No piggy banks yet.<br>Use one to set money aside in an account for a goal — a trip, tuition, an emergency fund.</div></section>'));
 };
@@ -1489,7 +1489,7 @@ function piggyForm(id) {
   S.form = { id };
   const accId = p && p.accounts[0] ? p.accounts[0].id : ((L.own.find(a => a.role === 'savingAsset') || L.own.find(a => isAsset(a) && !isCard(a)) || {}).id || '');
   openDrawer(id ? 'Edit piggy bank' : 'New piggy bank',
-    '<form id="pgForm" onsubmit="event.preventDefault();App.savePiggy()"><label>Name<input type="text" id="p-name" value="' + esc(p ? p.name : '') + '" required></label>' +
+    '<form id="pgForm" data-onsubmit="event.preventDefault();App.savePiggy()"><label>Name<input type="text" id="p-name" value="' + esc(p ? p.name : '') + '" required></label>' +
     '<label>Account the money sits in<select id="p-acc"' + (id ? ' disabled' : '') + '>' + L.own.filter(a => isAsset(a) && !isCard(a)).map(a => opt(a.id, a.name, accId)).join('') + '</select></label>' +
     '<div class="grid2"><label>Goal amount<input type="number" min="0.01" step="0.01" id="p-target" value="' + esc(p ? p.target : '') + '" required></label>' +
     '<label>Target date (optional)<input type="date" id="p-date" value="' + esc(p && p.targetDate ? String(p.targetDate).slice(0, 10) : '') + '"></label></div>' +
@@ -1498,8 +1498,8 @@ function piggyForm(id) {
     '<datalist id="dl-pgroups">' + [...new Set(Object.values(S.piggyCache || {}).map(x => x.group).filter(Boolean))].map(g => '<option value="' + esc(g) + '">').join('') + '</datalist>' +
     '<label>Notes<textarea id="p-notes" rows="3">' + esc(p ? p.notes : '') + '</textarea></label><button type="submit" hidden></button></form>' +
     (id ? '<div id="pgHistory"><p class="sub-s">Loading history…</p></div>' : ''),
-    (id ? '<button class="btn danger" onclick="App.deleteThing(\'piggy-banks\',\'' + id + '\',\'piggy bank\')">Delete</button>' : '') + '<span class="grow"></span><button class="btn" onclick="App.closeDrawer()">Cancel</button>' +
-    '<button class="btn primary" id="pgSave" onclick="el(\'pgForm\').requestSubmit()">' + (id ? 'Save' : 'Create piggy bank') + '</button>');
+    (id ? '<button class="btn danger" data-onclick="App.deleteThing(\'piggy-banks\',\'' + id + '\',\'piggy bank\')">Delete</button>' : '') + '<span class="grow"></span><button class="btn" data-onclick="App.closeDrawer()">Cancel</button>' +
+    '<button class="btn primary" id="pgSave" data-onclick="App.submit(\'pgForm\')">' + (id ? 'Save' : 'Create piggy bank') + '</button>');
   if (id) getAll('/piggy-banks/' + id + '/events').then(ev => {
     const box = el('pgHistory'); if (!box) return;
     box.innerHTML = '<h3 style="font-size:14px;margin:8px 0 10px">History</h3>' + (ev.length ? '<div class="list">' + ev.map(e => {
@@ -1527,10 +1527,10 @@ function piggyMoney(id, dir) {
   const p = S.piggyCache[id];
   S.form = { id, dir };
   openDrawer((dir > 0 ? 'Add money to ' : 'Take money out of ') + p.name,
-    '<form id="pmForm" onsubmit="event.preventDefault();App.savePiggyMoney()"><p class="sub-s" style="margin-top:0">Currently ' + money(p.current) + ' of ' + money(p.target) + '. This only moves money in Firefly’s bookkeeping — no transaction is created.</p>' +
+    '<form id="pmForm" data-onsubmit="event.preventDefault();App.savePiggyMoney()"><p class="sub-s" style="margin-top:0">Currently ' + money(p.current) + ' of ' + money(p.target) + '. This only moves money in Firefly’s bookkeeping — no transaction is created.</p>' +
     (p.accounts.length > 1 ? '<label>Account<select id="pm-acc">' + p.accounts.map(a => opt(a.id, (a.name || (S.lists.byId[a.id] || {}).name) + ' (' + money(a.amount) + ')', '')).join('') + '</select></label>' : '') +
     '<label>Amount<input type="number" min="0.01" step="0.01" id="pm-amt" required></label><button type="submit" hidden></button></form>',
-    '<span class="grow"></span><button class="btn" onclick="App.closeDrawer()">Cancel</button><button class="btn primary" id="pmSave" onclick="el(\'pmForm\').requestSubmit()">' + (dir > 0 ? 'Add' : 'Take out') + '</button>');
+    '<span class="grow"></span><button class="btn" data-onclick="App.closeDrawer()">Cancel</button><button class="btn primary" id="pmSave" data-onclick="App.submit(\'pmForm\')">' + (dir > 0 ? 'Add' : 'Take out') + '</button>');
 }
 async function savePiggyMoney() {
   const { id, dir } = S.form, p = S.piggyCache[id], amt = num(el('pm-amt').value);
@@ -1582,7 +1582,7 @@ const THEMES = [
 function currentTheme() { return document.documentElement.getAttribute('data-theme') || 'auto'; }
 function drawThemes() {
   el('themes').innerHTML = THEMES.map(([k, label, sw]) => '<button type="button" title="' + label + '" aria-label="' + label + ' theme" class="' + (k === currentTheme() ? 'on' : '') +
-    '" style="background:' + sw + '" onclick="App.setTheme(\'' + k + '\')"></button>').join('');
+    '" style="background:' + sw + '" data-onclick="App.setTheme(\'' + k + '\')"></button>').join('');
 }
 function setTheme(k) {
   if (k === currentTheme()) return;
@@ -1602,7 +1602,7 @@ function setTheme(k) {
 document.addEventListener('pointerdown', e => { S.lastPtr = { x: e.clientX, y: e.clientY }; }, true);
 // Remember which account name was clicked so it can morph into the next page's title
 document.addEventListener('click', e => {
-  const src = e.target.closest && e.target.closest('a[href^="#/account/"], tr[onclick*="#/account/"]');
+  const src = e.target.closest && e.target.closest('a[href^="#/account/"], tr[data-onclick*="#/account/"]');
   const node = src && src.querySelector('.name, .nm');
   S.vtFrom = node ? { node, t: Date.now() } : null;
 }, true);
@@ -1625,6 +1625,18 @@ window.App = {
   billForm, saveBill, piggyForm, savePiggy, piggyMoney, savePiggyMoney,
   setTheme,
   signOut: () => { clearKey(); S.key = ''; showLogin(); },
+  // Small steps that markup handlers used to write inline (see events.js)
+  go: h => { location.hash = h; },
+  submit: id => el(id).requestSubmit(),
+  print: () => window.print(),
+  removeRow: b => b.closest('.editor-row').remove(),
+  palBackdrop: (e, box) => { if (e.target === box) App.closePalette(); },
+  enterClick: (e, n) => { if (e.key === 'Enter') n.click(); },
+  nlKey: (e, input) => { if (e.key === 'Enter') { e.preventDefault(); App.nlParse(input.value, true); } },
+  linkKey: e => { if (e.key === 'Enter') { e.preventDefault(); App.findLink(); } },
+  rulesSearch: f => { const q = f.q.value.trim(); location.hash = '#/rules' + (q ? '?q=' + encodeURIComponent(q) : ''); },
+  reportsRange: f => { location.hash = '#/reports?start=' + f.s.value + '&end=' + f.e.value; },
+  nativeSettings: () => window.webkit.messageHandlers.native.postMessage('settings'),
 };
 window.addEventListener('hashchange', () => { const instant = S.tabNav; S.tabNav = false; if (!el('app').hidden) route({ nav: true, instant }); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && el('drawer').classList.contains('open') && !el('confirm').open) closeDrawer(); });

@@ -180,7 +180,7 @@ VIEWS.forecast = async (r, paint) => {
   const sel = r.q.account || LS.get('fcAccount', ''), horizon = +(r.q.days || LS.get('fcDays', 60));
   const m = await forecastModel(sel, horizon);
   const kinds = { Payday: 'good', Income: 'good', Recurring: '', Loan: 'warn', Card: 'warn', Bill: 'bad' };
-  const rows = m.ev.map(e => '<tr' + (e.off ? ' style="opacity:.45"' : '') + '><td class="sel"><input type="checkbox"' + (e.off ? '' : ' checked') + ' title="Include in the forecast" onchange="App.fcToggle(\'' + esc(e.key) + '\', this.checked)"></td>' +
+  const rows = m.ev.map(e => '<tr' + (e.off ? ' style="opacity:.45"' : '') + '><td class="sel"><input type="checkbox"' + (e.off ? '' : ' checked') + ' title="Include in the forecast" data-onchange="App.fcToggle(\'' + esc(e.key) + '\', this.checked)"></td>' +
     '<td class="date">' + fmtDay(e.date) + '</td><td><div class="desc">' + esc(e.label) + '</div><span class="chip ' + (kinds[e.kind] || '') + '">' + e.kind + '</span></td>' +
     '<td class="amt ' + (e.amount > 0 ? 'pos' : 'neg') + '">' + (e.amount > 0 ? '+' : '') + money(e.amount) + '</td><td class="amt ' + (e.after < 0 ? 'neg' : '') + '">' + (e.off ? '—' : money(e.after)) + '</td></tr>').join('');
   const headline = m.short
@@ -188,12 +188,12 @@ VIEWS.forecast = async (r, paint) => {
     : '<div class="eyebrow">Safe to spend</div><div class="big num" data-count="' + m.safe + '">' + money0(m.safe) + '</div><div class="sub-s" style="margin-top:6px">' +
       (m.nextPay ? 'Until your next ' + (m.nextPay.kind === 'Payday' ? 'payday' : 'deposit') + ' on ' + fmtDate(m.nextPay.date) + ', while still covering everything below' : 'While still covering everything below') + ' and keeping a ' + money0(m.buffer) + ' cushion.</div>';
   paint(head('Forecast', 'Where ' + esc(m.name) + ' is heading over the next ' + m.horizon + ' days',
-      '<select onchange="App.fcSet(\'account\', this.value)" style="width:auto">' + m.banks.map(a => opt(a.id, a.name, m.sel)).join('') + opt('all', 'All bank accounts', m.sel) + '</select>' +
-      '<select onchange="App.fcSet(\'days\', this.value)" style="width:auto">' + [30, 60, 90].map(d => opt(d, d + ' days', m.horizon)).join('') + '</select>') +
+      '<select data-onchange="App.fcSet(\'account\', this.value)" style="width:auto">' + m.banks.map(a => opt(a.id, a.name, m.sel)).join('') + opt('all', 'All bank accounts', m.sel) + '</select>' +
+      '<select data-onchange="App.fcSet(\'days\', this.value)" style="width:auto">' + [30, 60, 90].map(d => opt(d, d + ' days', m.horizon)).join('') + '</select>') +
     '<section class="hero" style="margin-bottom:28px"><div>' + headline + '</div><div class="stats">' +
       '<div class="stat"><div class="eyebrow">Balance now</div><div class="val num">' + money0(m.start) + '</div></div>' +
       '<div class="stat"><div class="eyebrow">Lowest point</div><div class="val num ' + (m.min < 0 ? 'neg' : '') + '">' + money0(m.min) + '</div><div class="sub">' + fmtDay(m.minDate) + '</div></div>' +
-      '<div class="stat"><div class="eyebrow">Cushion</div><div class="val num"><input type="number" min="0" step="10" value="' + m.buffer + '" onchange="App.fcBuffer(this.value)" style="width:110px;font-size:20px;padding:4px 10px"></div><div class="sub">kept aside, never counted as spendable</div></div>' +
+      '<div class="stat"><div class="eyebrow">Cushion</div><div class="val num"><input type="number" min="0" step="10" value="' + m.buffer + '" data-onchange="App.fcBuffer(this.value)" style="width:110px;font-size:20px;padding:4px 10px"></div><div class="sub">kept aside, never counted as spendable</div></div>' +
     '</div></section>' +
     '<section class="panel chart" style="margin-bottom:20px"><h2>Projected balance</h2><p class="lead">Each dot is a scheduled payment or deposit · the shaded area is below zero</p>' + forecastChart(m) + '</section>' +
     '<section class="panel flush"><div style="padding:22px 26px 6px"><h2 style="font-size:15px;margin:0 0 3px">What’s coming</h2><p class="lead" style="margin-bottom:8px">Untick anything that won’t happen — the forecast remembers.</p></div>' +
@@ -266,7 +266,7 @@ function renderInbox() {
   const similar = sug.generic ? [] : I.items.filter((x, j) => j !== I.i && x.splits.some(y => !y.category && (y.type === 'deposit' ? y.source_id : y.destination_id) === payeeId));
   I.cur = { g, s, payeeName, similar, generic: sug.generic, pickBud: sug.pickBud };
   const bud = top ? sug.pickBud(top.c) : '';
-  I.paint(head('Categorize', (I.items.length - I.i) + ' left' + (I.done ? ' · ' + I.done + ' done this session' : ''), '<button class="btn" onclick="App.inboxSkip()">Skip <span class="neutral">S</span></button>') +
+  I.paint(head('Categorize', (I.items.length - I.i) + ' left' + (I.done ? ' · ' + I.done + ' done this session' : ''), '<button class="btn" data-onclick="App.inboxSkip()">Skip <span class="neutral">S</span></button>') +
     '<div class="track" style="margin:-10px 0 24px"><div class="fill good" style="width:' + (I.done / (I.done + I.items.length) * 100).toFixed(1) + '%"></div></div>' +
     '<section class="panel" style="max-width:760px">' +
       '<div class="row" style="align-items:flex-start"><div><div class="eyebrow">' + fmtDate(g.date) + ' · ' + esc(s.type === 'deposit' ? 'Income' : 'Expense') + '</div>' +
@@ -274,14 +274,14 @@ function renderInbox() {
         '<div class="sub-s">' + esc(s.source_name) + ' → ' + esc(s.destination_name) + (g.splits.length > 1 ? ' · part of “' + esc(g.title) + '”' : '') + '</div></div>' +
         '<div class="big num ' + (s.type === 'deposit' ? 'pos' : '') + '" style="font-size:34px">' + money(s.amount) + '</div></div>' +
       '<div style="margin:24px 0 6px" class="eyebrow">' + (sug.cats.length ? 'Suggestions' : 'No suggestion yet — pick a category') + '</div>' +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">' + sug.cats.map((c, i) => '<button class="btn' + (i === 0 ? ' primary' : '') + '" onclick="App.inboxPick(' + i + ')" data-cat="' + esc(c.c) + '"><span class="neutral" style="color:inherit;opacity:.6">' + (i + 1) + '</span> ' + esc(c.c) + ' <span style="opacity:.6">' + c.pct + '%</span></button>').join('') + '</div>' +
-      '<form id="inboxForm" onsubmit="event.preventDefault();App.inboxSave()"><div class="grid2"><label>Category<input type="text" id="ib-cat" list="ib-dl" value="' + esc(top ? top.c : '') + '" required></label>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">' + sug.cats.map((c, i) => '<button class="btn' + (i === 0 ? ' primary' : '') + '" data-onclick="App.inboxPick(' + i + ')" data-cat="' + esc(c.c) + '"><span class="neutral" style="color:inherit;opacity:.6">' + (i + 1) + '</span> ' + esc(c.c) + ' <span style="opacity:.6">' + c.pct + '%</span></button>').join('') + '</div>' +
+      '<form id="inboxForm" data-onsubmit="event.preventDefault();App.inboxSave()"><div class="grid2"><label>Category<input type="text" id="ib-cat" list="ib-dl" value="' + esc(top ? top.c : '') + '" required></label>' +
         (s.type === 'withdrawal' ? '<label>Budget<select id="ib-bud">' + opt('', 'None', bud) + L.budgets.filter(b => b.active).map(b => opt(b.id, b.name, bud)).join('') + '</select></label>' : '<span></span>') + '</div>' +
         '<datalist id="ib-dl">' + L.categories.map(c => '<option value="' + esc(c.name) + '">').join('') + '</datalist>' +
         (similar.length ? '<label class="check"><input type="checkbox" id="ib-similar" checked> Also do the ' + similar.length + ' other uncategorized from ' + esc(payeeName) + '</label>' : '') +
         '<label class="check"><input type="checkbox" id="ib-rule"' + (similar.length >= 1 && !sug.generic ? ' checked' : '') + '> Always do this for ' + (sug.generic ? '“' + esc(descKey(s.description)) + '”' : esc(payeeName)) + ' from now on (creates a rule)</label>' +
-        '<div style="display:flex;gap:10px;margin-top:6px"><button class="btn primary" id="ib-save">Save <span style="opacity:.6">↵</span></button><button type="button" class="btn" onclick="App.editTx(\'' + g.id + '\')">Open full transaction</button>' +
-        (I.i > 0 ? '<button type="button" class="link" onclick="App.inboxBack()">← Back</button>' : '') + '</div></form></section>' +
+        '<div style="display:flex;gap:10px;margin-top:6px"><button class="btn primary" id="ib-save">Save <span style="opacity:.6">↵</span></button><button type="button" class="btn" data-onclick="App.editTx(\'' + g.id + '\')">Open full transaction</button>' +
+        (I.i > 0 ? '<button type="button" class="link" data-onclick="App.inboxBack()">← Back</button>' : '') + '</div></form></section>' +
     '<p class="sub-s" style="margin-top:14px">Keys: <strong>1–3</strong> pick a suggestion · <strong>Enter</strong> save · <strong>S</strong> skip. Suggestions come from how you categorized similar transactions over the past year.</p>');
 }
 function inboxPick(i) { const b = document.querySelectorAll('[data-cat]')[i]; if (!b) return; el('ib-cat').value = b.dataset.cat; const bud = S.inbox.cur.pickBud(b.dataset.cat); if (el('ib-bud') && bud) el('ib-bud').value = bud; }
@@ -377,12 +377,12 @@ VIEWS.loans = async (r, paint) => {
     const saved = b0.paidOff !== null && l.paidOff !== null ? b0.paidOff - l.paidOff : null;
     return '<tr><td><a class="desc" href="#/account/' + l.id + '" style="text-decoration:none">' + esc(l.name) + '</a><div class="sub-s">' + (h.last ? 'Last paid ' + money0(h.last.a) + ' on ' + fmtDay(h.last.d) : 'No payments yet') + (num(l.interest) ? ' · ' + num(l.interest) + '% ' + esc(l.period || 'interest') : '') + '</div></td>' +
       '<td class="amt">' + money0(l.debt) + '</td>' +
-      '<td class="r"><input class="inline num" type="number" min="0" step="10" value="' + l.pay + '" onchange="App.loanPay(\'' + l.id + '\', this.value)" aria-label="Monthly payment for ' + esc(l.name) + '"></td>' +
+      '<td class="r"><input class="inline num" type="number" min="0" step="10" value="' + l.pay + '" data-onchange="App.loanPay(\'' + l.id + '\', this.value)" aria-label="Monthly payment for ' + esc(l.name) + '"></td>' +
       '<td class="r">' + (l.paidOff === null ? '<span class="neg">Not being paid</span>' : '<strong>' + monthLabel(l.paidOff) + '</strong><div class="sub-s">' + l.paidOff + ' month' + (l.paidOff === 1 ? '' : 's') + (saved > 0 ? ' · <span class="down">' + saved + ' sooner</span>' : '') + '</div>') + '</td>' +
       '<td style="min-width:200px"><div class="track" style="height:10px"><div class="fill good" style="width:' + ((l.paidOff === null ? maxM : Math.min(l.paidOff, maxM)) / maxM * 100).toFixed(1) + '%;' + (l.paidOff === null ? 'background:var(--spend);opacity:.35' : '') + '"></div></div></td></tr>';
   }).join('');
   const totalDebt = model.reduce((s, l) => s + l.debt, 0), totalPay = model.reduce((s, l) => s + l.pay, 0) + (plan.strategy === 'now' ? 0 : +plan.extra || 0);
-  const strat = (v, label, sub) => '<button type="button" class="' + (plan.strategy === v ? 'on' : '') + '" onclick="App.loanSet(\'strategy\', \'' + v + '\')" title="' + sub + '">' + label + '</button>';
+  const strat = (v, label, sub) => '<button type="button" class="' + (plan.strategy === v ? 'on' : '') + '" data-onclick="App.loanSet(\'strategy\', \'' + v + '\')" title="' + sub + '">' + label + '</button>';
   paint(head('Loan planner', 'See when each loan is paid off, and how to get there sooner', '') +
     '<div class="kpis"><div class="kpi"><div class="eyebrow">Owed</div><div class="val num">' + money0(totalDebt) + '</div></div>' +
       '<div class="kpi"><div class="eyebrow">Paying per month</div><div class="val num">' + money0(totalPay) + '</div></div>' +
@@ -391,10 +391,10 @@ VIEWS.loans = async (r, paint) => {
       '<div class="kpi"><div class="eyebrow">Interest to pay</div><div class="val num">' + money0(sim.interest) + '</div></div></div>' +
     '<section class="panel" style="margin-bottom:20px"><div class="grid2" style="align-items:end"><div><div class="eyebrow">When a loan is paid off, put its payment toward…</div>' +
       '<div class="seg" style="margin:8px 0 0">' + strat('snowball', 'Smallest balance next', 'Snowball: quick wins first') + strat('avalanche', 'Highest interest next', 'Avalanche: least interest overall') + strat('now', 'Nothing — keep payments as they are', 'No rollover') + '</div></div>' +
-      '<label style="margin:0">Extra each month on top<input type="number" min="0" step="25" value="' + (+plan.extra || 0) + '" onchange="App.loanSet(\'extra\', this.value)"' + (plan.strategy === 'now' ? ' disabled' : '') + '></label></div></section>' +
+      '<label style="margin:0">Extra each month on top<input type="number" min="0" step="25" value="' + (+plan.extra || 0) + '" data-onchange="App.loanSet(\'extra\', this.value)"' + (plan.strategy === 'now' ? ' disabled' : '') + '></label></div></section>' +
     '<section class="panel flush"><table class="tbl"><thead><tr><th>Loan</th><th class="r">Owed</th><th class="r">Pay / month</th><th class="r">Paid off</th><th>Timeline to ' + monthLabel(maxM) + '</th></tr></thead><tbody>' + rows + '</tbody></table></section>' +
     '<p class="sub-s" style="margin-top:14px">Changing a “Pay / month” amount saves it as that loan’s monthly payment in Firefly. Loans without one use what you actually paid recently. Strategy and extra amount are only a what-if and aren’t saved. ' +
-      '<button class="link" onclick="App.loanReset()">Reset strategy &amp; extra</button></p>');
+      '<button class="link" data-onclick="App.loanReset()">Reset strategy &amp; extra</button></p>');
 };
 async function loanPay(id, v) {
   const L = await lists(), a = L.byId[id]; if (!a) return;

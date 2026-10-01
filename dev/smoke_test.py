@@ -4,16 +4,21 @@
     python3 dev/mock_server.py &        # in another terminal
     python3 dev/smoke_test.py           # optional: --shots docs/screenshots
 """
-import asyncio, os, sys
+import asyncio, os, re, sys
 from playwright.async_api import async_playwright
 
 BASE = os.environ.get('BASE', 'http://127.0.0.1:8765/')   # e.g. a flaky demo server: BASE=http://127.0.0.1:8766/
 PAGES = ['', 'forecast', 'transactions', 'inbox', 'accounts', 'account/1', 'account/3?range=all', 'loans', 'budgets', 'categories',
          'bills', 'recurring', 'piggy', 'rules', 'reports', 'settings']
+# The markup's event handlers (data-onclick="App.x(…)"), with the JS concatenations ' + … + ' filled in with 1
+_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'app')
+_src = ''.join(open(os.path.join(d, f)).read() for d, _, fs in os.walk(_root) for f in fs if f.endswith(('.js', '.html')))
+HANDLERS = sorted({re.sub(r"' \+ .*? \+ '", '1', h).replace("\\'", "'") for h in re.findall(r'data-on[a-z]+="(.*?)"', _src)})
 SHOTS = sys.argv[sys.argv.index('--shots') + 1] if '--shots' in sys.argv else None
 # The page for the current hash has painted (not the previous page or the loading skeleton) and no animation is running
-PAINTED = """(() => { const r = parseHash(); return !S.vtRun && S.pageKey && S.pageKey.startsWith(r.name + '/' + r.id + '?')
-  && document.querySelector('#view .head .actions, #view .error'); })()"""
+# (a function, not an expression: Playwright evals expressions, which the Content-Security-Policy refuses)
+PAINTED = """() => { const r = parseHash(); return !S.vtRun && S.pageKey && S.pageKey.startsWith(r.name + '/' + r.id + '?')
+  && document.querySelector('#view .head .actions, #view .error'); }"""
 
 
 async def goto(page, route):
@@ -28,6 +33,15 @@ async def check(pw, width, height, mobile):
     page = await ctx.new_page()
     errors = []
     page.on('pageerror', lambda e: errors.append(f'{page.url}: {e}'))
+    # anything the Content-Security-Policy blocks (the mock server sends the same policy as nginx)
+    page.on('console', lambda m: 'Content Security Policy' in m.text and errors.append(f'{page.url}: {m.text}'))
+    # every data-on* handler in the source parses and calls an App method that exists
+    if not mobile:
+        await goto(page, '')
+        for h in HANDLERS:
+            bad = await page.evaluate('''h => { try { const p = parseHandler(h); const miss = p.filter(s => s.fn && typeof App[s.fn] !== 'function');
+              return miss.length ? 'no App.' + miss[0].fn : ''; } catch (e) { return e.message; } }''', h)
+            if bad: errors.append(f'handler {h!r}: {bad}')
     for p in PAGES:
         await goto(page, p)
         await page.wait_for_timeout(300)
@@ -79,7 +93,7 @@ async def screenshots(pw, out):
         ctx = await br.new_context(viewport={'width': w, 'height': h}, is_mobile=mobile, has_touch=mobile, device_scale_factor=2 if mobile else 1)
         await ctx.add_init_script("localStorage.setItem('moneyKey','demo');" + (f"localStorage.setItem('moneyTheme','{theme}');" if theme else ''))
         pg = await ctx.new_page(); await pg.goto(BASE + '#/' + route)
-        await pg.wait_for_function(PAINTED); await pg.wait_for_function("!document.querySelector('#view .sk, #view [aria-busy]')"); await pg.wait_for_timeout(1200)
+        await pg.wait_for_function(PAINTED); await pg.wait_for_function("() => !document.querySelector('#view .sk, #view [aria-busy]')"); await pg.wait_for_timeout(1200)
         if action: await action(pg)
         await pg.screenshot(path=f'{out}/{name}.png', full_page=full); await ctx.close()
     async def open_tx(pg):
