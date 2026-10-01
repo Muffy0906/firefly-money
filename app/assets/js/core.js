@@ -822,8 +822,11 @@ function budgetsMini(budgets, limits) {
   return '<section class="panel"><div class="panel-head"><h2>Budgets</h2><a class="link" href="#/budgets">Manage</a></div><p class="lead">This month</p>' + (rows || '<p class="empty">No budgets yet.</p>') + '</section>';
 }
 function billsMini(bills) {
+  // A bill with no due date in the window falls back to Firefly's "next expected" date, which can be months
+  // away, so only keep dates that really fall within the 45 days this card is about.
+  const end = addDays(todayIso(), 45);
   const up = bills.filter(b => b.attributes.active !== false).map(b => ({ b, next: (b.attributes.pay_dates || [])[0] || b.attributes.next_expected_match }))
-    .filter(x => x.next).sort((a, b) => String(a.next).localeCompare(String(b.next)));
+    .filter(x => x.next && String(x.next).slice(0, 10) <= end).sort((a, b) => String(a.next).localeCompare(String(b.next)));
   const rows = up.map(({ b, next }) => '<div class="row"><span class="name">' + esc(b.attributes.name) + '<br><span class="sub-s">Due ' + fmtDate(next) + '</span></span><span class="num">' + money(billAmount(b.attributes)) + '</span></div>').join('');
   return '<section class="panel"><div class="panel-head"><h2>Coming up</h2><a class="link" href="#/bills">All bills</a></div><p class="lead">Bills due in the next 45 days</p>' +
     (rows ? '<div class="list">' + rows + '</div>' : '<p class="empty">Nothing due soon.</p>') + '</section>';
