@@ -49,7 +49,7 @@ function bindChart() {
       if (!d || !d.go) return;
       el('tip').hidden = true;
       const [kind, a, b] = d.go.split(':');
-      if (kind === 'month') { S.y = +a; S.m = +b; route(); }
+      if (kind === 'month') { S.all = false; S.y = +a; S.m = +b; route(); }
       if (kind === 'report') location.hash = '#/reports?start=' + a + '&end=' + b;
     });
   });

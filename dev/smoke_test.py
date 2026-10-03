@@ -83,6 +83,19 @@ async def check(pw, width, height, mobile):
         await page.evaluate('refreshAll()')
         if not await page.evaluate('!!(S.inbox && S.inbox.paint.live)'):
             errors.append('a background refresh disconnected the Categorize page from the screen')
+        # "All time" in the month selector applies to every page that has one
+        await goto(page, 'transactions')
+        await page.locator('#view .month button', has_text='All time').click()
+        await page.wait_for_selector('#view .month span:text-is("All time")', timeout=15000)
+        for p in ['transactions', '', 'budgets', 'categories', 'bills', 'account/1']:
+            await goto(page, p); await page.wait_for_timeout(300)
+            if await page.locator('#view .error').count():
+                errors.append(f'#{p} (all time): page showed an error: ' + await page.inner_text('#view .error'))
+            elif p != 'account/1' and await page.locator('#view .month span', has_text='All time').count() != 1:
+                errors.append(f'#{p}: the month selector did not stay on All time')
+        await page.locator('#view .seg').get_by_role('button', name='Month', exact=True).click(); await page.wait_for_function(PAINTED, timeout=15000)
+        if await page.evaluate('S.all'):
+            errors.append('picking Month on an account did not leave All time')
     await br.close()
     return errors
 
