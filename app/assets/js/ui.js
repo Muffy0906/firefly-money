@@ -365,7 +365,7 @@ function sankeyPanel(sources, income, cats, cur) {
   left.forEach(n => { nodes += '<rect x="' + n.x + '" y="' + n.y + '" width="' + NW + '" height="' + n.h + '" rx="3" fill="' + col(n) + '"/>' + label(n, 'end', xl - 8); });
   right.forEach(n => { nodes += '<rect x="' + n.x + '" y="' + n.y + '" width="' + NW + '" height="' + n.h + '" rx="3" fill="' + col(n) + '"/>' + label(n, 'start', xr + NW + 8); });
   nodes += '<rect x="' + xm + '" y="' + my + '" width="' + NW + '" height="' + mh + '" rx="3" fill="var(--text)" opacity=".75"/>';
-  return '<section class="panel chart sankey"><h2>Money flow</h2><p class="lead">Where ' + esc(cur.label) + '’s income went · hover a band for details</p>' +
+  return '<section class="panel chart sankey"><h2>Money flow</h2><p class="lead">Where ' + (cur.all ? 'all your' : esc(cur.label) + '’s') + ' income went · hover a band for details</p>' +
     '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Income flowing into spending categories">' + links + nodes + '</svg></section>';
 }
 

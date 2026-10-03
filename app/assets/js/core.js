@@ -19,6 +19,9 @@ function monthRange(y, m) {
     short: d.toLocaleString('en-US', { month: 'short' }), y: yy, m: mm,
   };
 }
+// The period the month selector shows: one month, or everything up to today when "All time" is picked.
+const ALL_START = '1970-01-01';
+const period = () => S.all ? { start: ALL_START, end: todayIso(), label: 'all time', short: 'all time', all: true } : monthRange(S.y, S.m);
 const num = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
 const arr = r => Array.isArray(r) ? r : (r && Array.isArray(r.data)) ? r.data : [];
 const absDiff = x => Math.abs(num(x.difference_float ?? x.difference));
@@ -458,12 +461,14 @@ async function busy(btn, fn) {
   finally { if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = btn.dataset.l; } }
 }
 function monthNav() {
+  if (S.all) return '<div class="month"><span>All time</span><button class="btn small" style="margin-left:6px" data-onclick="App.thisMonth()">By month</button></div>';
   const r = monthRange(S.y, S.m);
   const ahead = (S.y - today.getFullYear()) * 12 + (S.m - today.getMonth());
   const isNow = ahead >= 12;   // allow planning up to a year ahead
   return '<div class="month"><button class="round" data-onclick="App.shiftMonth(-1)" aria-label="Previous month">‹</button><span>' + r.label +
     '</span><button class="round" data-onclick="App.shiftMonth(1)" aria-label="Next month"' + (isNow ? ' disabled' : '') + '>›</button>' +
-    (ahead !== 0 ? '<button class="btn small" style="margin-left:6px" data-onclick="App.thisMonth()">Today</button>' : '') + '</div>';
+    (ahead !== 0 ? '<button class="btn small" style="margin-left:6px" data-onclick="App.thisMonth()">Today</button>' : '') +
+    '<button class="btn small" style="margin-left:6px" data-onclick="App.allTime()">All time</button></div>';
 }
 function head(title, sub, actions) {
   return '<div class="head"><div><h1>' + esc(title) + '</h1>' + (sub ? '<p class="sub">' + sub + '</p>' : '') + '</div><div class="actions">' + (actions || '') + '</div></div>';
@@ -513,7 +518,7 @@ async function route(opts = {}) {
   syncToday();
   const r = parseHash(), tok = ++S.tok, v = el('view');
   S.swr = !!opts.nav;
-  const key = r.name + '/' + r.id + '?' + new URLSearchParams(r.q) + '@' + S.y + '-' + S.m;
+  const key = r.name + '/' + r.id + '?' + new URLSearchParams(r.q) + '@' + (S.all ? 'all' : S.y + '-' + S.m);
   const cacheable = CACHEABLE.has(r.name) && !S.dashEdit;
   const prevFeed = S.feed;
   // Which way are we going? Deeper pages slide in (push), shallower slide back (pop).
@@ -638,10 +643,12 @@ document.addEventListener('click', e => {
 /* ================= Overview ================= */
 VIEWS[''] = async (r, paint) => {
   const L = await lists();
-  const cur = monthRange(S.y, S.m), prev = monthRange(S.y, S.m - 1);
-  const months = [...Array(6)].map((_, i) => monthRange(S.y, S.m - 5 + i));
+  const cur = period(), all = !!cur.all, prev = monthRange(S.y, S.m - 1);
+  // All time: the cash-flow chart shows the six months up to today
+  const months = [...Array(6)].map((_, i) => all ? monthRange(today.getFullYear(), today.getMonth() - 5 + i) : monthRange(S.y, S.m - 5 + i));
   const p = x => ({ start: x.start, end: x.end });
-  const future = S.y > today.getFullYear() || (S.y === today.getFullYear() && S.m > today.getMonth());
+  const future = !all && (S.y > today.getFullYear() || (S.y === today.getFullYear() && S.m > today.getMonth()));
+  const monthOnly = future || all;   // cards that only make sense for one month (insights, the day heatmap)
   const uncatQ = 'has_no_category:true transaction_type:withdrawal date_after:' + cur.start + ' date_before:' + cur.end;
   const own = L.accounts.filter(a => a.active);
   const cash = own.filter(a => isAsset(a) && !isCard(a)), cards = own.filter(isCard), loans = own.filter(isLiab);
@@ -649,26 +656,28 @@ VIEWS[''] = async (r, paint) => {
   // as soon as those are in; the slower cards show placeholders and fill in when their data arrives.
   const coreP = Promise.all([
     api('/summary/basic', { params: p(cur) }).catch(() => ({})),
-    api('/insight/expense/category', { params: p(cur) }), api('/insight/expense/category', { params: p(prev) }),
-    api('/insight/expense/no-category', { params: p(cur) }).catch(() => []), api('/insight/expense/no-category', { params: p(prev) }).catch(() => []),
+    api('/insight/expense/category', { params: p(cur) }), all ? [] : api('/insight/expense/category', { params: p(prev) }),
+    api('/insight/expense/no-category', { params: p(cur) }).catch(() => []), all ? [] : api('/insight/expense/no-category', { params: p(prev) }).catch(() => []),
     Promise.all(months.map(mo => Promise.all([api('/insight/income/total', { params: p(mo) }), api('/insight/expense/total', { params: p(mo) })])
       .then(([i, e]) => ({ label: mo.short, income: sumDiff(i), spend: sumDiff(e), go: 'month:' + mo.y + ':' + mo.m })))),
     api('/transactions', { params: { limit: 8, page: 1 } }),
-    api('/budgets', { params: p(cur) }), budgetLimits(cur, L),
+    api('/budgets', { params: p(cur) }), all ? {} : budgetLimits(cur, L),
     getAll('/bills', { start: todayIso(), end: addDays(todayIso(), 45) }),      // same request as the safe-to-spend card
     future ? null : api('/search/transactions', { params: { query: uncatQ, search: uncatQ, limit: 1, page: 1 } }).catch(() => null),
+    all ? Promise.all([api('/insight/income/total', { params: p(cur) }), api('/insight/expense/total', { params: p(cur) })])
+      .then(([i, e]) => ({ income: sumDiff(i), spend: sumDiff(e) })) : null,
   ]);
   const slowP = Promise.all([loanHistory(loans), App.safeCard(),
-    coreP.then(c => App.insightCards({ cur, future, budgets: arr(c[7]), limits: c[8], cards, trend: c[5] })).catch(() => ''),
+    coreP.then(c => App.insightCards({ cur, future: monthOnly, budgets: arr(c[7]), limits: c[8], cards, trend: c[5] })).catch(() => ''),
     App.balanceSparks([...cash, ...cards]).catch(() => ({})),
-    future ? [] : getAll('/transactions', { start: cur.start, end: cur.end, type: 'withdrawal' }).catch(() => []),
+    monthOnly ? [] : getAll('/transactions', { start: cur.start, end: cur.end, type: 'withdrawal' }).catch(() => []),
     api('/insight/income/revenue', { params: p(cur) }).catch(() => [])]);
   slowP.catch(() => {});
-  const [summary, catNow, catPrev, noCatNow, noCatPrev, trend, recent, budgets, limits, bills, uncat] = await coreP;
+  const [summary, catNow, catPrev, noCatNow, noCatPrev, trend, recent, budgets, limits, bills, uncat, allTot] = await coreP;
   const nwKey = Object.keys(summary || {}).find(k => k.startsWith('net-worth-in'));
   const computedNW = own.filter(isAsset).reduce((s, a) => s + a.balance, 0) - loans.reduce((s, l) => s + l.debt, 0);
   const netWorth = nwKey ? num(summary[nwKey].monetary_value) : computedNW;
-  const last = trend[5], before = trend[4];
+  const last = all ? allTot : trend[5], before = all ? { spend: 0 } : trend[4];
 
   // categories
   const cats = new Map();
@@ -683,18 +692,18 @@ VIEWS[''] = async (r, paint) => {
     const W = [
       ['safe', future ? '' : wait('safe') ?? safe],
       ['attention', attentionPanel({ uncat, uncatQ, bills: arr(bills), budgets: arr(budgets), limits, future })],
-      ['spending', spendingPanel([...cats.values()], future)],
-      ['budgets', budgetsMini(arr(budgets), limits)],
+      ['spending', spendingPanel([...cats.values()], future, all)],
+      ['budgets', budgetsMini(arr(budgets), limits, all)],
       ['cash', balancesPanel('Cash & savings', 'Bank account balances', cash, a => a.balance, false, sparks)],
       ['cards', balancesPanel('Credit cards', 'Current balances owed', cards, a => Math.max(0, -a.balance), true, sparks)],
       ['loans', loans.length ? wait('loans') ?? loansPanel(loans, prog) : loansPanel(loans, {})], ['bills', billsMini(arr(bills))],
-      ['heatmap', future ? '' : wait('heatmap') ?? App.heatmapPanel(cur, dayTx.map(normGroup))],
+      ['heatmap', monthOnly ? '' : wait('heatmap') ?? App.heatmapPanel(cur, dayTx.map(normGroup))],
       ['flow', future ? '' : wait('flow') ?? App.sankeyPanel(arr(incomeSrc), last.income, [...cats.values()].filter(c => c.amt > 0), cur)],
       ['cashflow', '<section class="panel chart">' + cashFlow(trend) + '</section>'],
       ['recent', '<section class="panel flush"><div style="padding:24px 26px 6px" class="panel-head"><div><h2>Recent transactions</h2></div><a class="link" href="#/transactions">See all</a></div>' +
           txRows(arr(recent).map(normGroup)) + '</section>'],
     ];
-    const ins = slow ? insights : future ? '' : '<div class="insights" id="insights" aria-hidden="true">' + '<div class="insight"><div class="sk" style="width:100%;height:42px"></div></div>'.repeat(3) + '</div>';
+    const ins = slow ? insights : monthOnly ? '' : '<div class="insights" id="insights" aria-hidden="true">' + '<div class="insight"><div class="sk" style="width:100%;height:42px"></div></div>'.repeat(3) + '</div>';
     return head('Overview', '', monthNav() + App.dashButton()) + heroHtml(netWorth, last, before, prev.short, future) + ins + App.dashboard(W);
   };
   // Saved data (or a fast server): everything is here already, draw once.
@@ -749,7 +758,7 @@ function heroHtml(netWorth, last, before, prevShort, future) {
     '<div class="stat"><div class="eyebrow">Kept</div><div class="val num" data-count="' + kept + '">' + money0(kept) + '</div><div class="sub">' + (last.income ? (kept / last.income * 100).toFixed(0) + '% of income' : '&nbsp;') + '</div></div>' +
     '</div></section>';
 }
-function spendingPanel(cats, future) {
+function spendingPanel(cats, future, all) {
   cats = cats.filter(c => c.amt > 0 || (c.prev > 0 && !future)).sort((a, b) => b.amt - a.amt);
   if (cats.length > 8) {
     const rest = cats.slice(7); cats = cats.slice(0, 7);
@@ -758,15 +767,15 @@ function spendingPanel(cats, future) {
   const max = Math.max(1, ...cats.map(c => Math.max(c.amt, c.prev)));
   const rows = cats.map(c => {
     const d = c.amt - c.prev;
-    const sub = !c.prev ? 'Nothing last month' : Math.abs(d) < 1 ? 'Same as last month' :
+    const sub = all ? '' : !c.prev ? 'Nothing last month' : Math.abs(d) < 1 ? 'Same as last month' :
       '<span class="' + (d > 0 ? 'up' : 'down') + '">' + money0(Math.abs(d)) + ' ' + (d > 0 ? 'more' : 'less') + '</span> than last month';
     const name = c.id ? '<a href="#/transactions?category=' + c.id + '" style="text-decoration:none">' + esc(c.name) + '</a>' : esc(c.name);
     return '<div class="cat"><div class="row"><span class="name">' + name + '</span><span class="num">' + money0(c.amt) + '</span></div>' +
       '<div class="track"><div class="fill" style="width:' + (c.amt / max * 100).toFixed(1) + '%"></div>' +
-      (c.prev ? '<div class="tick" style="left:calc(' + (c.prev / max * 100).toFixed(1) + '% - 1px)"></div>' : '') + '</div><div class="sub">' + sub + '</div></div>';
+      (c.prev ? '<div class="tick" style="left:calc(' + (c.prev / max * 100).toFixed(1) + '% - 1px)"></div>' : '') + '</div>' + (sub ? '<div class="sub">' + sub + '</div>' : '') + '</div>';
   }).join('');
-  return '<section class="panel"><h2>Where it went</h2><p class="lead">Spending by category this month</p>' + (rows || '<p class="empty">' + (future ? 'This month hasn’t started yet.' : 'No spending recorded this month.') + '</p>') +
-    (rows ? '<div class="legend"><span><i style="background:var(--spend)"></i>This month</span><span><i style="background:var(--text);opacity:.35;width:2px"></i>Last month</span></div>' : '') + '</section>';
+  return '<section class="panel"><h2>Where it went</h2><p class="lead">Spending by category ' + (all ? 'of all time' : 'this month') + '</p>' + (rows || '<p class="empty">' + (future ? 'This month hasn’t started yet.' : 'No spending recorded ' + (all ? 'yet.' : 'this month.')) + '</p>') +
+    (rows && !all ? '<div class="legend"><span><i style="background:var(--spend)"></i>This month</span><span><i style="background:var(--text);opacity:.35;width:2px"></i>Last month</span></div>' : '') + '</section>';
 }
 function balancesPanel(title, lead, items, val, paidOff, sparks = {}) {
   const rows = [...items].sort((a, b) => val(b) - val(a)).map(a => '<a class="row" href="#/account/' + a.id + '"><span class="name">' + esc(a.name) + '</span>' +
@@ -810,16 +819,16 @@ function cashFlow(trend) {
     '<div><div class="eyebrow">Avg. kept / month</div><div class="num" style="font-size:21px">' + money0(avgK) + '</div></div></div>' +
     '<div class="legend"><span><i style="background:var(--income)"></i>Earned</span><span><i style="background:var(--spend)"></i>Spent</span></div>';
 }
-function budgetsMini(budgets, limits) {
+function budgetsMini(budgets, limits, all) {
   const rows = budgets.filter(b => b.attributes.active !== false).map(b => {
     const spent = Math.abs((b.attributes.spent || []).reduce((s, x) => s + num(x.sum), 0)), lim = limits[String(b.id)];
     const pct = lim ? spent / lim.amount * 100 : 0;
     return '<div class="cat"><div class="row"><a class="name" href="#/transactions?budget=' + b.id + '" style="text-decoration:none">' + esc(b.attributes.name) + '</a><span class="num">' + money0(spent) +
       (lim ? ' <span class="neutral">of ' + money0(lim.amount) + '</span>' : '') + '</span></div>' +
       (lim ? '<div class="track"><div class="fill ' + (pct > 100 ? 'over' : 'good') + '" style="width:' + Math.min(100, pct).toFixed(1) + '%"></div></div><div class="sub">' +
-        (pct > 100 ? '<span class="up">' + money0(spent - lim.amount) + ' over</span>' : money0(lim.amount - spent) + ' left') + '</div>' : '<div class="sub">No amount set for this month</div>') + '</div>';
+        (pct > 100 ? '<span class="up">' + money0(spent - lim.amount) + ' over</span>' : money0(lim.amount - spent) + ' left') + '</div>' : all ? '' : '<div class="sub">No amount set for this month</div>') + '</div>';
   }).join('');
-  return '<section class="panel"><div class="panel-head"><h2>Budgets</h2><a class="link" href="#/budgets">Manage</a></div><p class="lead">This month</p>' + (rows || '<p class="empty">No budgets yet.</p>') + '</section>';
+  return '<section class="panel"><div class="panel-head"><h2>Budgets</h2><a class="link" href="#/budgets">Manage</a></div><p class="lead">' + (all ? 'Spent of all time' : 'This month') + '</p>' + (rows || '<p class="empty">No budgets yet.</p>') + '</section>';
 }
 function billsMini(bills) {
   // A bill with no due date in the window falls back to Firefly's "next expected" date, which can be months
@@ -836,7 +845,7 @@ function billsMini(bills) {
 VIEWS.transactions = async (r, paint) => {
   const L = await lists();
   const q = r.q, page = Math.max(1, +q.page || 1), type = q.type || 'all', search = (q.search || '').trim();
-  const cur = monthRange(S.y, S.m);
+  const cur = period();
   let endpoint = '/transactions', scope = '';
   const find = (list, id) => (list.find(x => x.id === id) || {}).name || '#' + id;
   if (q.budget) { endpoint = '/budgets/' + q.budget + '/transactions'; scope = 'Budget: ' + find(L.budgets, q.budget); }
@@ -853,7 +862,7 @@ VIEWS.transactions = async (r, paint) => {
   if (paint.live) S.feed = { next: page + 1, pages: pg.total_pages || 1, opts: { select: true }, more: async n => arr(await load(n)).map(normGroup) };
   const tab = (t, label) => '<a href="' + hashWith({ type: t === 'all' ? '' : t, page: '' }) + '" class="' + (type === t ? 'on' : '') + '">' + label + '</a>';
   paint(
-    head(scope || 'Transactions', search ? 'Search results across all dates' : total + ' transaction' + (total === 1 ? '' : 's') + ' in ' + cur.label +
+    head(scope || 'Transactions', search ? 'Search results across all dates' : total + ' transaction' + (total === 1 ? '' : 's') + (cur.all ? ' in total' : ' in ' + cur.label) +
       (scope ? ' · <a class="link" href="#/transactions">Show all</a>' : ''),
       (search ? '' : monthNav()) + '<button class="btn primary" data-onclick="App.newTx()">+ New transaction</button>') +
     '<div class="tabs">' + tab('all', 'All') + tab('withdrawal', 'Expenses') + tab('deposit', 'Income') + tab('transfer', 'Transfers') + '</div>' +
@@ -862,7 +871,7 @@ VIEWS.transactions = async (r, paint) => {
       (search ? '<button class="link" data-onclick="App.search(\'\')">Clear search</button>' : '') +
       (groups.length ? '<label class="check selall"><input type="checkbox" data-onchange="App.selAll(this.checked)"> Select all</label>' : '') + '</div>' +
     '<div id="bulkbar" class="bulkbar" hidden></div>' +
-    '<section class="panel flush">' + txRows(groups, { select: true, empty: search ? 'Nothing matches that search.' : 'No transactions this month.' }) +
+    '<section class="panel flush">' + txRows(groups, { select: true, empty: search ? 'Nothing matches that search.' : (cur.all ? 'No transactions yet.' : 'No transactions this month.') }) +
       (page < pages ? '<div class="more" id="feedMore"><span class="spin"></span>Loading older transactions…</div>' : '') +
     '</section>');
 };
@@ -1098,7 +1107,8 @@ VIEWS.account = async (r, paint) => {
   const L = await lists();
   const accRes = await api('/accounts/' + r.id);
   const a = normAccount(accRes.data);
-  const range = ['month', 'year', 'all'].includes(r.q.range) ? r.q.range : (isLiab(a) ? 'all' : 'month');
+  let range = ['month', 'year', 'all'].includes(r.q.range) ? r.q.range : (isLiab(a) ? 'all' : 'month');
+  if (range === 'month' && S.all) range = 'all';   // "All time" picked in the month selector
   const cur = monthRange(S.y, S.m);
   const period = range === 'month' ? { start: cur.start, end: cur.end, label: cur.label, short: cur.short }
     : range === 'year' ? { start: addDays(todayIso(), -365), end: todayIso(), label: 'the last 12 months', short: '12 mo' }
@@ -1115,7 +1125,7 @@ VIEWS.account = async (r, paint) => {
   const PER = 50, pages = Math.max(1, Math.ceil(groups.length / PER)), page = 1;
   const shown = groups.slice(0, PER);
   if (paint.live) S.feed = { next: 2, pages, opts: { accountId: own ? a.id : '' }, more: async n => groups.slice((n - 1) * PER, n * PER) };
-  const rangeBtn = (k, l) => '<button type="button" class="' + (range === k ? 'on' : '') + '" data-onclick="App.go(\'' + hashWith({ range: k, page: '' }) + '\')">' + l + '</button>';
+  const rangeBtn = (k, l) => '<button type="button" class="' + (range === k ? 'on' : '') + '" data-onclick="App.pickRange(\'' + hashWith({ range: k, page: '' }) + '\')">' + l + '</button>';
   const owedStyle = isLiab(a) || isCard(a);
   paint(
     '<p style="margin:0 0 6px"><a class="link" href="#/accounts">← Accounts</a></p>' +
@@ -1256,11 +1266,11 @@ async function budgetLimits(cur, L) {
 }
 VIEWS.budgets = async (r, paint) => {
   const L = await lists();
-  const cur = monthRange(S.y, S.m);
+  const cur = period(), all = !!cur.all;   // All time shows what was spent; amounts are set per month
   const [res, limits, noBudget, avail] = await Promise.all([
-    api('/budgets', { params: { start: cur.start, end: cur.end } }), budgetLimits(cur, L),
+    api('/budgets', { params: { start: cur.start, end: cur.end } }), all ? {} : budgetLimits(cur, L),
     api('/insight/expense/no-budget', { params: { start: cur.start, end: cur.end } }).catch(() => []),
-    api('/available-budgets', { params: { start: cur.start, end: cur.end } }).catch(() => ({ data: [] })),
+    all ? { data: [] } : api('/available-budgets', { params: { start: cur.start, end: cur.end } }).catch(() => ({ data: [] })),
   ]);
   const available = arr(avail).reduce((s, x) => s + num(x.attributes.amount), 0);
   const showInactive = r.q.inactive === '1';
@@ -1273,24 +1283,24 @@ VIEWS.budgets = async (r, paint) => {
     const pct = b.lim && b.lim.amount ? b.spent / b.lim.amount * 100 : 0;
     return '<tr' + (b.active ? '' : ' style="opacity:.5"') + '><td style="min-width:220px"><a class="desc" href="#/transactions?budget=' + b.id + '" style="text-decoration:none">' + esc(b.name) + '</a>' +
       (b.lim ? '<div class="track" style="max-width:360px"><div class="fill ' + (pct > 100 ? 'over' : 'good') + '" style="width:' + Math.min(100, pct).toFixed(1) + '%"></div></div><div class="sub-s">' +
-        (pct > 100 ? '<span class="up">' + money(b.spent - b.lim.amount) + ' over</span>' : money(b.lim.amount - b.spent) + ' left · ' + pct.toFixed(0) + '% used') + '</div>' : '<div class="sub-s">No amount set for ' + cur.short + '</div>') +
+        (pct > 100 ? '<span class="up">' + money(b.spent - b.lim.amount) + ' over</span>' : money(b.lim.amount - b.spent) + ' left · ' + pct.toFixed(0) + '% used') + '</div>' : all ? '' : '<div class="sub-s">No amount set for ' + cur.short + '</div>') +
       (b.auto ? '<span class="chip" title="Auto-budget">Auto ' + esc(b.auto) + ' · ' + money0(b.autoAmt) + '/mo</span>' : '') + '</td>' +
       '<td class="amt">' + money(b.spent) + '</td>' +
-      '<td class="r"><input class="inline num" type="number" min="0" step="1" placeholder="Set…" value="' + (b.lim ? b.lim.amount : '') + '" data-onchange="App.setLimit(\'' + b.id + '\',this)" aria-label="Budget for ' + esc(b.name) + '"></td>' +
+      (all ? '' : '<td class="r"><input class="inline num" type="number" min="0" step="1" placeholder="Set…" value="' + (b.lim ? b.lim.amount : '') + '" data-onchange="App.setLimit(\'' + b.id + '\',this)" aria-label="Budget for ' + esc(b.name) + '"></td>') +
       '<td class="act"><button class="btn small" data-onclick="App.budgetForm(\'' + b.id + '\')">Edit</button></td></tr>';
   }).join('');
   const inactiveCount = bs.filter(b => !b.active).length;
   paint(head('Budgets', 'Set how much you plan to spend each month', monthNav() + '<button class="btn primary" data-onclick="App.budgetForm()">+ New budget</button>') +
     '<div class="kpis">' + (available ? '<div class="kpi"><div class="eyebrow">Available to budget</div><div class="val num">' + money0(available) + '</div><div class="sub-s">' +
         (available - totLim >= 0 ? money0(available - totLim) + ' not yet assigned' : '<span class="up">' + money0(totLim - available) + ' more assigned than available</span>') + '</div></div>' : '') +
-      '<div class="kpi"><div class="eyebrow">Budgeted</div><div class="val num">' + money0(totLim) + '</div></div>' +
+      (all ? '' : '<div class="kpi"><div class="eyebrow">Budgeted</div><div class="val num">' + money0(totLim) + '</div></div>') +
       '<div class="kpi"><div class="eyebrow">Spent in budgets</div><div class="val num">' + money0(totSpent) + '</div></div>' +
-      '<div class="kpi"><div class="eyebrow">Left</div><div class="val num ' + (totLim - totSpent < 0 ? 'neg' : '') + '">' + money0(totLim - totSpent) + '</div></div>' +
+      (all ? '' : '<div class="kpi"><div class="eyebrow">Left</div><div class="val num ' + (totLim - totSpent < 0 ? 'neg' : '') + '">' + money0(totLim - totSpent) + '</div></div>') +
       '<div class="kpi"><div class="eyebrow">Spent outside budgets</div><div class="val num">' + money0(unb) + '</div></div></div>' +
-    '<section class="panel flush">' + (rows ? '<table class="tbl"><thead><tr><th>Budget</th><th class="r">Spent</th><th class="r">Budget for ' + cur.short + '</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>'
+    '<section class="panel flush">' + (rows ? '<table class="tbl"><thead><tr><th>Budget</th><th class="r">Spent</th>' + (all ? '' : '<th class="r">Budget for ' + cur.short + '</th>') + '<th></th></tr></thead><tbody>' + rows + '</tbody></table>'
       : '<div class="center-empty">No budgets yet. Create one to start tracking.</div>') + '</section>' +
     (inactiveCount ? '<p style="margin-top:14px"><a class="link" href="' + hashWith({ inactive: showInactive ? '' : '1' }) + '">' + (showInactive ? 'Hide' : 'Show') + ' ' + inactiveCount + ' inactive</a></p>' : '') +
-    '<p class="sub-s" style="margin-top:14px">Type an amount in the right column and press Enter to set that month’s budget. Clear it to remove it.</p>');
+    '<p class="sub-s" style="margin-top:14px">' + (all ? 'Budget amounts are set per month. Pick a month to set them.' : 'Type an amount in the right column and press Enter to set that month’s budget. Clear it to remove it.') + '</p>');
   S.budgetLimits = limits; S.budgetCache = Object.fromEntries(bs.map(b => [b.id, b]));
 };
 async function setLimit(bid, input) {
@@ -1339,9 +1349,9 @@ async function saveBudget() {
 /* ================= Categories & tags ================= */
 VIEWS.categories = async (r, paint) => {
   const L = await lists(true);
-  const cur = monthRange(S.y, S.m), prev = monthRange(S.y, S.m - 1), p = x => ({ start: x.start, end: x.end });
+  const cur = period(), all = !!cur.all, prev = monthRange(S.y, S.m - 1), p = x => ({ start: x.start, end: x.end });
   const [spNow, spPrev, inNow] = await Promise.all([
-    api('/insight/expense/category', { params: p(cur) }), api('/insight/expense/category', { params: p(prev) }),
+    api('/insight/expense/category', { params: p(cur) }), all ? [] : api('/insight/expense/category', { params: p(prev) }),
     api('/insight/income/category', { params: p(cur) }).catch(() => []),
   ]);
   const by = res => Object.fromEntries(arr(res).map(x => [String(x.id), absDiff(x)]));
@@ -1351,13 +1361,13 @@ VIEWS.categories = async (r, paint) => {
     const d = x.now - x.prev;
     return '<tr><td><a class="desc" href="#/transactions?category=' + x.id + '" style="text-decoration:none">' + esc(x.name) + '</a></td>' +
       '<td class="amt">' + (x.now ? money(x.now) : '<span class="neutral">—</span>') + '</td>' +
-      '<td class="r hide-s sub-s">' + (x.prev ? (Math.abs(d) < 1 ? 'Same' : '<span class="' + (d > 0 ? 'up' : 'down') + '">' + (d > 0 ? '+' : '−') + money0(Math.abs(d)) + '</span>') + ' vs ' + money0(x.prev) : '') + '</td>' +
+      (all ? '' : '<td class="r hide-s sub-s">' + (x.prev ? (Math.abs(d) < 1 ? 'Same' : '<span class="' + (d > 0 ? 'up' : 'down') + '">' + (d > 0 ? '+' : '−') + money0(Math.abs(d)) + '</span>') + ' vs ' + money0(x.prev) : '') + '</td>') +
       '<td class="amt hide-s">' + (x.inc ? '<span class="pos">' + money(x.inc) + '</span>' : '<span class="neutral">—</span>') + '</td>' +
       '<td class="act"><button class="btn small" data-onclick="App.categoryForm(\'' + x.id + '\')">Edit</button></td></tr>';
   }).join('');
   const tags = L.tags.map(t => '<span class="chip"><a href="#/transactions?tag=' + t.id + '">' + esc(t.name) + '</a><button title="Delete tag" data-onclick="App.deleteTag(\'' + t.id + '\')">×</button></span>').join('');
   paint(head('Categories & tags', '', monthNav() + '<button class="btn primary" data-onclick="App.categoryForm()">+ New category</button>') +
-    '<section class="panel flush" style="margin-bottom:28px">' + (rows ? '<table class="tbl"><thead><tr><th>Category</th><th class="r">Spent in ' + cur.short + '</th><th class="r hide-s">vs ' + prev.short + '</th><th class="r hide-s">Earned</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>'
+    '<section class="panel flush" style="margin-bottom:28px">' + (rows ? '<table class="tbl"><thead><tr><th>Category</th><th class="r">Spent ' + (all ? 'all time' : 'in ' + cur.short) + '</th>' + (all ? '' : '<th class="r hide-s">vs ' + prev.short + '</th>') + '<th class="r hide-s">Earned</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>'
       : '<div class="center-empty">No categories yet.</div>') + '</section>' +
     '<section class="panel"><div class="panel-head"><div><h2>Tags</h2><p class="lead">Click a tag to see its transactions</p></div></div>' +
       '<form data-onsubmit="event.preventDefault();App.addTag(this.t)" style="display:flex;gap:10px;margin-bottom:18px;max-width:420px"><input type="text" name="t" placeholder="New tag name" style="flex:1" required><button class="btn">Add tag</button></form>' +
@@ -1405,7 +1415,8 @@ const FREQ = { daily: ['day', 30.44], weekly: ['week', 4.35], monthly: ['month',
 const billAmount = at => at.amount_avg != null ? num(at.amount_avg) : (num(at.amount_min) + num(at.amount_max)) / 2;
 VIEWS.bills = async (r, paint) => {
   await lists();
-  const cur = monthRange(S.y, S.m);
+  // Bills are a schedule, so All time shows this month's due and paid status
+  const cur = S.all ? monthRange(today.getFullYear(), today.getMonth()) : monthRange(S.y, S.m);
   const bills = await getAll('/bills', { start: cur.start, end: cur.end });
   const active = bills.filter(b => b.attributes.active !== false);
   const monthly = active.reduce((s, b) => s + billAmount(b.attributes) * (FREQ[b.attributes.repeat_freq] || ['', 1])[1] / ((b.attributes.skip || 0) + 1), 0);
@@ -1619,7 +1630,10 @@ window.App = {
   addSplit: () => { collectTx(); S.form.splits.push(blankSplit()); renderTxForm(); setTimeout(() => { const b = el('drawerBody'); b.scrollTop = b.scrollHeight; }, 60); },
   removeSplit: i => { collectTx(); S.form.splits.splice(i, 1); renderTxForm(); },
   search: q => { location.hash = hashWith({ search: q.trim(), page: '' }); },
-  thisMonth: () => { S.vtDir = (S.y - today.getFullYear()) * 12 + S.m - today.getMonth() > 0 ? 'prev' : 'next'; S.y = today.getFullYear(); S.m = today.getMonth(); route(); },
+  allTime: () => { S.all = true; route({ nav: true }); },
+  // An account's range buttons; "Month" also leaves All time in the month selector
+  pickRange: h => { if (h.includes('range=month')) S.all = false; if (location.hash === h) route(); else location.hash = h; },
+  thisMonth: () => { if (S.all) { S.all = false; return route({ nav: true }); } S.vtDir = (S.y - today.getFullYear()) * 12 + S.m - today.getMonth() > 0 ? 'prev' : 'next'; S.y = today.getFullYear(); S.m = today.getMonth(); route(); },
   shiftMonth: d => { S.vtDir = d > 0 ? 'next' : 'prev'; S.m += d; const x = new Date(S.y, S.m, 1); S.y = x.getFullYear(); S.m = x.getMonth(); route({ nav: true }); },
   accountForm, saveAccount, deleteAccount, setLimit, budgetForm, saveBudget, categoryForm, saveCategory, addTag, deleteTag, deleteThing,
   billForm, saveBill, piggyForm, savePiggy, piggyMoney, savePiggyMoney,
