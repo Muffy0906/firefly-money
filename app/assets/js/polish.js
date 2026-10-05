@@ -148,6 +148,7 @@ function moreSheet() {
     '<div class="eyebrow" style="margin-top:22px">Theme</div><div class="themes" id="themes2" style="padding:6px 0 0"></div>' +
     '<div class="toggles sheet"><button type="button" class="btn" data-tg="privacy" data-onclick="App.togglePrivacy()"></button><button type="button" class="btn" data-tg="compact" data-onclick="App.toggleDensity()"></button></div>' +
     '<div style="margin-top:22px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn" data-onclick="App.openPalette()">Search everything</button>' +
+    '<button class="btn" data-onclick="App.closeDrawer();App.recalcAll()">Recalculate everything</button>' +
     (el('ffLink').hidden ? '' : '<a class="btn" href="' + el('ffLink').getAttribute('href') + '" target="_blank" rel="noopener">Open Firefly III ↗</a>') +
     (window.MONEY_NATIVE ? '<button class="btn" data-onclick="App.nativeSettings()">App settings</button>' : '') +
     '<button class="btn" data-onclick="App.signOut()">Sign out</button></div>');
@@ -231,7 +232,8 @@ async function openPalette() {
   const items = NAV.map(([r, label, ic]) => ({ label, kind: 'Page', go: '#/' + r }));
   items.push({ label: 'New transaction', kind: 'Action', run: quickAdd }, { label: 'New rule', kind: 'Action', run: () => { location.hash = '#/rules'; setTimeout(() => App.ruleForm(), 400); } },
     { label: 'New recurring transaction', kind: 'Action', run: () => { location.hash = '#/recurring'; setTimeout(() => App.recurForm(), 400); } },
-    { label: 'Reconcile an account', kind: 'Action', go: '#/accounts' });
+    { label: 'Reconcile an account', kind: 'Action', go: '#/accounts' },
+    { label: 'Recalculate everything (fetch all numbers fresh)', kind: 'Action', run: () => App.recalcAll() });
   THEMES.forEach(([k, label]) => items.push({ label: 'Theme: ' + label, kind: 'Theme', run: () => setTheme(k) }));
   if (L) {
     L.accounts.filter(a => a.active && (isAsset(a) || isLiab(a))).forEach(a => items.push({ label: a.name, kind: isCard(a) ? 'Credit card' : isLiab(a) ? 'Loan' : 'Account', go: '#/account/' + a.id }));
