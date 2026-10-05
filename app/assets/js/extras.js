@@ -607,7 +607,9 @@ VIEWS.settings = async (r, paint) => {
     '<div class="row"><span class="name">API version</span><span>' + esc(ab.api_version || '—') + '</span></div>' +
     '<div class="row"><span class="name">Main currency</span><span>' + esc(S.currency) + '</span></div></div>' +
     '<p class="sub-s" style="margin-top:14px">Your Firefly profile, password, two-factor login, API tokens and user administration aren’t available through Firefly’s API, so change those in Firefly III itself.</p></section>';
-  paint(head('Settings', '', '') + '<div class="cards">' + cur + rateHtml + exp + hookHtml + aboutHtml + '</div>');
+  const recalcHtml = '<section class="panel"><h2>Recalculate</h2><p class="lead">If a total looks wrong, throw away everything this app has saved and fetch every number fresh from Firefly III. Your data in Firefly isn’t changed.</p>' +
+    '<button class="btn" type="button" data-onclick="App.recalcAll(this)">Recalculate everything</button></section>';
+  paint(head('Settings', '', '') + '<div class="cards">' + recalcHtml + cur + rateHtml + exp + hookHtml + aboutHtml + '</div>');
 };
 // The build stamped into the Docker image by GitHub, e.g. "c78fd51 · 2026-09-30". Empty for a local build or plain files.
 function moneyVersion() {

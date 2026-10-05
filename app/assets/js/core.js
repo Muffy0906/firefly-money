@@ -619,6 +619,27 @@ async function refreshAll(opts = {}) {
   })();
   return S.refreshing;
 }
+// Recalculate: throw away every number this app has kept (responses in memory, saved pages, the copy on this
+// device, the offline cache, the account/category lists, the Categorize history) and redraw from Firefly III.
+async function recalcAll(btn) {
+  if (S.recalcing) return;
+  S.recalcing = true;
+  const label = btn && btn.textContent; if (btn) { btn.disabled = true; btn.textContent = 'Recalculating…'; }
+  try {
+    CACHE.clear(); INFLIGHT.clear(); PAGES.clear(); PDB.clear();
+    S.lists = null; S.listsAt = 0; S.inboxHist = null; S.linkTypes = null; S.dirtyAt = 0; S.freshAfter = Date.now(); S.lastRefresh = Date.now();
+    try { if (window.caches) await caches.open('money-v1').then(c => c.keys().then(ks => Promise.all(ks.filter(k => new URL(k.url).pathname.startsWith('/api/')).map(k => c.delete(k))))); } catch (e) { /* no Cache Storage */ }
+    await lists(true);
+    await route({ quiet: true });
+    toast('Recalculated everything from Firefly III');
+  } catch (e) {
+    if (e instanceof AuthError) return showLogin(e.message);
+    toast('Couldn’t recalculate: ' + e.message);
+  } finally {
+    S.recalcing = false;
+    if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = label; }
+  }
+}
 // After a refresh, quietly load the main tabs in the background so opening them is instant.
 async function warmTabs() {
   const cur = parseHash().name;
@@ -1637,7 +1658,7 @@ window.App = {
   shiftMonth: d => { S.vtDir = d > 0 ? 'next' : 'prev'; S.m += d; const x = new Date(S.y, S.m, 1); S.y = x.getFullYear(); S.m = x.getMonth(); route({ nav: true }); },
   accountForm, saveAccount, deleteAccount, setLimit, budgetForm, saveBudget, categoryForm, saveCategory, addTag, deleteTag, deleteThing,
   billForm, saveBill, piggyForm, savePiggy, piggyMoney, savePiggyMoney,
-  setTheme,
+  setTheme, recalcAll,
   signOut: () => { clearKey(); S.key = ''; showLogin(); },
   // Small steps that markup handlers used to write inline (see events.js)
   go: h => { location.hash = h; },
