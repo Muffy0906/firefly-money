@@ -1,7 +1,7 @@
 'use strict';
 /* =====================================================================
    Insight cards: short, auto-generated observations on the Overview.
-   Compares this month against the same point in the previous 3 months.
+   Compares this month against the same point last month (3-month average as a note).
    ===================================================================== */
 const INS_ICON = {
   up: '<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>',
@@ -25,22 +25,31 @@ async function insightCards({ cur, future, budgets, limits, cards, trend }) {
   const [me, ...hist] = await Promise.all([pull(nowW), ...past.map(pull)]);
   const used = hist.filter(h => h.total > 0);
   if (!used.length) return '';
+  // Compare against last month at the same point; fall back to the 3-month average when last month has no data.
+  const prevM = monthRange(cur.y, cur.m - 1), last = hist[0], useLast = last.total > 0;
+  const lastBy = isCur ? 'by the ' + ordinal(Math.min(N, new Date(prevM.y, prevM.m + 1, 0).getDate())) + ' of ' + prevM.short : 'in ' + prevM.short;
   const byLabel = isCur ? 'by the ' + ordinal(N) : 'in ' + cur.short;
+  const vsWord = useLast ? (isCur ? 'last month' : prevM.short) : 'usual';
+  const vsText = amt => useLast ? money0(amt) + ' ' + lastBy : 'about ' + money0(amt) + ' ' + byLabel + ' in a typical month';
   const out = [];
   const add = (id, tone, ic, title, detail, href, score) => out.push({ id: cur.y + '-' + (cur.m + 1) + ':' + id, tone, ic, title, detail, href, score });
+  const avgOf = name => used.reduce((s, h) => s + (name == null ? h.total : ((h.cats.get(name) || {}).amt || 0)), 0) / used.length;
+  const usualNote = (amt, base) => useLast && used.length > 1 && Math.abs(amt - base) >= 1 ? ' · usually about ' + money0(amt) : '';
+  const meWhen = isCur ? 'so far' : 'in ' + cur.short;
 
   // 1. Overall pace
-  const avg = used.reduce((a, h) => a + h.total, 0) / used.length, pct = avg ? (me.total - avg) / avg : 0;
+  const avg = avgOf(null), base = useLast ? last.total : avg, pct = base ? (me.total - base) / base : 0;
   if (Math.abs(pct) >= .1) add('pace', pct > 0 ? 'up' : 'down', pct > 0 ? 'up' : 'down',
-    'Spending is ' + Math.round(Math.abs(pct) * 100) + '% ' + (pct > 0 ? 'higher' : 'lower') + ' than usual',
-    money0(me.total) + ' ' + (isCur ? 'so far' : 'in ' + cur.short) + ' vs. about ' + money0(avg) + ' ' + byLabel + ' in a typical month', '#/transactions?type=withdrawal', 30 + Math.min(40, Math.abs(pct) * 60));
-  else add('pace', 'down', 'check', 'Spending is right on track', money0(me.total) + ' ' + (isCur ? 'so far' : 'in ' + cur.short) + ', close to your usual ' + money0(avg) + ' ' + byLabel, '#/reports', 8);
+    'Spending is ' + Math.round(Math.abs(pct) * 100) + '% ' + (pct > 0 ? 'higher' : 'lower') + ' than ' + vsWord,
+    money0(me.total) + ' ' + meWhen + ' vs. ' + vsText(base) + usualNote(avg, base), '#/transactions?type=withdrawal', 30 + Math.min(40, Math.abs(pct) * 60));
+  else add('pace', 'down', 'check', 'Spending is in line with ' + vsWord, money0(me.total) + ' ' + meWhen + ' vs. ' + vsText(base) + usualNote(avg, base), '#/reports', 8);
 
   // 2. Categories that moved the most
-  const names = new Set([...me.cats.keys(), ...used.flatMap(h => [...h.cats.keys()])]);
+  const ref = useLast ? [last] : used;
+  const names = new Set([...me.cats.keys(), ...ref.flatMap(h => [...h.cats.keys()])]);
   const moves = [];
   names.forEach(name => {
-    const c = me.cats.get(name), amt = c ? c.amt : 0, a = used.reduce((s, h) => s + ((h.cats.get(name) || {}).amt || 0), 0) / used.length;
+    const c = me.cats.get(name), amt = c ? c.amt : 0, a = useLast ? ((last.cats.get(name) || {}).amt || 0) : avgOf(name);
     const id = (c || used.map(h => h.cats.get(name)).find(Boolean) || {}).id, d = amt - a;
     if (a < 1 && amt >= 100) moves.push({ name, id, amt, a, d, p: Infinity, score: 30 + Math.min(30, amt / 40) });
     else if (a >= 25 && d >= 40 && d / a >= .3) moves.push({ name, id, amt, a, d, p: d / a, score: 25 + Math.min(40, d / a * 30) + Math.min(15, d / 50) });
@@ -49,9 +58,10 @@ async function insightCards({ cur, future, budgets, limits, cards, trend }) {
   const ups = moves.filter(m => m.d > 0).sort((x, y) => y.score - x.score).slice(0, 2), downs = moves.filter(m => m.d < 0).sort((x, y) => y.score - x.score).slice(0, 1);
   [...ups, ...downs].forEach(m => {
     const href = m.id ? '#/transactions?category=' + m.id : '#/transactions';
-    if (m.p === Infinity) add('cat:' + m.name, 'up', 'spark', money0(m.amt) + ' on ' + m.name, 'Nothing spent here ' + byLabel + ' in the last 3 months', href, m.score);
-    else add('cat:' + m.name, m.d > 0 ? 'up' : 'down', m.d > 0 ? 'up' : 'down', m.name + ' is ' + Math.round(Math.abs(m.p) * 100) + '% ' + (m.d > 0 ? 'above' : 'below') + ' usual',
-      money0(m.amt) + ' vs. about ' + money0(m.a) + ' ' + byLabel + ' in a typical month', href, m.score);
+    if (m.p === Infinity) add('cat:' + m.name, 'up', 'spark', money0(m.amt) + ' on ' + m.name,
+      useLast ? 'Nothing spent here ' + lastBy + usualNote(avgOf(m.name), 0) : 'Nothing spent here ' + byLabel + ' in the last 3 months', href, m.score);
+    else add('cat:' + m.name, m.d > 0 ? 'up' : 'down', m.d > 0 ? 'up' : 'down', m.name + ' is ' + Math.round(Math.abs(m.p) * 100) + '% ' + (m.d > 0 ? 'above' : 'below') + ' ' + vsWord,
+      money0(m.amt) + ' vs. ' + vsText(m.a) + usualNote(avgOf(m.name), m.a), href, m.score);
   });
 
   if (isCur) {
