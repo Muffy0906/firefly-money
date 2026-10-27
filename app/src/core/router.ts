@@ -90,7 +90,17 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
     return;
   }
   S.feed = null; S.kIdx = -1;
-  if (!opts.quiet) S.skelT = setTimeout(() => { if (tok === S.tok) { stashPage(prevFeed); v.innerHTML = String(skeleton()); } }, 140);
+  // Opening a deeper page (an account) keeps the list on screen a little longer, so a quick answer slides straight
+  // in; a slow one slides in its placeholder right away and fills it when the data comes.
+  const pushing = S.vtDir === 'push' && !instant;
+  if (!opts.quiet) S.skelT = setTimeout(() => {
+    if (tok !== S.tok) return;
+    const show = () => { stashPage(prevFeed); v.innerHTML = String(skeleton()); };
+    if (!pushing || S.vtDir !== 'push') return show();
+    S.vtDir = '';
+    const t = vt('page', show, () => { document.documentElement.dataset.vtdir = 'push'; });
+    if (t) t.kind = 'page';
+  }, pushing ? 350 : 140);
   const paint: Paint = markup => {
     if (tok !== S.tok) return;
     clearTimeout(S.skelT);
@@ -106,7 +116,8 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
       if (!fresh || !VT_OK || opts.quiet || instant) { v.classList.remove('enter'); if (fresh && !opts.quiet && !instant) { void v.offsetWidth; v.classList.add('enter'); } }
       scrollTo(0, fresh ? 0 : keep);          // new pages start at the top; a refresh keeps your place
       if (window.App && App.afterPaint) App.afterPaint(r, { quiet: opts.quiet || !fresh });
-      if (S.bootStale) { S.bootStale = false; setTimeout(() => refreshAll(), 60); }     // opened from saved data: update quietly
+      if (S.bootStale) { S.bootStale = false; S.warmed = true; setTimeout(() => refreshAll(), 60); }     // opened from saved data: update quietly (and then warm the tabs)
+      else if (!S.warmed) { S.warmed = true; warmTabs(); }    // first page after signing in: get the other tabs ready too
     };
     const dir = S.vtDir; S.vtDir = '';
     if (!fresh || !S.painted || opts.quiet || instant) { S.painted = true; return swap(); }

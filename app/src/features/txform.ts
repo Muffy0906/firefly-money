@@ -4,7 +4,7 @@ import { showLogin } from '../core/auth';
 import { type ApiData, App, S, el, fmtDate, fmtDay, money, num, sameName, todayIso, type AppApi, type Field } from '../core/base';
 import { LS } from '../core/helpers';
 import { closeDrawer, formError, icon, openDrawer, opt, toast, vt, vtName } from '../core/dom';
-import { avatarHtml, normGroup, payeeOf, signed } from '../core/feed';
+import { type Group, avatarHtml, normGroup, payeeOf, signed } from '../core/feed';
 import { type Account, invalidate, isAsset, isCard, isLiab, lists } from '../core/lists';
 import { REFUND_TAG, isRefundTag, refundLinkType } from './refunds';
 import { route } from '../core/router';
@@ -26,6 +26,21 @@ export function newTx(preset: { type?: string, date?: string, account?: string, 
   if (preset.amount) S.form.splits[0].amount = preset.amount;
   renderTxForm();
 }
+const EDITABLE = ['withdrawal', 'deposit', 'transfer'];
+// The edit form for a saved transaction
+function formOf(g: Group): TxForm {
+  const f = g.splits[0];
+  return {
+    id: g.id, type: g.type, date: String(g.date).slice(0, 10), title: g.title, rules: false,
+    main: g.type === 'deposit' ? f.destination_id : f.source_id, src: f.source_id, dst: f.destination_id,
+    splits: g.splits.map(s => {
+      const x: SplitForm = { jid: s.jid, description: s.description, amount: String(s.amount), counter: g.type === 'deposit' ? s.source_name : s.destination_name,
+        category: s.category, budget: s.budget_id, bill: s.bill_id, tags: s.tags.join(', '), notes: s.notes, fa: s.fa, fc: s.fc, orig: {} };
+      const { orig, ...fields } = x; x.orig = fields;
+      return x;
+    }),
+  };
+}
 export async function editTx(id: string) {
   const meta = S.txMeta && S.txMeta[id], row = document.querySelector<HTMLElement>('#view tr[data-gid="' + id + '"]');
   if (meta) {
@@ -33,29 +48,35 @@ export async function editTx(id: string) {
     S.drawerHero = { id, av: avatarHtml(g, 'lg'), name: payeeOf(g).name, date: g.date, kicker: 'Transaction',
       amount: !meta.accountId && g.type === 'transfer' ? money(g.total) : (v > 0 ? '+' : '') + money(v) };
   } else S.drawerHero = null;
+  // The list already has the whole transaction, so the form opens filled in straight away; the copy fetched
+  // from Firefly III replaces it only if it differs and you haven't started editing.
+  const known = meta && S.lists && EDITABLE.includes(meta.g.type) ? meta.g : null;
   const loading = html`<div style="padding:8px 0">${htmlList(['60%', '100%', '100%', '80%'].map(w => html`<div class="sk" style="width:${w};height:38px;margin-bottom:16px"></div>`))}</div>`;
   const rowAv = row && row.querySelector('.av') as HTMLElement;
-  const opening = vt('drawer-open', () => { if (rowAv) rowAv.style.viewTransitionName = ''; openDrawer('Loading…', loading); vtName(el('drawer').querySelector('.dhero .av'), 'txav'); },
-    () => vtName(rowAv, 'txav'));
+  let shown = null as TxForm | null, shownJson = '', typed = '';
+  const opening = vt('drawer-open', () => {
+    if (rowAv) rowAv.style.viewTransitionName = '';
+    if (known) { shown = S.form = formOf(known); shownJson = JSON.stringify(shown); renderTxForm(); collectTx(); typed = JSON.stringify(S.form); }
+    else openDrawer('Loading…', loading);
+    vtName(el('drawer').querySelector('.dhero .av'), 'txav');
+  }, () => vtName(rowAv, 'txav'));
   try {
     const [res] = await Promise.all([api('/transactions/' + id), lists()]);
     if (opening) await opening.updateCallbackDone.catch(() => {});   // the drawer shell must be in place before the form goes in
-    const g = normGroup(res.data), f = g.splits[0];
-    S.form = {
-      id: g.id, type: g.type, date: String(g.date).slice(0, 10), title: g.title, rules: false,
-      main: g.type === 'deposit' ? f.destination_id : f.source_id, src: f.source_id, dst: f.destination_id,
-      splits: g.splits.map(s => {
-        const x: SplitForm = { jid: s.jid, description: s.description, amount: String(s.amount), counter: g.type === 'deposit' ? s.source_name : s.destination_name,
-          category: s.category, budget: s.budget_id, bill: s.bill_id, tags: s.tags.join(', '), notes: s.notes, fa: s.fa, fc: s.fc, orig: {} };
-        const { orig, ...fields } = x; x.orig = fields;
-        return x;
-      }),
-    };
-    if (!['withdrawal', 'deposit', 'transfer'].includes(g.type)) {
+    const g = normGroup(res.data);
+    if (shown) {
+      if (S.form !== shown || !el('drawer').classList.contains('open')) return;      // closed, or moved on to another form
+      const fresh = formOf(g);
+      if (JSON.stringify(fresh) === shownJson || !EDITABLE.includes(g.type)) return;
+      collectTx();
+      if (JSON.stringify(S.form) !== typed || el('txForm')!.contains(document.activeElement)) return;   // you're already editing
+    }
+    if (!EDITABLE.includes(g.type)) {
       openDrawer('Transaction', html`<p>This is a <strong>${g.type}</strong> transaction (${money(g.total)} on ${fmtDate(g.date)}). Edit it in Firefly III.</p>`,
         html`<button class="btn danger" data-onclick="App.deleteTx()">Delete</button><span class="grow"></span><button class="btn" data-onclick="App.closeDrawer()">Close</button>`);
       return;
     }
+    S.form = formOf(g);
     renderTxForm();
   } catch (e) {
     if (e instanceof AuthError) return showLogin(e.message);

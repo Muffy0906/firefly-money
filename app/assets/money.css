@@ -754,6 +754,10 @@
   /* ---------- View Transitions ---------- */
   ::view-transition-group(*) { animation-duration: .32s; animation-timing-function: cubic-bezier(.2,.8,.2,1); }
   html.vt-page #view { view-transition-name: page; }
+  /* The tab bar stays put while the page under it moves (otherwise the page's picture covers it mid-slide) */
+  html.vt-page .tabbar { view-transition-name: tabbar; }
+  ::view-transition-group(tabbar), ::view-transition-new(tabbar) { animation: none; }
+  ::view-transition-old(tabbar) { display: none; }
   ::view-transition-old(page) { animation: vtFadeOut .14s ease both; }
   ::view-transition-new(page) { animation: vtFadeUp .26s cubic-bezier(.2,.8,.2,1) both; }
   html[data-vtdir="next"]::view-transition-old(page) { animation: vtOutLeft .2s ease both; }
