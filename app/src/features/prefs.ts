@@ -1,7 +1,8 @@
 import { html } from '../core/html';
 import { App } from '../core/base';
 import { icon, toast, vt } from '../core/dom';
-import { LS, buzz } from '../core/helpers';
+import { buzz } from '../core/haptics';
+import { LS } from '../core/helpers';
 
 /* ---------- Privacy mode & density ---------- */
 function applyPrefs() {

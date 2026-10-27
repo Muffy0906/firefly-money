@@ -4,6 +4,7 @@ import { withAuth } from '../core/auth';
 import { App, S, cycleDay, el, fmtDate, isoDate, monthRange, nowMonth, num, todayIso } from '../core/base';
 import { confirmBox, head, opt, toast } from '../core/dom';
 import { LS, budgetAlert, saveBlob } from '../core/helpers';
+import { buzz, hapticsOn } from '../core/haptics';
 import { logosOn } from '../core/logo';
 import { THEMES, themeButtons } from '../core/login';
 import { type Custom, KEY, applyCustom, isHex, lum, readCustom } from '../core/themevars';
@@ -53,8 +54,9 @@ VIEWS.settings = async (r, paint) => {
     ${row('Hide amounts', 'Blur every amount. Press P to switch.', html`<input ${SWITCH} aria-label="Hide amounts" data-pref="privacy"${privacy ? ' checked' : ''} data-onchange="App.togglePrivacy()">`)}
     ${row('Compact view', 'Tighter spacing to fit more in', html`<input ${SWITCH} aria-label="Compact view" data-pref="compact"${compact ? ' checked' : ''} data-onchange="App.toggleDensity()">`)}
     ${row('Logos', 'Payees’ and banks’ logos instead of initials', html`<input ${SWITCH} aria-label="Show logos"${logosOn() ? ' checked' : ''} data-onchange="App.toggleLogos(this.checked)">`)}
+    ${row('Haptics', 'A light tap when you save, delete or flip a switch. iPhone needs iOS 18 or later.', html`<input ${SWITCH} aria-label="Haptics"${hapticsOn() ? ' checked' : ''} data-onchange="App.toggleHaptics(this.checked)">`)}
     ${more('logos', 'About logos', '', html`<p class="sub-s">Your Money server fetches each logo from DuckDuckGo’s icon service by the payee’s website (guessed from its name; change it in the account’s settings) and keeps it, so your browser never contacts another site.</p>`)}`,
-    'Theme, hide amounts and compact view are saved on this device only. Your colors for each theme sync like your other settings.');
+    'Theme, hide amounts, compact view and haptics are saved on this device only. Your colors for each theme sync like your other settings.');
 
   const syncOff = !!LS.get('syncOff', false), syncAt = LS.get('syncAt', 0);
   const syncStatus = syncOff ? 'Off: this device keeps its own settings.' : S.syncError ? html`<span class="up">Couldn’t sync: ${S.syncError}</span>`
@@ -333,6 +335,7 @@ function showKey(btn: HTMLElement | null) {
 }
 
 function toggleLogos(on: boolean) { LS.set('logos', !!on); toast(on ? 'Logos on' : 'Logos off'); }
+function toggleHaptics(on: boolean) { LS.set('haptics', !!on); if (on) buzz(); toast(on ? 'Haptics on' : 'Haptics off'); }
 // The month start day: stay on the current month, and redraw every page with the new ranges
 function setCycleDay(v: string) { LS.set('cycleDay', Math.min(28, Math.max(1, Math.floor(num(v)) || 1))); S.all = false; [S.y, S.m] = nowMonth(); PAGES.clear(); toast('Months now start on the ' + ordinal(cycleDay())); route(); }
 function setBudgetAlert(v: string) { LS.set('budgetAlert', num(v)); PAGES.clear(); toast('Budget warnings at ' + budgetAlert() + '%'); }
@@ -341,6 +344,7 @@ function setBudgetAlert(v: string) { LS.set('budgetAlert', num(v)); PAGES.clear(
 const methods = {
   currency,
   toggleLogos,
+  toggleHaptics,
   setCycleDay,
   setBudgetAlert,
   copyText,

@@ -30,12 +30,3 @@ export function bizDay(y: number, m: number, day: number) {            // that d
 export function monthsFrom(from: string, to: string) { const out: [number, number][] = []; let d = new Date(from + 'T12:00:00'); d.setDate(1); const end = new Date(to + 'T12:00:00'); while (d <= end) { out.push([d.getFullYear(), d.getMonth()]); d.setMonth(d.getMonth() + 1); } return out; }
 // Budgets at or past this share of their amount get a warning (Settings → Months & budgets)
 export const budgetAlert = () => { const v = +LS.get('budgetAlert', 85); return v >= 10 && v <= 100 ? v : 85; };
-export const buzz = (ms: number) => { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* not supported */ } };
-
-// The methods markup handlers call (see events.ts), added to App and to its type
-const methods = {
-  buzz,
-};
-Object.assign(App, methods);
-type Methods = typeof methods;
-declare module './base' { interface AppApi extends Methods {} }

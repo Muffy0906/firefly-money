@@ -1,5 +1,6 @@
 import { type Html, html, htmlList } from './html';
 import { App, S, type State, el, fmtDate, fmtDay, monthRange, nowMonth } from './base';
+import { BUZZ_DELETE, buzz } from './haptics';
 
 /* ================= UI plumbing ================= */
 const ICONS: Record<string, Html> = {
@@ -53,7 +54,7 @@ export function confirmBox(title: string, text: string, okLabel = 'Delete') {
   return new Promise<boolean>(res => {
     const d = el<HTMLDialogElement>('confirm');
     d.innerHTML = String(html`<h3>${title}</h3><p>${text}</p><div class="btns"><button class="btn" value="no">Cancel</button><button class="btn primary" value="yes">${okLabel}</button></div>`);
-    d.querySelectorAll('button').forEach(b => b.onclick = () => { d.close(); res(b.value === 'yes'); });
+    d.querySelectorAll('button').forEach(b => b.onclick = () => { if (b.value === 'yes') buzz(BUZZ_DELETE); d.close(); res(b.value === 'yes'); });
     d.oncancel = () => res(false);
     d.showModal();
   });

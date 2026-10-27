@@ -1,7 +1,7 @@
 import { S, el, money } from '../core/base';
 import { closeDrawer } from '../core/dom';
 import { type Group, type TxRowsOpts, signed, txRows } from '../core/feed';
-import { buzz } from '../core/helpers';
+import { buzz } from '../core/haptics';
 import { refreshAll } from '../core/router';
 import { selAll } from './bulk';
 import { bindSwipe } from './phone';

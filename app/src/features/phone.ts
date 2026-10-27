@@ -1,5 +1,6 @@
 import { html, htmlList } from '../core/html';
 import { App, el } from '../core/base';
+import { BUZZ_DELETE, buzz } from '../core/haptics';
 import { NAV_GROUPS, icon, navItem, openDrawer } from '../core/dom';
 
 /* ---------- Phone: tab bar, More sheet, swipe to delete ---------- */
@@ -25,11 +26,11 @@ export function bindSwipe() {
       if (!active) return;
       dx = e.touches[0].clientX - x0; const dy = e.touches[0].clientY - y0;
       if (Math.abs(dy) > Math.abs(dx)) { active = false; tr.style.transform = ''; return; }
-      if (dx < 0) { tr.classList.add('swiping'); tr.style.transform = 'translateX(' + Math.max(dx, -120) + 'px)'; if ((dx < -80) !== tr.classList.contains('swipe-del') && App.buzz) App.buzz(6); tr.classList.toggle('swipe-del', dx < -80); }
+      if (dx < 0) { tr.classList.add('swiping'); tr.style.transform = 'translateX(' + Math.max(dx, -120) + 'px)'; if ((dx < -80) !== tr.classList.contains('swipe-del')) buzz(6); tr.classList.toggle('swipe-del', dx < -80); }
     }, { passive: true });
     tr.addEventListener('touchend', () => {
       tr.classList.remove('swiping'); tr.style.transform = '';
-      if (active && dx < -80) { tr.removeAttribute('data-onclick'); App.softDeleteTx([tr.dataset.gid!]); }
+      if (active && dx < -80) { buzz(BUZZ_DELETE); tr.removeAttribute('data-onclick'); App.softDeleteTx([tr.dataset.gid!]); }
       tr.classList.remove('swipe-del'); active = false;
     });
   });

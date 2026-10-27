@@ -31,6 +31,7 @@ const SETTINGS: [string, string, string][] = [
   ['Customize theme colors', 'theme color colour background accent liquid glass blur tint frost glow light custom', 'theme-custom'],
   ['Payee and bank logos', 'logos icons images duckduckgo merchant', '#set-look'],
   ['About logos', 'logos duckduckgo privacy', 'logos'],
+  ['Haptics', 'haptic feedback vibration vibrate buzz tap feel iphone android', '#set-look'],
   ['Sync between devices', 'sync iphone ipad devices cloud preferences sync now', '#set-sync'],
   ['Apple Pay', 'shortcut iphone wallet automation ingest key', '#set-applepay'],
   ['Apple Pay cards', 'wallet card account match', 'cards'],
