@@ -2,7 +2,8 @@ import { Html, html, htmlList } from '../core/html';
 import { PAGES } from '../core/api';
 import { App, S, el } from '../core/base';
 import { vt, vtName } from '../core/dom';
-import { LS, buzz } from '../core/helpers';
+import { buzz } from '../core/haptics';
+import { LS } from '../core/helpers';
 import { route } from '../core/router';
 import { GRID, ROW, type Tile, gridDrop, gridSettle, snapStep } from './grid';
 

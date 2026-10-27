@@ -4,6 +4,7 @@
 import './core/events';
 import { S, el } from './core/base';
 import './core/helpers';
+import './core/haptics';
 import './core/api';
 import './core/feed';
 import './core/lists';
