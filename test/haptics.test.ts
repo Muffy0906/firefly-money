@@ -42,4 +42,11 @@ describe('buzz', () => {
     expect(vibrate).toHaveBeenCalledTimes(2);
     f.remove();
   });
+  it('leaves a form that taps on its own save alone', () => {
+    const vibrate = vi.fn(); nav.vibrate = vibrate;
+    const f = document.createElement('form'); f.dataset.haptic = 'saved'; document.body.appendChild(f);
+    f.dispatchEvent(new Event('submit', { bubbles: true }));
+    expect(vibrate).not.toHaveBeenCalled();
+    f.remove();
+  });
 });
