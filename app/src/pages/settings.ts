@@ -93,28 +93,16 @@ VIEWS.settings = async (r, paint) => {
     'Your Firefly profile, password, two-factor login, API tokens and user administration aren’t available through Firefly’s API, so change those in Firefly III itself.');
 
   const body = html`${months}${look}${sync}${applePayHtml(ingest, cards, L.own.filter(a => isAsset(a) || isLiab(a)))}${cur}${data}${aboutHtml}`, has = String(body);
-  const nav = htmlList(SET_SECTIONS.filter(([id]) => has.includes('id="set-' + id + '"')).map(([id, t]) => html`<button type="button" data-k="${id}" data-onclick="App.setJump('${id}')">${t}</button>`));
-  paint(html`<div class="set-layout"><nav class="set-nav" id="setNav" aria-label="Settings sections">${nav}</nav><div class="set-main">${head('Settings', '', '')}<div class="settings">${body}</div></div></div>`);
-  requestAnimationFrame(setSpy);
+  const nav = htmlList(SET_SECTIONS.filter(([id]) => has.includes('id="set-' + id + '"')).map(([id, t]) => html`<button type="button" data-onclick="App.setJump('${id}')">${t}</button>`));
+  paint(html`<div class="set-layout"><div class="set-side">${head('Settings', '', '')}<nav class="set-nav" id="setNav" aria-label="Settings sections">${nav}</nav></div><div class="settings">${body}</div></div>`);
 };
-/* ---------- Wide screens: a list of the sections beside them, marking the ones on screen ---------- */
+/* ---------- Wide screens: a list of the sections beside them ---------- */
 const SET_SECTIONS: [string, string][] = [['months', 'Months & budgets'], ['look', 'Appearance'], ['sync', 'Sync'], ['applepay', 'Apple Pay'], ['currencies', 'Currencies'], ['data', 'Data'], ['about', 'About']];
 function setJump(id: string) {
   const g = el('set-' + id); if (!g) return;
   g.classList.remove('pal-flash'); void g.offsetWidth; g.classList.add('pal-flash');
   g.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 }
-let spyQueued = false;
-function setSpy() {
-  spyQueued = false;
-  const nav = el('setNav'); if (!nav || !nav.offsetParent) return;
-  nav.querySelectorAll<HTMLElement>('button').forEach(b => {
-    const r = el('set-' + b.dataset.k)?.getBoundingClientRect();
-    b.classList.toggle('on', !!r && r.bottom > 80 && r.top < innerHeight - 80);
-  });
-}
-addEventListener('scroll', () => { if (!spyQueued && el('setNav')) { spyQueued = true; requestAnimationFrame(setSpy); } }, { passive: true });
-addEventListener('resize', () => { if (el('setNav')) requestAnimationFrame(setSpy); });
 /* ---------- Customize colors: your own background, accent and (for the glass themes) light, tint and blur ---------- */
 const curTheme = () => document.documentElement.getAttribute('data-theme') || 'auto';
 const themeName = () => { const t = THEMES.find(x => x[0] === curTheme()); return t ? t[1] : ''; };
