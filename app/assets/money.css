@@ -1364,7 +1364,7 @@
   }
   /* ---------- Bento Overview (dashboard.ts): tiles small, medium or large; phones two small ones to a row ---------- */
   .cards .w { container-type: inline-size; }
-  .cards.bento { display: grid; grid-template-columns: repeat(var(--units, 2), minmax(0, 1fr)); gap: var(--gap); align-items: stretch; grid-auto-flow: row dense; margin-bottom: var(--gap); }
+  .cards.bento { display: grid; grid-template-columns: repeat(var(--units, 2), minmax(0, 1fr)); gap: var(--gap); align-items: stretch; grid-auto-flow: row; margin-bottom: var(--gap); }
   .cards.bento.editing { grid-auto-flow: row; }
   .cards.bento > .w, .cards.bento .dash-rest > .w { display: flex; flex-direction: column; margin: 0; min-width: 0; }
   .cards.bento > .w > .panel, .cards.bento .dash-rest > .w > .panel { flex: 1; }

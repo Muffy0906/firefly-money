@@ -189,6 +189,8 @@ function dashboard(W: [string, unknown][]) {
       const w = Math.max(4, Math.min(GRID, Math.round(+v[2]) || 8)), x = Math.max(0, Math.min(GRID - w, Math.round(+v[0]) || 0));
       Object.assign(spot[k], { x, y: Math.max(0, Math.round(+v[1]) || 0), w, float: false });
     });
+    // Once you've placed tiles, one without a spot (a card you just added) goes full width under them
+    if (Object.keys(L.free || {}).length) Object.values<any>(spot).forEach(t => { if (t.float) Object.assign(t, { x: 0, w: GRID }); });
     // A first guess at the heights so the first paint is close; the real ones are measured right after
     gridSettle(Object.values<any>(spot).filter(t => on(t.k)).map(t => Object.assign(t, { h: Math.ceil(((DASH_EST[t.k] || 250) + 20) / ROW) })));
   }
@@ -263,8 +265,22 @@ function dashOpt(k: string, id: string, v: string | number | boolean) {
 }
 // Hide a card, or add it back (from Add cards): it moves between the cards and that list, and comes back where it was
 function dashHide(k: string) {
+  const d = el('dash');
+  let under = -1;      // freeform: pin the tiles where they are and put the new one, full width, under the lowest
+  if (d && d.classList.contains('grid') && tileOff(dashLayout(), k)) {
+    gridKeep(d);
+    d.querySelectorAll<TileEl>(':scope > .w').forEach(w => { if (w._g) under = Math.max(under, w._g.y + w._g.h); });
+  }
   dashSave(x => {
     const add = tileOff(x, k), shown = (x.shown || []).filter(y => y !== k);
+    if (add) {      // a card you add goes at the end, not back where it was or into a gap
+      x.order = [...dashOrder(x, Object.keys(DASH_NAMES)).filter(y => y !== k), k];
+      if (x.free) delete x.free[k];
+      if (under >= 0) x.free = { ...x.free, [k]: [0, under, GRID] };
+      if (x.place) Object.values<any>(x.place).forEach(bs => Array.isArray(bs) && bs.forEach((b, i) => {
+        if (b === k) bs[i] = ''; else if (Array.isArray(b)) b.forEach(c => { if (Array.isArray(c)) c.splice(0, c.length, ...c.filter(y => y !== k)); });
+      }));
+    }
     x.hidden = x.hidden.filter(y => y !== k).concat(add ? [] : [k]);
     x.shown = add && !DASH_DEFAULT.includes(k) ? [...shown, k] : shown;
   });

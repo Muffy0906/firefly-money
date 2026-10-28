@@ -210,6 +210,12 @@ async def check(pw, width, height, mobile):
         await page.wait_for_selector('#dashCols')
         if await page.locator('#dash [data-w="networth"]').count() or await page.evaluate("el('dash').dataset.cols") != '2':
             errors.append('hiding the net worth tile did not stick')
+        # Adding it back puts it at the end of the page, not in a gap higher up
+        await page.locator('.add-card[data-onclick*="networth"]').click(); await page.wait_for_function(PAINTED, timeout=15000)
+        await page.wait_for_selector('#dash [data-w="networth"]'); await page.wait_for_timeout(300)
+        if not await page.evaluate("""(() => { const ts = [...document.querySelectorAll('#dash > .w, #dash .w')].map(e => [e.dataset.w, e.getBoundingClientRect().top]);
+          const nw = ts.find(t => t[0] === 'networth'); return nw && ts.every(t => t[1] <= nw[1] + 1); })()"""):
+            errors.append('an added card did not go at the end of the Overview: ' + str(await page.evaluate("[...document.querySelectorAll('#dash .w')].map(e => e.dataset.w + ' ' + Math.round(e.getBoundingClientRect().top) + ' ' + Math.round(e.getBoundingClientRect().left) + ' ' + Math.round(e.getBoundingClientRect().width))")))
         # Payees list what was spent at each one in the month picked at the top
         await goto(page, 'accounts?tab=expense'); await page.wait_for_selector('#view .tbl td.amt')
         if '$' not in await page.locator('#view .tbl tbody tr td.amt').first.inner_text() or not await page.locator('#view .month').count():
