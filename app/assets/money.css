@@ -343,6 +343,8 @@
   .tbl, .cards > .panel { contain: layout paint; }
   .attention { border-color: var(--warn); }
   .attention .row .name { white-space: normal; }
+  /* in a narrow tile the action drops under the text instead of squeezing it to a word per line */
+  .attention .row { flex-wrap: wrap; row-gap: 4px; } .attention .row .name { flex: 1 1 9em; }
   .offline { padding-top: calc(6px + env(safe-area-inset-top, 0px)) !important; position: fixed; top: 0; left: 0; right: 0; z-index: 70; background: var(--warn); color: #111; text-align: center; font-size: 13px; padding: 6px 12px; }
   /* ---------- Floating add button ---------- */
   .fab { position: fixed; right: 28px; bottom: 28px; width: 56px; height: 56px; border-radius: 50%; border: 0; background: var(--accent); color: var(--on-accent);
