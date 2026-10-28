@@ -78,9 +78,11 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
     const swap = () => {
       stashPage(S.feed);
       v.replaceChildren(saved.frag); v.classList.remove('enter');
+      if (!instant && (!dir || !VT_OK)) { void v.offsetWidth; v.classList.add('enter'); }     // the same entrance as a first visit
       S.pageKey = key; S.pageHtml = saved.html; S.pageCacheable = true; S.pageLive = true;
       S.feed = saved.feed; S.kIdx = -1; if (saved.chart) S.chartData = saved.chart;
       scrollTo(0, saved.scroll);
+      if (window.App && App.replayIn) App.replayIn();
       if (v.querySelector('input[data-sel]:checked')) App.selChanged();
       if (saved.stale) setTimeout(revalidate, 50);
     };

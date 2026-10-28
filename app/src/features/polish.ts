@@ -28,8 +28,10 @@ function afterPaint(r: RouteInfo, o: { quiet?: boolean } = {}) {
   bindSwipe();
   if (App.afterPaint2) App.afterPaint2(r);
 }
-// A newly opened page eases in: cards rise one after another, lines draw, bars grow, donuts and rings sweep round
-// (the animations are in money.css under .anim). Refreshes of the page you're on don't replay it.
+// A tab you've seen before comes back from memory without a paint: play its entrance all the same
+function replayIn() { countUp(); playIn(); }
+// Every page you open eases in, first visit or not: cards rise one after another, lines draw, bars grow, donuts and
+// rings sweep round (the animations are in money.css under .anim). Refreshes of the page you're on don't replay it.
 let animT = 0;
 function playIn() {
   if (reduceMotion) return;
@@ -183,6 +185,7 @@ function liveRuleFilter(q: string) {
 const methods = {
   prefetch,
   afterPaint,
+  replayIn,
   quickAdd,
   payeeFill,
   softDeleteTx,
