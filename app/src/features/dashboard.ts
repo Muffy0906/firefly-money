@@ -1,4 +1,4 @@
-import { Html, html, htmlList } from '../core/html';
+import { html, htmlList } from '../core/html';
 import { PAGES } from '../core/api';
 import { App, S, el } from '../core/base';
 import { vt, vtName } from '../core/dom';
@@ -8,35 +8,40 @@ import { route } from '../core/router';
 import { GRID, ROW, type Tile, gridDrop, gridSettle, snapStep } from './grid';
 
 /* ---------- Customizable dashboard ----------
-   Cards sit in columns you arrange yourself: each card stays in the column and at the height you put it. A wide card
-   spans every column and splits the page into bands of columns above and below it. The arrangement is kept for each
-   column count (money.dash place[n]), so a phone (1 column) and a desktop (3) each keep their own. */
+   Bento tiles: each card is small, medium or large (DASH_SIZE, or what you picked). A phone lays them two small ones
+   to a row in your order; a wide screen uses the freeform snap grid (grid.ts), dealing them four small ones to a row
+   until you move them yourself. Picking a column count under Customize deals them into that many even columns instead
+   (money.dash place[n] keeps that arrangement for each count). */
 const DASH_WIDE = ['flow', 'cashflow', 'recent'];
 export const DASH_NAMES: Record<string, string> = { safe: 'Safe to spend', attention: 'Needs attention', spending: 'Where it went', budgets: 'Budgets', cash: 'Cash & savings', cards: 'Credit cards',
   loans: 'Loans', bills: 'Coming up', heatmap: 'Daily spending', flow: 'Money flow', cashflow: 'Cash flow', recent: 'Recent transactions',
   payees: 'Top payees', income: 'Income sources', goals: 'Savings goals', networth: 'Net worth', pace: 'Spending pace', savings: 'Savings rate',
-  trends: 'Category trends' };
+  trends: 'Category trends', spent: 'Spent', earned: 'Earned', insights: 'Insights' };
 // One line on each card, for the Add cards list in Customize
 const DASH_ABOUT: Record<string, string> = { safe: 'What you can spend until payday', attention: 'Drafts, bills due, budgets running out',
   spending: 'Spending by category', budgets: 'How each budget is doing', cash: 'Bank account balances', cards: 'What you owe on each card',
   loans: 'Loan balances and payoff', bills: 'Bills due soon', heatmap: 'A calendar of what you spent each day', flow: 'Income flowing into spending',
   cashflow: 'Earned vs. spent by month', recent: 'Your latest transactions', payees: 'Who you paid the most', income: 'Where your money came from',
   goals: 'Piggy bank progress', networth: 'Net worth over time', pace: 'This month’s spending against last month, day by day',
-  savings: 'How much of your income you kept, month by month', trends: 'Your biggest categories over the last months' };
-// A new Overview starts calm with these; the rest are one tap away under Customize → Add cards
-const DASH_DEFAULT = ['safe', 'attention', 'spending', 'budgets', 'bills', 'cashflow'];
-// Cards that came after people had arranged their Overview: those people get them off, to add if they like
-const DASH_NEW = ['pace', 'savings', 'trends'];
+  savings: 'How much of your income you kept, month by month', trends: 'Your biggest categories over the last months',
+  spent: 'What you spent, against last month', earned: 'What came in and how much you kept', insights: 'What changed this month' };
+// A new Overview starts with these, in this order; the rest are one tap away under Customize → Add cards
+const DASH_DEFAULT = ['networth', 'safe', 'spent', 'earned', 'insights', 'spending', 'budgets', 'bills', 'attention', 'cashflow'];
+// Each card's bento size: s is a quarter of a wide screen (half a phone), m twice that, l the full width
+type Size = 's' | 'm' | 'l';
+const DASH_SIZE: Record<string, Size> = { spent: 's', earned: 's', budgets: 's', bills: 's', cashflow: 'l', heatmap: 'l', flow: 'l', recent: 'l' };
+const SIZES: Size[] = ['s', 'm', 'l'];
+const sizeOf = (L: DashLayout, k: string): Size => SIZES.includes((L.size || {})[k] as Size) ? (L.size || {})[k] as Size : DASH_SIZE[k] || 'm';
 // Rough card heights, only used to deal cards into columns evenly the first time
-const DASH_EST: Record<string, number> = { safe: 200, attention: 200, spending: 640, budgets: 300, cash: 300, cards: 290, loans: 250, bills: 220, heatmap: 420, payees: 640, income: 260, goals: 260, networth: 330,
+const DASH_EST: Record<string, number> = { spent: 170, earned: 170, insights: 200, safe: 200, attention: 200, spending: 640, budgets: 300, cash: 300, cards: 290, loans: 250, bills: 220, heatmap: 420, payees: 640, income: 260, goals: 260, networth: 330,
   pace: 380, savings: 330, trends: 420 };
 // Each tile's own settings (the ⚙ button while customizing), saved in money.dash opts {tile: {setting: value}}
 const yes = [true, false];
 type TileOpt = { id: string, label: string, options: (number | boolean)[], def: number | boolean, unit?: string };
 export const TILE_OPTS: Record<string, TileOpt[]> = {
   recent: [{ id: 'count', label: 'Transactions to show', options: [5, 8, 10, 15, 20, 25], def: 8 }],
-  spending: [{ id: 'count', label: 'Categories to show', options: [5, 6, 8, 12, 20], def: 6 }, { id: 'compare', label: 'Compare with last month', options: yes, def: true }],
-  payees: [{ id: 'count', label: 'Payees to show', options: [5, 8, 10, 15], def: 8 }, { id: 'compare', label: 'Compare with last month', options: yes, def: true }],
+  spending: [{ id: 'count', label: 'Categories to show', options: [4, 5, 6, 8, 12, 20], def: 5 }, { id: 'compare', label: 'Compare with last month', options: yes, def: true }],
+  payees: [{ id: 'count', label: 'Payees to show', options: [4, 5, 8, 10, 15], def: 5 }, { id: 'compare', label: 'Compare with last month', options: yes, def: true }],
   budgets: [{ id: 'unset', label: 'Show budgets without an amount', options: yes, def: true }],
   cash: [{ id: 'zero', label: 'Show accounts with a zero balance', options: yes, def: true }, { id: 'closed', label: 'Show closed accounts', options: yes, def: false },
     { id: 'sparks', label: 'Show 30-day trend lines', options: yes, def: true }],
@@ -64,19 +69,21 @@ function tileOptsPanel(k: string) {
 }
 const optsButton = (k: string) => TILE_OPTS[k] ? html`<button type="button" class="obtn" data-onclick="App.dashOpts('${k}')" aria-label="Settings for this tile" title="Settings">⚙</button>` : '';
 const DASH_COLS: (number | '')[] = ['', 1, 2, 3, 4, 6];      // '' = as many ~340px columns as fit (max 6)
-// hidden also holds the parts above the cards ('hero', 'insights'); cols is the chosen column count; place[n] the arrangement;
-// free the freeform spots {tile: [x, y, w]}; opts each tile's settings
+// order is the card order (a phone's, and how a wide screen deals them); hidden the cards taken off; shown the cards added
+// that aren't on by default; size the bento sizes picked; cols the chosen column count ('' = bento); place[n] the column
+// arrangement; free the freeform spots {tile: [x, y, w]}; opts each tile's settings
 type Block = string | string[][];
-// shown the cards added that aren't on by default; v 2 once saved with today's defaults (an older saved layout showed every card)
 type DashLayout = { order: string[], hidden: string[], wide: string[] | null, cols: number | '', place: Record<string, unknown>,
-  free?: Record<string, unknown>, opts?: Record<string, Record<string, unknown>>, shown?: string[], v?: number };
-const dashLayout = (): DashLayout => ({ order: [], hidden: [], wide: null, cols: '', place: {}, ...LS.get('dash', {}) });
-const dashShows = (part: string) => !dashLayout().hidden.includes(part);
-const arranged = (L: DashLayout) => !L.v && !!(L.order.length || L.hidden.length || Object.keys(L.free || {}).length);
+  free?: Record<string, unknown>, opts?: Record<string, Record<string, unknown>>, shown?: string[], size?: Record<string, string>, v?: number };
+// v 3 is the bento Overview. A layout arranged before it starts over with the bento defaults, keeping each tile's settings.
+function dashLayout(): DashLayout {
+  const saved = LS.get('dash', {}) || {}, fresh = { order: [], hidden: [], wide: null, cols: '' as const, place: {} };
+  return saved.v === 3 ? { ...fresh, ...saved } : { ...fresh, opts: saved.opts };
+}
 function tileOff(L: DashLayout, k: string) {
   if (L.hidden.includes(k)) return true;
   if ((L.shown || []).includes(k)) return false;
-  return arranged(L) ? DASH_NEW.includes(k) : !DASH_DEFAULT.includes(k);
+  return !DASH_DEFAULT.includes(k);
 }
 // Whether a card is on the Overview, so the page only fetches what it shows
 export const tileOn = (k: string) => !tileOff(dashLayout(), k);
@@ -110,7 +117,13 @@ function dashPlace(L: DashLayout, keys: string[], n: number, wide: string[], est
   });
   return blocks.filter(b => !Array.isArray(b) || b.some(c => c.length));
 }
-const gridMode = () => { const v = el('view'); return ((v && v.clientWidth) || innerWidth) >= 700; };
+const viewWidth = () => { const v = el('view'); return (v && v.clientWidth) || innerWidth; };
+const gridMode = () => viewWidth() >= 700;
+// The cards in your order (the defaults' order for cards you haven't placed)
+const dashOrder = (L: DashLayout, keys: string[]) => {
+  const rank = (k: string) => { const i = L.order.indexOf(k), d = DASH_DEFAULT.indexOf(k); return i >= 0 ? i : 1e3 + (d >= 0 ? d : 100 + keys.indexOf(k)); };
+  return [...keys].sort((a, b) => rank(a) - rank(b));
+};
 // Lay the tiles on the page out from their saved spots (data-gx/gy/gw), their measured heights and `over` (the tile
 // being dragged or resized, at its new spot). Always starts from the saved spots, so nothing drifts.
 // Outside Customize every tile rises as far as it can, so empty space (from a tile moved down, hidden, or shorter
@@ -139,67 +152,72 @@ function gridKeep(d: HTMLElement) {
   });
   L.free = free; LS.set('dash', L);
 }
-// A phone shows the first few cards (in your order: Customize to change which) and folds the rest under Show more
-const PHONE_CARDS = 6;
-function phoneCards(cards: unknown[]) {
-  if (cards.length <= PHONE_CARDS + 1) return htmlList(cards);
-  const more = cards.length - PHONE_CARDS;
-  return html`${htmlList(cards.slice(0, PHONE_CARDS))}<div class="dash-rest" id="dashRest"${S.dashMore ? '' : ' hidden'}>${htmlList(cards.slice(PHONE_CARDS))}</div><button type="button" class="btn dash-more" data-more="${more}" data-onclick="App.dashMore(this)">${S.dashMore ? 'Show fewer' : 'Show ' + more + ' more'}</button>`;
+// A phone shows the first rows of tiles (in your order: Customize to change which) and folds the rest under Show more.
+// Counted in half-width slots, so the starting cards all fit.
+const PHONE_SLOTS = 16;
+function phoneCards(cards: [Size, unknown][]) {
+  let used = 0; const cut = cards.findIndex(([z]) => (used += z === 's' ? 1 : 2) > PHONE_SLOTS);
+  if (cut < 0 || cut >= cards.length - 1) return htmlList(cards.map(c => c[1]));
+  const more = cards.length - cut;
+  return html`${htmlList(cards.slice(0, cut).map(c => c[1]))}<div class="dash-rest" id="dashRest"${S.dashMore ? '' : ' hidden'}>${htmlList(cards.slice(cut).map(c => c[1]))}</div><button type="button" class="btn dash-more" data-more="${more}" data-onclick="App.dashMore(this)">${S.dashMore ? 'Show fewer' : 'Show ' + more + ' more'}</button>`;
 }
 function dashMore(b: HTMLElement) {
   S.dashMore = !S.dashMore; el('dashRest').hidden = !S.dashMore;
   b.textContent = S.dashMore ? 'Show fewer' : 'Show ' + b.dataset.more + ' more';
   if (!S.dashMore) el('dash').scrollIntoView({ block: 'start' });
 }
-function dashButton() { return S.dashEdit ? '' : html`<button class="btn small" data-onclick="App.dashEdit(true)" title="Move, resize or hide cards">Customize</button>`; }
-// top: the insight strip, which shares the cards' column grid so its cards line up with the columns below
-function dashboard(W: [string, unknown][], top: Html | string = '') {
+function dashButton() { return S.dashEdit ? '' : html`<button class="btn small dash-edit" data-onclick="App.dashEdit(true)" title="Move, resize or hide cards" aria-label="Customize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>Customize</span></button>`; }
+function dashboard(W: [string, unknown][]) {
   const L = dashLayout(), keys = W.map(w => w[0]), map = Object.fromEntries(W), wide = L.wide || DASH_WIDE, edit = !!S.dashEdit, n = dashCount(L);
-  const grid = gridMode(), blocks = dashPlace(L, keys, n, wide, k => map[k] ? (DASH_EST[k] || 250) + 20 : 0);
-  // Freeform: each tile's spot, either saved or (for tiles you haven't placed) dealt from the column arrangement
+  const grid = gridMode(), order = dashOrder(L, keys), on = (k: string) => !!map[k] && !tileOff(L, k);
+  // Freeform: each tile's spot, either saved or (for tiles you haven't placed) dealt out in order
   const spot: any = {};
   if (grid) {
     let i = 0;
-    const deal = (k: string, c: number, cols: number) => { const x = Math.round(c * GRID / cols); spot[k] = { k, x, w: Math.round((c + 1) * GRID / cols) - x, y: 1e6 + i++, float: true }; };
-    blocks.forEach(b => {
-      if (typeof b === 'string') return deal(b, 0, 1);
-      for (let r = 0; r < Math.max(...b.map(c => c.length)); r++) b.forEach((c, ci) => { if (c[r]) deal(c[r], ci, b.length); });
+    const deal = (k: string, x: number, w: number) => { spot[k] = { k, x, w, y: 1e6 + i++, float: true }; };
+    if (L.cols) dashPlace(L, keys, n, wide, k => map[k] ? (DASH_EST[k] || 250) + 20 : 0).forEach(b => {      // even columns
+      const col = (k: string, c: number, cols: number) => { const x = Math.round(c * GRID / cols); deal(k, x, Math.round((c + 1) * GRID / cols) - x); };
+      if (typeof b === 'string') return col(b, 0, 1);
+      for (let r = 0; r < Math.max(...b.map(c => c.length)); r++) b.forEach((c, ci) => { if (c[r]) col(c[r], ci, b.length); });
     });
+    else {      // bento: left to right in your order, four small tiles to a row (two on a narrower screen)
+      const unit = GRID / (viewWidth() >= 1000 ? 4 : 2); let x = 0;
+      order.filter(on).forEach(k => {
+        const z = sizeOf(L, k), w = z === 's' ? unit : z === 'm' ? Math.min(GRID, unit * 2) : GRID;
+        if (x + w > GRID) x = 0;
+        deal(k, x, w); x += w;
+      });
+    }
     Object.entries<any>(L.free || {}).forEach(([k, v]) => {
       if (!spot[k] || !Array.isArray(v)) return;
       const w = Math.max(4, Math.min(GRID, Math.round(+v[2]) || 8)), x = Math.max(0, Math.min(GRID - w, Math.round(+v[0]) || 0));
       Object.assign(spot[k], { x, y: Math.max(0, Math.round(+v[1]) || 0), w, float: false });
     });
     // A first guess at the heights so the first paint is close; the real ones are measured right after
-    gridSettle(Object.values<any>(spot).filter(t => map[t.k] && !tileOff(L, t.k)).map(t => Object.assign(t, { h: Math.ceil(((DASH_EST[t.k] || 250) + 20) / ROW) })));
+    gridSettle(Object.values<any>(spot).filter(t => on(t.k)).map(t => Object.assign(t, { h: Math.ceil(((DASH_EST[t.k] || 250) + 20) / ROW) })));
   }
   const card = (k: string) => {
-    const body = map[k]; if (!body) return '';
-    const off = tileOff(L, k); if (off) return '';     // cards that are off wait in Customize's Add cards list
-    const isWide = wide.includes(k), g = spot[k];
-    if (grid) return html`<div class="w${off ? ' off' : ''}" data-w="${k}" data-gx="${g.x}" data-gy="${g.y}" data-gw="${g.w}"${g.float ? html` data-float="1"` : ''} style="grid-column:${g.x + 1} / span ${g.w};grid-row:${g.y + 1} / span ${g.h}">${edit ? html`<div class="wctl"><span class="grip" title="Drag to move" aria-hidden="true">⠿</span><strong>${DASH_NAMES[k] || k}</strong><span class="grow"></span><button type="button" data-onclick="App.dashNudge('${k}',-1,0)" aria-label="Move left">←</button><button type="button" data-onclick="App.dashNudge('${k}',1,0)" aria-label="Move right">→</button><button type="button" data-onclick="App.dashNudge('${k}',0,-1)" aria-label="Move up">↑</button><button type="button" data-onclick="App.dashNudge('${k}',0,1)" aria-label="Move down">↓</button>${optsButton(k)}<button type="button" class="wbtn" data-onclick="App.dashWide('${k}')">${g.w === GRID ? 'Narrow' : 'Wide'}</button><button type="button" class="hbtn" data-onclick="App.dashHide('${k}')">${off ? 'Show' : 'Hide'}</button></div>${tileOptsPanel(k)}<span class="rsz" title="Drag to resize" aria-hidden="true"></span>` : ''}${body}</div>`;
-    return html`<div class="w${isWide ? ' wide' : ''}${off ? ' off' : ''}" data-w="${k}">${edit ? html`<div class="wctl"><span class="grip" title="Drag to move" aria-hidden="true">⠿</span><strong>${DASH_NAMES[k] || k}</strong><span class="grow"></span>${n > 1 && !isWide ? html`<button type="button" data-onclick="App.dashShift('${k}',-1)" aria-label="Move left">←</button><button type="button" data-onclick="App.dashShift('${k}',1)" aria-label="Move right">→</button>` : ''}<button type="button" data-onclick="App.dashMove('${k}',-1)" aria-label="Move up">↑</button><button type="button" data-onclick="App.dashMove('${k}',1)" aria-label="Move down">↓</button>${optsButton(k)}<button type="button" class="wbtn" data-onclick="App.dashWide('${k}')">${isWide ? 'Narrow' : 'Wide'}</button><button type="button" class="hbtn" data-onclick="App.dashHide('${k}')">${off ? 'Show' : 'Hide'}</button></div>${tileOptsPanel(k)}` : ''}${body}</div>`;
+    const body = map[k]; if (!body || tileOff(L, k)) return '';     // cards that are off wait in Customize's Add cards list
+    const g = spot[k], z = sizeOf(L, k), name = DASH_NAMES[k] || k;
+    if (grid) return html`<div class="w ${z}" data-w="${k}" data-gx="${g.x}" data-gy="${g.y}" data-gw="${g.w}"${g.float ? html` data-float="1"` : ''} style="grid-column:${g.x + 1} / span ${g.w};grid-row:${g.y + 1} / span ${g.h}">${edit ? html`<div class="wctl"><span class="grip" title="Drag to move" aria-hidden="true">⠿</span><strong>${name}</strong><span class="grow"></span><button type="button" data-onclick="App.dashNudge('${k}',-1,0)" aria-label="Move left">←</button><button type="button" data-onclick="App.dashNudge('${k}',1,0)" aria-label="Move right">→</button><button type="button" data-onclick="App.dashNudge('${k}',0,-1)" aria-label="Move up">↑</button><button type="button" data-onclick="App.dashNudge('${k}',0,1)" aria-label="Move down">↓</button>${optsButton(k)}<button type="button" class="wbtn" data-onclick="App.dashWide('${k}')">${g.w === GRID ? 'Narrow' : 'Wide'}</button><button type="button" class="hbtn" data-onclick="App.dashHide('${k}')">Hide</button></div>${tileOptsPanel(k)}<span class="rsz" title="Drag to resize" aria-hidden="true"></span>` : ''}${body}</div>`;
+    return html`<div class="w ${z}" data-w="${k}">${edit ? html`<div class="wctl"><span class="grip" title="Drag to move" aria-hidden="true">⠿</span><strong>${name}</strong><span class="grow"></span><button type="button" data-onclick="App.dashMove('${k}',-1)" aria-label="Move earlier">↑</button><button type="button" data-onclick="App.dashMove('${k}',1)" aria-label="Move later">↓</button>${optsButton(k)}<button type="button" class="wbtn" data-onclick="App.dashSize('${k}')">${z === 's' ? 'Full' : 'Half'}</button><button type="button" class="hbtn" data-onclick="App.dashHide('${k}')">Hide</button></div>${tileOptsPanel(k)}` : ''}${body}</div>`;
   };
-  const body = grid ? htmlList(keys.map(card)) : !edit && n === 1 ? phoneCards(blocks.flatMap(b => typeof b === 'string' ? [b] : b.flat()).map(card).filter(Boolean)) : htmlList(blocks.map(blk => {
-    if (typeof blk === 'string') return card(blk);
-    const cols = blk.map(c => htmlList(c.map(card)));
-    return !edit && cols.every(c => !c) ? '' : html`<div class="band">${htmlList(cols.map(c => html`<div class="dcol">${c}</div>`))}</div>`;
-  }));
+  const tiles = order.filter(on).map(k => [sizeOf(L, k), card(k)] as [Size, unknown]).filter(t => t[1]);
+  const body = grid ? htmlList(keys.map(card)) : edit ? htmlList(tiles.map(t => t[1])) : phoneCards(tiles);
   const offs = keys.filter(k => map[k] && tileOff(L, k));
   const adds = edit && offs.length ? html`<div class="dash-add"><div class="eyebrow">Add cards</div><div class="add-list">${htmlList(offs.map(k => html`<button type="button" class="add-card" data-onclick="App.dashHide('${k}')"><span class="plus-i" aria-hidden="true">+</span><span><strong>${DASH_NAMES[k] || k}</strong><span class="sub-s">${DASH_ABOUT[k] || ''}</span></span></button>`))}</div></div>` : '';
-  const part = (p: string, label: string) => html`<label class="check"><input type="checkbox"${L.hidden.includes(p) ? '' : ' checked'} data-onchange="App.dashPart('${p}', this.checked)"> ${label}</label>`;
-  return html`<div class="dash-wrap" data-n="${n}" style="--n:${n}">${top}${edit ? html`<div class="dash-bar"><span>${grid ? 'Drag a tile anywhere and drag its corner to resize; tiles snap to the grid and push others down.' :
-      'Drag a card to any column and height (on a touch screen, by its ⠿ handle), or use the arrows. Wide cards span every column.'}</span><span class="grow"></span>${grid ? html`<button class="link" data-onclick="App.dashTidy()" title="Close the gaps by moving tiles up">Tidy up</button>` : ''}<button class="link" data-onclick="App.dashReset()">Reset</button><button class="btn small primary" data-onclick="App.dashEdit(false)">Done</button><div class="dash-opts"><span>${grid ? 'Arrange in columns' : 'Columns'}</span><div class="seg mini" id="dashCols">${htmlList(DASH_COLS.map(c => html`<button type="button" class="${String(L.cols || '') === String(c) ? 'on' : ''}" data-onclick="App.dashCols('${c}')">${c || 'Auto'}</button>`))}</div><span class="grow"></span>${part('hero', 'Net worth summary')}${part('insights', 'Insights')}</div>${adds}</div>` : ''}<div class="cards ${grid ? 'grid' : 'free'}${edit ? ' editing' : ''}" id="dash" data-n="${n}" data-mode="${grid ? 'grid' : 'cols'}"${L.cols ? html` data-cols="${String(L.cols)}"` : ''}>${body}</div></div>`;
+  return html`<div class="dash-wrap" data-n="${n}" style="--n:${n}">${edit ? html`<div class="dash-bar"><span>${grid ? 'Drag a tile anywhere and drag its corner to resize; tiles snap to the grid and push others down.' :
+      'Drag a tile by its ⠿ handle or use the arrows. Half and Full set how wide it is.'}</span><span class="grow"></span>${grid ? html`<button class="link" data-onclick="App.dashTidy()" title="Close the gaps by moving tiles up">Tidy up</button>` : ''}<button class="link" data-onclick="App.dashReset()">Reset</button><button class="btn small primary" data-onclick="App.dashEdit(false)">Done</button>${grid ? html`<div class="dash-opts"><span>Arrange as</span><div class="seg mini" id="dashCols">${htmlList(DASH_COLS.map(c => html`<button type="button" class="${String(L.cols || '') === String(c) ? 'on' : ''}" data-onclick="App.dashCols('${c}')">${c ? c + ' col' + (c === 1 ? '' : 's') : 'Bento'}</button>`))}</div></div>` : ''}${adds}</div>` : ''}<div class="cards ${grid ? 'grid' : 'bento'}${edit ? ' editing' : ''}" id="dash" data-n="${n}" data-mode="${grid ? 'grid' : 'bento'}"${L.cols ? html` data-cols="${String(L.cols)}"` : ''}>${body}</div></div>`;
 }
-// Read the arrangement back from the page (only while customizing, when hidden cards are on the page too)
+// Keep the change `mut` makes, and while customizing on a phone the tile order on the page (hidden tiles are not on it,
+// so they keep their place in the order)
 function dashSave(mut?: (L: DashLayout) => void) {
   const L = dashLayout(), d = el('dash');
-  if (!arranged(L)) L.v = 2;
-  if (d && d.classList.contains('editing') && !d.classList.contains('grid')) {
-    const keysIn = (node: Element) => [...node.querySelectorAll<HTMLElement>(':scope > .w')].map(w => w.dataset.w);
-    const blocks = ([...d.children] as HTMLElement[]).map(ch => ch.classList.contains('band') ? [...ch.children].map(keysIn) : ch.dataset.w).filter(Boolean);
-    L.place = { ...L.place, [d.dataset.n!]: blocks };
-    L.order = (blocks.flat(2) as string[]).concat(L.order.filter(k => !d.querySelector('[data-w="' + k + '"]')));
+  L.v = 3;
+  if (d && d.classList.contains('editing') && d.classList.contains('bento')) {
+    const now = [...d.querySelectorAll<HTMLElement>(':scope > .w')].map(w => w.dataset.w!);
+    let i = 0; const was = L.order.length ? L.order : DASH_DEFAULT;
+    L.order = was.map(k => now.includes(k) ? now[i++] : k).concat(now.slice(i)).filter((k, j, a) => a.indexOf(k) === j);
   }
   if (!L.wide) L.wide = DASH_WIDE.slice();
   if (mut) mut(L);
@@ -219,53 +237,24 @@ function dashEdit(on: boolean) {
   S.dashEdit = on; dashRedraw();
 }
 const dashCard = (k: string): any => document.querySelector('#dash [data-w="' + k + '"]');
-const newBand = (n: number) => { const b = document.createElement('div'); b.className = 'band'; b.innerHTML = '<div class="dcol"></div>'.repeat(n); return b; };
-// Up and down: within the column, or past a wide card into the band beyond it (same column)
+// Up and down on a phone: one place earlier or later in the order
 function dashMove(k: string, dir: number) {
   const w = dashCard(k); if (!w) return;
   const sib = dir < 0 ? w.previousElementSibling : w.nextElementSibling;
-  if (sib) return dashAnimate(() => { dir < 0 ? sib.before(w) : sib.after(w); dashSave(); });
-  const col = w.parentElement; if (!col.classList.contains('dcol')) return;
-  const i = [...col.parentElement.children].indexOf(col), d = el('dash');
-  let blk = dir < 0 ? col.parentElement.previousElementSibling : col.parentElement.nextElementSibling;
-  if (!blk) return;
-  dashAnimate(() => {
-    if (!blk.classList.contains('band')) {       // a wide card: hop over it into the band on its far side
-      const far = dir < 0 ? blk.previousElementSibling : blk.nextElementSibling;
-      if (!far || !far.classList.contains('band')) { const b = newBand(Number(d.dataset.n)); dir < 0 ? blk.before(b) : blk.after(b); blk = b; } else blk = far;
-    }
-    const to = blk.children[i]; dir < 0 ? to.appendChild(w) : to.prepend(w);
-    dashSave();
-  });
+  if (sib && sib.classList.contains('w')) dashAnimate(() => { dir < 0 ? sib.before(w) : sib.after(w); dashSave(); });
 }
-// Left and right: the same height in the next column
-function dashShift(k: string, dir: number) {
-  const w = dashCard(k); if (!w || !w.parentElement.classList.contains('dcol')) return;
-  const col = w.parentElement, to = dir < 0 ? col.previousElementSibling : col.nextElementSibling; if (!to) return;
-  const at = to.children[[...col.children].indexOf(w)];
-  dashAnimate(() => { at ? at.before(w) : to.appendChild(w); dashSave(); });
+// Half or full width on a phone
+function dashSize(k: string) {
+  const L = dashSave(x => { x.size = { ...x.size, [k]: sizeOf(x, k) === 's' ? 'm' : 's' }; }), w = dashCard(k); if (!w) return;
+  const z = sizeOf(L, k);
+  dashAnimate(() => { w.classList.remove(...SIZES); w.classList.add(z); w.querySelector('.wbtn').textContent = z === 's' ? 'Full' : 'Half'; });
 }
 function dashWide(k: string) {
-  const w = dashCard(k), d = el('dash'); if (!w) return;
-  if (d.classList.contains('grid')) {
-    const t = w._g, wide = t.w < GRID, nw = wide ? GRID : Math.round(GRID / Math.min(Number(d.dataset.n), 4)) || 8;
-    dashSave(x => { x.wide = wide ? [...new Set([...x.wide!, k])] : x.wide!.filter(y => y !== k); });
-    gridMove(d, { k, x: wide ? 0 : Math.min(t.x, GRID - nw), y: t.y, w: nw, h: t.h });
-    w.querySelector('.wbtn').textContent = wide ? 'Narrow' : 'Wide';
-    return;
-  }
-  const L = dashSave(x => { x.wide = x.wide!.includes(k) ? x.wide!.filter(y => y !== k) : [...x.wide!, k]; }), on = L.wide!.includes(k);
-  dashAnimate(() => {
-    if (on) w.closest('.band').after(w);       // full width, right below the band it was in
-    else {                                     // back into a column: the shortest one of the band just above (or below)
-      const near = [w.previousElementSibling, w.nextElementSibling].find(b => b && b.classList.contains('band'));
-      const band = near || (() => { const b = newBand(Number(d.dataset.n)); w.after(b); return b; })();
-      const cols = [...band.children] as HTMLElement[];
-      cols.reduce((a, c) => c.offsetHeight < a.offsetHeight ? c : a, cols[0])[near === w.previousElementSibling ? 'appendChild' : 'prepend'](w);
-    }
-    w.classList.toggle('wide', on); w.querySelector('.wbtn').textContent = on ? 'Narrow' : 'Wide';
-    dashSave();
-  });
+  const w = dashCard(k), d = el('dash'); if (!w || !d.classList.contains('grid')) return;
+  const t = w._g, wide = t.w < GRID, nw = wide ? GRID : d.dataset.cols ? Math.round(GRID / Math.min(Number(d.dataset.n), 4)) || 8 : GRID / 2;
+  dashSave(x => { x.wide = wide ? [...new Set([...x.wide!, k])] : x.wide!.filter(y => y !== k); });
+  gridMove(d, { k, x: wide ? 0 : Math.min(t.x, GRID - nw), y: t.y, w: nw, h: t.h });
+  w.querySelector('.wbtn').textContent = wide ? 'Narrow' : 'Wide';
 }
 // ⚙: show or hide a tile's settings
 function dashOpts(k: string) {
@@ -316,8 +305,6 @@ function dashTidy() {
   d.querySelectorAll<HTMLElement>(':scope > .w').forEach(w => { w.dataset.float = '1'; });
   gridMove(d);
 }
-// The net-worth summary and the insight strip sit above the cards, so showing or hiding them redraws the page
-function dashPart(p: string, on: boolean) { dashSave(x => { x.hidden = x.hidden.filter(y => y !== p).concat(on ? [] : [p]); }); dashRedraw(); }
 function dashReset() { LS.set('dash', {}); dashRedraw(); }
 // A window resize that changes how many columns fit redraws the overview with that count's arrangement
 addEventListener('resize', (() => { let t = 0; return () => { clearTimeout(t); t = setTimeout(() => {
@@ -335,7 +322,7 @@ export function bindDash() {
   if (!d.classList.contains('editing')) return;
   let drag: { w: HTMLElement, id: number, x0: number, y0: number, x: number, y: number, ghost?: HTMLElement, raf: number } | null = null;
   const dragging = () => drag!;
-  const near = (els: Element[], x: number, y: number) => {      // the element under the pointer, or else the nearest one (so gaps count too)
+  const near = (els: Element[], x: number, y: number) => {      // the tile under the pointer, or else the nearest one (so gaps count too)
     let best: Element | null = null, bd = Infinity;
     for (const e of els) {
       const r = e.getBoundingClientRect(), dx = Math.max(r.left - x, 0, x - r.right), dy = Math.max(r.top - y, 0, y - r.bottom), dist = dx * dx + dy * dy;
@@ -343,8 +330,6 @@ export function bindDash() {
     }
     return best;
   };
-  // The first of these whose middle is below the pointer: the slot goes right before it
-  const before = (els: Element[], y: number) => els.find(e => { const r = e.getBoundingClientRect(); return r.top + r.height / 2 > y; }) || null;
   const flip = (fn: () => void) => {
     const ws = [...d.querySelectorAll<HTMLElement>('.w')], was = new Map(ws.map(w => [w, w.getBoundingClientRect()]));
     fn();
@@ -361,19 +346,13 @@ export function bindDash() {
     if (ref === drag.w || (ref ? ref.previousElementSibling === drag.w : parent.lastElementChild === drag.w) && drag.w.parentElement === parent) return;
     flip(() => parent.insertBefore(drag.w, ref));
   };
+  // The slot goes before or after the tile under the pointer: by which half of it, sideways for a half-width tile
   const place = () => {
     if (!drag) return;
-    const { x, y, w } = drag, top = [...d.children].filter(c => c !== w);
-    if (w.classList.contains('wide')) return put(d, before(top, y));      // a wide card goes between bands
-    // A narrow card: into the column under the pointer, at the pointer's height
-    const t = near([...d.querySelectorAll('.dcol'), ...d.querySelectorAll(':scope > .w.wide')].filter(c => c !== w), x, y); if (!t) return;
-    if (t.classList.contains('dcol')) return put(t, before([...t.children].filter(c => c !== w), y));
-    // Over a wide card: into the band just above or below it (a new one if there's none), in the column under the pointer
-    const r = t.getBoundingClientRect(), up = y < r.top + r.height / 2, n = Number(d.dataset.n);
-    let band = up ? t.previousElementSibling : t.nextElementSibling;
-    if (!band || !band.classList.contains('band')) { band = newBand(n); up ? t.before(band) : t.after(band); }
-    const col = band.children[Math.max(0, Math.min(n - 1, Math.floor((x - r.left) / (r.width / n))))];
-    put(col, up ? null : col.firstElementChild);
+    const { x, y, w } = drag, t = near([...d.querySelectorAll(':scope > .w')].filter(c => c !== w), x, y); if (!t) return;
+    const r = t.getBoundingClientRect(), half = r.width < d.clientWidth * .7;
+    const after = half ? x > r.left + r.width / 2 : y > r.top + r.height / 2;
+    put(d, after ? t.nextElementSibling : t);
   };
   const tick = () => {
     if (!drag || !drag.ghost) return;
@@ -528,9 +507,7 @@ const methods = {
   dashHide,
   dashReset,
   dashCols,
-  dashPart,
-  dashShows,
-  dashShift,
+  dashSize,
   dashNudge,
   dashTidy,
 };

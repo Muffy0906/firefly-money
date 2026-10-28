@@ -41,7 +41,7 @@ export const navItem = (r: string) => NAV.find(n => n[0] === r)!;
 // To do: Review (new transactions to look over) and Categorize (ones without a category), as two tabs of one page
 export const todoTabs = (on: string) => html`<div class="tabs"><a href="#/review" class="${on === 'review' ? 'on' : ''}">Review new</a><a href="#/inbox" class="${on === 'inbox' ? 'on' : ''}">Categorize</a></div>`;
 export function drawNav(active: string) {
-  const a = (r: string) => { const [, label, ic] = navItem(r); return html`<a href="#/${r}" class="${r === active ? 'on' : ''}" data-onmouseenter="App.prefetch('${r}')">${icon(ic)}<span>${label}</span></a>`; };
+  const a = (r: string) => { const [, label, ic] = navItem(r); return html`<a href="#/${r}" class="${r === active ? 'on' : ''}" title="${label}" data-onmouseenter="App.prefetch('${r}')">${icon(ic)}<span>${label}</span></a>`; };
   el('nav').innerHTML = String(htmlList(NAV_GROUPS.map(([title, rs]) => html`${title ? html`<div class="nav-h">${title}</div>` : ''}${htmlList(rs.map(a))}`)));
   el('navFoot').innerHTML = String(a('settings'));
   if (window.App && App.drawTabbar) App.drawTabbar(active);

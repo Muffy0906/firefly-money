@@ -1284,18 +1284,14 @@
   .set-num { width: 110px; text-align: right; }
 
   /* ---------- Net worth time scrubber (features/networth.ts) ---------- */
-  svg.nw-scrub { touch-action: pan-y; cursor: ew-resize; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-  svg.nw-scrub .nw-guide { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0; transition: opacity .15s; }
-  svg.nw-scrub .nw-knob { opacity: 0; stroke: var(--panel); stroke-width: 2.5; transition: opacity .15s; }
-  .nw.scrubbing svg.nw-scrub .nw-guide, .nw.scrubbing svg.nw-scrub .nw-knob { opacity: 1; }
-  .nw.scrubbing svg.nw-scrub .dot { opacity: .35; }
-  .nw.scrubbing [data-nw="total"] { color: var(--accent); }
-  .nw [data-nw] { transition: color .15s; }
-  .nw-then:empty { display: none; }
-  .nw-then { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); animation: fadeIn .15s ease both; }
-  .nw-moves { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 6px; font-size: 13.5px; }
-  .nw-moves .nm { color: var(--muted); }
-  .nw-open { margin-top: 12px; }
+  .nw-scrub { position: relative; margin-top: auto; touch-action: pan-y; cursor: ew-resize; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .panel.stat.nw .nw-scrub .mini-line { margin-top: 0; }
+  .nw-scrub .nw-guide { position: absolute; top: 12px; bottom: 0; left: var(--x, 0); width: 0; border-left: 1px dashed var(--muted); opacity: 0; pointer-events: none; transition: opacity .15s; }
+  .nw-scrub .nw-knob { position: absolute; left: var(--x, 0); top: var(--ky, 0); width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%;
+    box-shadow: 0 0 0 2.5px var(--panel); opacity: 0; pointer-events: none; transition: opacity .15s; }
+  .nw.scrubbing .nw-guide, .nw.scrubbing .nw-knob { opacity: 1; }
+  .nw.scrubbing > .big { color: var(--accent); }
+  .nw-open { margin-left: 4px; font: inherit; font-weight: 600; }
 
   /* ---------- Year in Money (pages/year.ts): a full-screen story ---------- */
   html:has(#story) { overflow: hidden; }
@@ -1362,3 +1358,104 @@
     .st-card, .st-card.on { transition: opacity .2s; transform: none; }
     .st-card.on .st-in, .st-card.on .st-day i, .st-card.on .st-bar::before, .st-card.on .st-months i { animation-duration: .01s; animation-delay: 0s; }
   }
+  /* ---------- Bento Overview (dashboard.ts): tiles small, medium or large; phones two small ones to a row ---------- */
+  .cards .w { container-type: inline-size; }
+  .cards.bento { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap); align-items: stretch; grid-auto-flow: row dense; margin-bottom: var(--gap); }
+  .cards.bento.editing { grid-auto-flow: row; }
+  .cards.bento > .w, .cards.bento .dash-rest > .w { display: flex; flex-direction: column; margin: 0; min-width: 0; }
+  .cards.bento > .w > .panel, .cards.bento .dash-rest > .w > .panel { flex: 1; }
+  .cards.bento > .w:is(.m, .l), .cards.bento .dash-rest > .w:is(.m, .l) { grid-column: span 2; }
+  .cards.bento .dash-rest:not([hidden]) { display: contents; }
+  .cards.bento .dash-more { grid-column: 1 / -1; }
+  .cards.bento .wctl { flex-wrap: wrap; }
+  .cards.bento .w.s .wctl .grow { flex-basis: 100%; height: 0; }     /* a half-width tile: its name, then its buttons below */
+  @media (max-width: 900px) {
+    .dash-wrap { --gap: 12px; }
+    .cards.bento .panel { padding: 18px 16px; }
+    .cards.bento .panel h2 { font-size: 14.5px; }
+  }
+  /* number tiles */
+  .panel.stat { display: flex; flex-direction: column; }
+  .panel.stat .eyebrow { margin-bottom: 6px; }
+  .panel.stat .panel-head { margin-bottom: 4px; } .panel.stat .panel-head .eyebrow { margin: 0; }
+  .stat-v { font-size: 30px; font-weight: 400; letter-spacing: -.025em; line-height: 1.1; }
+  .panel.stat .big { font-size: clamp(34px, 11cqi, 52px); }
+  .panel.stat .sub-s { margin-top: 4px; }
+  .panel.stat .sbars { width: 100%; height: auto; max-height: 56px; margin-top: auto; padding-top: 14px; }
+  .panel.stat .ring { width: 64px; margin: auto 0 0 auto; padding-top: 10px; }
+  .panel.stat .ring .mid strong { font-size: 14px; } .panel.stat .ring .mid span { font-size: 10px; }
+  .panel.stat.nw .mini-line { display: block; width: 100%; height: 64px; margin-top: auto; padding-top: 12px; overflow: visible; }
+  .panel.stat.nw .sk { margin-top: auto; }
+  @container (min-width: 240px) {
+    .panel.stat:has(> .ring) { display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto 1fr; column-gap: 12px; }
+    .panel.stat:has(> .ring) > :not(.ring) { grid-column: 1; }
+    .panel.stat > .ring { grid-column: 2; grid-row: 1 / 4; align-self: center; width: 78px; margin: 0; padding: 0; }
+  }
+  /* the insights, one at a time and swiped through on a phone, stacked in a wide tile */
+  .cards .w[data-w="insights"] .insights { margin: 0; padding: 0; grid-auto-columns: 100%; gap: 10px; }
+  .cards .w[data-w="insights"] .insight { height: 100%; }
+  @container (max-width: 520px) { .cards .w[data-w="insights"] .insights { grid-auto-columns: 88%; } .cards .w[data-w="insights"] .insights:has(> :only-child) { grid-auto-columns: 100%; } }
+  @container (min-width: 521px) { .cards .w[data-w="insights"] .insights { grid-auto-flow: row; overflow: visible; } }
+  /* ring charts beside their list, once the tile has room for both */
+  @container (min-width: 300px) {
+    .cards .share { display: grid; grid-template-columns: minmax(104px, 38%) minmax(0, 1fr); gap: 18px; align-items: center; }
+    .cards .share .donut { width: 100%; margin: 0; }
+    .cards .share .part { grid-template-columns: 10px minmax(0, 1fr) 34px; gap: 8px; }
+    .cards .share .part .track { display: none; }
+  }
+  @container (max-width: 380px) { .cards .share .donut .mid strong { font-size: 17px; } .cards .share .donut .mid .eyebrow { font-size: 9.5px; } }
+  /* budgets as rings */
+  .brings { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 16px 10px; margin-top: 6px; }
+  .bring { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; min-width: 0; color: inherit; text-decoration: none; }
+  .bring .ring { width: 64px; margin-bottom: 6px; }
+  .bring .ring .mid strong { font-size: 13.5px; }
+  .bring .name { font-size: 13px; font-weight: 500; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bring .sub-s { font-size: 11.5px; }
+  .ring.warn .seg { stroke: var(--warn); } .ring.over .seg { stroke: var(--spend); }
+  .list .row.more { color: var(--muted); font-size: 13.5px; text-decoration: none; }
+  /* Customize as an icon on a phone, so the month picker and it share one row */
+  .dash-edit { display: inline-flex; align-items: center; gap: 6px; }
+  .dash-edit svg { width: 16px; height: 16px; flex: none; display: none; }
+  @media (max-width: 900px) {
+    .dash-edit { width: 38px; height: 38px; padding: 0 !important; justify-content: center; border-radius: 50%; }
+    .dash-edit svg { display: block; } .dash-edit span { display: none; }
+  }
+
+  /* ---------- Collapsible sidebar (prefs.ts toggleSide): folds down to its icons ---------- */
+  .brand { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .side-tg { display: grid; place-items: center; width: 30px; height: 30px; margin: -6px -6px -6px 0; padding: 0; border: 0; border-radius: 9px; background: none; color: var(--muted); cursor: pointer; }
+  .side-tg:hover { background: var(--faint); color: var(--text); }
+  .side-tg svg { width: 18px; height: 18px; transition: transform .25s ease; }
+  @media (min-width: 901px) {
+    .app { transition: grid-template-columns .25s ease; }
+    html.side-mini .app { grid-template-columns: 88px 1fr; }
+    html.side-mini .side { padding-left: 10px; padding-right: 10px; overflow-x: hidden; }
+    html.side-mini .brand { justify-content: center; padding: 0 0 18px; }
+    html.side-mini .brand > span { display: none; }
+    html.side-mini .side-tg { margin: 0; }
+    html.side-mini .side-tg svg { transform: scaleX(-1); }
+    html.side-mini .side-search { justify-content: center; padding: 9px 0; }
+    html.side-mini .side-search :is(span, kbd) { display: none; }
+    html.side-mini .nav a { justify-content: center; padding: 10px 0; }
+    html.side-mini .nav a span { display: none; }
+    html.side-mini .nav-h { height: 1px; padding: 0; margin: 12px 14px; background: var(--line); font-size: 0; }
+    html.side-mini .side .foot :is(.toggles button, a, button) { text-align: center; }
+    html.side-mini .side .foot .toggles button { display: flex; justify-content: center; }
+    html.side-mini .side .foot .toggles button span, html.side-mini #ffLink, html.side-mini .side .foot > button { display: none; }
+  }
+  @media (max-width: 520px) {
+    .head .actions:has(.dash-edit) { gap: 8px; flex-wrap: nowrap; }
+    .head .actions:has(.dash-edit) .month span { min-width: 0; padding: 0 4px; }
+    .head .actions:has(.dash-edit) .month .btn { padding-inline: 12px; }
+  }
+  /* a narrow tile: bills put the amount under the name rather than cutting the name short; budget rings two to a row */
+  @container (max-width: 240px) {
+    .w[data-w="bills"] .list .row:not(.more) { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
+    .w[data-w="bills"] .list .row .name { white-space: normal; }
+    .w[data-w="bills"] .list .row .num { text-align: left; font-weight: 600; }
+    .brings { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 6px; }
+    .bring .ring { width: 54px; } .bring .ring .mid strong { font-size: 12px; }
+  }
+  @container (max-width: 240px) { .w[data-w="bills"] .lead { display: none; } }
+  .cards.bento .w[data-w="budgets"] > .panel { display: flex; flex-direction: column; }
+  .cards.bento .w[data-w="budgets"] .brings { margin-block: auto; padding-top: 10px; }

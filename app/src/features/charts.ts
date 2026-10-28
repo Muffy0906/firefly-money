@@ -55,12 +55,19 @@ export function shareChart(rows: Share[], middle: Html | string, label: string, 
   if (grey) slices.push({ name: shown.length > 7 ? 'Everything else' : shown[6].name, v: grey, color: 'var(--muted)' });
   const most = Math.max(1, ...shown.map(r => r.v));
   const list = html`<div class="parts">${htmlList(shown.map(r => html`<div class="part"><i style="background:${r.c}"></i><span class="name">${r.href ? html`<a href="${r.href}">${r.name}</a>` : r.name}${r.sub ? html`<span class="sub-s">${r.sub}</span>` : ''}</span><span class="track"><span class="fill" style="width:${(r.v / most * 100).toFixed(1)}%;background:${r.c}"></span></span><span class="num">${(r.v / total * 100).toFixed(0)}%</span></div>`))}</div>`;
-  return o.ring === false ? list : html`${donut(slices, middle, label)}${list}`;
+  return o.ring === false ? list : html`<div class="share">${donut(slices, middle, label)}${list}</div>`;
 }
-// How far along something is (a goal, a loan), as a ring with the percentage in the middle
-export function ring(pct: number, cls = '', sub = '') {
+// A small trend line with a soft fill under it, stretched to its box (a number tile's picture)
+export function miniLine(vals: number[], color: string, label: string) {
+  const W = 300, H = 60, n = vals.length;
+  let lo = Math.min(...vals), hi = Math.max(...vals); if (hi === lo) { hi += 1; lo -= 1; }
+  const line = smoothPath(vals.map((v, i) => [W * i / Math.max(1, n - 1), 4 + (H - 8) * (1 - (v - lo) / (hi - lo))]));
+  return html`<svg class="mini-line" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${label}"><path d="${line} L${W} ${H} L0 ${H} Z" fill="${color}" fill-opacity=".14"/><path d="${line}" fill="none" stroke="${color}" stroke-width="2.5" vector-effect="non-scaling-stroke"/></svg>`;
+}
+// How far along something is (a goal, a loan), as a ring with the percentage (or `mid`) in the middle
+export function ring(pct: number, cls = '', sub = '', mid = '') {
   const p = Math.max(0, Math.min(100, pct));
-  return html`<div class="ring ${cls}"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="base" cx="60" cy="60" r="50"/><circle class="seg" cx="60" cy="60" r="50" pathLength="100" stroke-dasharray="${p.toFixed(2)} ${(100 - p).toFixed(2)}" style="--at:0"/></svg><div class="mid"><strong class="num">${p.toFixed(0)}%</strong>${sub ? html`<span>${sub}</span>` : ''}</div></div>`;
+  return html`<div class="ring ${cls}"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="base" cx="60" cy="60" r="50"/><circle class="seg" cx="60" cy="60" r="50" pathLength="100" stroke-dasharray="${p.toFixed(2)} ${(100 - p).toFixed(2)}" style="--at:0"/></svg><div class="mid"><strong class="num">${mid || p.toFixed(0) + '%'}</strong>${sub ? html`<span>${sub}</span>` : ''}</div></div>`;
 }
 
 // Two amounts over time (earned and spent) as smooth lines, the first with a soft fill under it
