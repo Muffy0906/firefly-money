@@ -14,6 +14,8 @@ function drawTabbar(active: string) {
   const t = (r: string, label: string, ic: string) => html`<a href="#/${r}" class="${r === active ? 'on' : ''}">${icon(ic)}<span>${label}</span></a>`;
   tb.innerHTML = String(html`<i class="tab-pill" aria-hidden="true"></i>${t('', 'Home', 'overview')}${t('transactions', 'Activity', 'transactions')}<button type="button" class="plus" data-onclick="App.quickAdd()" aria-label="Add transaction"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>${t('budgets', 'Budgets', 'budgets')}<button type="button" data-onclick="App.moreSheet()">${icon('categories')}<span>More</span></button>`);
   movePill();
+  // the tabs only have their width back once a folded bar has finished opening
+  tb.addEventListener('transitionend', e => { if (e.target === tb && !tb.classList.contains('mini')) movePill(); });
   requestAnimationFrame(() => tb.classList.add('pill-ready'));     // no slide in from the edge the first time
 }
 function movePill() {
@@ -23,6 +25,24 @@ function movePill() {
   if (on && on.offsetWidth) { pill.style.width = on.offsetWidth + 'px'; pill.style.transform = 'translateX(' + on.offsetLeft + 'px)'; }
 }
 addEventListener('resize', movePill);
+/* Scrolling down the page folds the tab bar into just the + button; scrolling back up, or reaching the top, opens it again */
+(function foldOnScroll() {
+  let last = scrollY, folded = false;
+  const fold = (on: boolean) => {
+    if (on === folded) return;
+    folded = on; el('tabbar').classList.toggle('mini', on);
+    if (!on && matchMedia('(prefers-reduced-motion: reduce)').matches) requestAnimationFrame(movePill);     // no transition to wait for
+  };
+  addEventListener('scroll', () => {
+    const y = scrollY, dy = y - last;
+    if (y < 60) fold(false);
+    else if (dy > 6) fold(true);
+    else if (dy < -6) fold(false);
+    else return;     // small jitters (rubber banding, momentum ends) keep the last position as the reference
+    last = y;
+  }, { passive: true });
+  addEventListener('hashchange', () => { last = 0; fold(false); });
+})();
 export function moreSheet() {
   const link = (r: string) => { const [, label, ic] = navItem(r); return html`<a class="row" href="#/${r}" data-onclick="App.closeDrawer()"><span class="name"><span class="ic">${icon(ic)}</span>${label}</span><span class="neutral">›</span></a>`; };
   // the tab bar already has Home, Activity and Budgets

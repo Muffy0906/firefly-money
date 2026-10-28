@@ -496,7 +496,7 @@
   .tbl.feed .catcol { color: var(--muted); font-size: 13.5px; }
   .av { --h: 220; --c: hsl(var(--h) 62% 48%); flex: none; width: 36px; height: 36px; border-radius: 50%; display: inline-grid; place-items: center;
     font-size: 13px; font-weight: 650; letter-spacing: -.02em; line-height: 1;
-    background: color-mix(in oklab, var(--c) 17%, var(--panel)); color: color-mix(in oklab, var(--c) 62%, var(--text));
+    background: color-mix(in oklab, var(--c) 17%, var(--panel)); color: color-mix(in oklab, var(--c) 48%, var(--text));
     box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--c) 22%, transparent); }
   .av.xfer { --c: var(--muted); }
   .av { position: relative; overflow: hidden; }
@@ -527,7 +527,7 @@
     background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px 36px 14px 14px; transition: border-color .15s, transform .15s; }
   .insight:hover { border-color: color-mix(in srgb, var(--tone) 55%, var(--line)); transform: translateY(-1px); }
   .insight.t-up { --tone: var(--spend); } .insight.t-down { --tone: var(--good); } .insight.t-warn { --tone: var(--warn); }
-  .insight .ic { flex: none; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: var(--tone); background: color-mix(in srgb, var(--tone) 14%, var(--panel)); }
+  .insight .ic { flex: none; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: var(--tone); background: color-mix(in srgb, var(--tone) 18%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 22%, transparent); }
   .insight .ic svg { width: 18px; height: 18px; }
   .insight .t { font-weight: 600; font-size: 14px; line-height: 1.35; }
   .insight .d { font-size: 12.5px; color: var(--muted); margin-top: 2px; line-height: 1.45; }
@@ -765,6 +765,7 @@
   .tabs { width: fit-content; max-width: 100%; gap: 2px; padding: 4px; border: 0; border-radius: 999px; background: var(--faint); box-shadow: inset 0 0 0 1px var(--line); scrollbar-width: none; }
   .tabs::-webkit-scrollbar { display: none; }
   .tabs a { padding: 7px 14px; margin: 0; border: 0; border-radius: 999px; line-height: 1.2; }
+  .tabs a.on .neutral { color: inherit; opacity: .7; }
   @media (min-width: 901px) {
     .side { margin: 14px 0 14px 14px; height: calc(100vh - 28px); top: 14px; border: 1px solid var(--line); border-radius: 26px; background: var(--panel); box-shadow: var(--shadow); }
   }
@@ -779,6 +780,12 @@
   .tab-pill { display: block; position: absolute; left: 0; top: 6px; bottom: 6px; border-radius: 999px; pointer-events: none; background: color-mix(in srgb, var(--accent) 15%, transparent); }
   .tab-pill.off { opacity: 0; }
   .pill-ready .tab-pill { transition: transform .42s cubic-bezier(.3, 1.3, .5, 1), width .42s cubic-bezier(.3, 1.3, .5, 1), opacity .2s; }
+  /* Folded while scrolling down (phone.ts): the bar shrinks around the + button and the tabs fade out */
+  .tabbar { overflow: hidden; transition: left .38s cubic-bezier(.3, 1.2, .5, 1), right .38s cubic-bezier(.3, 1.2, .5, 1), grid-template-columns .38s cubic-bezier(.3, 1.2, .5, 1); }
+  .tabbar > :is(a, button:not(.plus)) { min-width: 0; transition: opacity .2s .08s; }
+  .tabbar.mini { left: calc(50% - 31px); right: calc(50% - 31px); grid-template-columns: 0fr 0fr 1fr 0fr 0fr; }
+  .tabbar.mini > :is(a, button:not(.plus)) { opacity: 0; visibility: hidden; margin: 0; transition: opacity .12s, visibility 0s .12s; }
+  .tabbar.mini .tab-pill { opacity: 0; transition: opacity .12s; }
   @media (max-width: 900px) {
     main { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important; }
     :is(.undo, .toast) { bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); }
@@ -874,14 +881,15 @@
   /* Your photo, softened like the scenes */
   html[data-theme="frosted"][data-scene="photo"] body::after { inset: -60px; background: var(--photo) center / cover no-repeat; filter: blur(22px) saturate(115%); }
   /* Night city: the same glass, dark */
-  html[data-theme="frosted"][data-scene="night"] { --bg: #120f1c; --glow1: #ff7a3d; --glow2: #3b2a6b; --glow3: #2bb3c9; --text: #f4efe9; --muted: #aba2b6; --faint: rgba(255, 255, 255, .08);
+  html[data-theme="frosted"][data-scene="night"] { --bg: #120f1c; --glow1: #ff7a3d; --glow2: #3b2a6b; --glow3: #2bb3c9; --text: #f4efe9; --muted: #aba2b6; --faint: rgba(255, 255, 255, .08); --panel: rgba(29, 24, 40, .6);
     --line: rgba(255, 255, 255, .14); --glass-base: #1d1828; --glass-tint: 45%; --accent: #ff7a3d; --on-accent: #1a0d05; --ink: #f4efe9; --good: #47d18c; --income: #47d18c; --spend: #ff7a3d; color-scheme: dark;
     --frost-edge: inset 0 1px 0 rgba(255, 255, 255, .16), inset 0 0 0 1px rgba(255, 255, 255, .05); }
   html[data-theme="frosted"][data-scene="night"] body::after { background:
-      radial-gradient(10vmax 10vmax at 20% 30%, var(--glow1), transparent 70%),
-      radial-gradient(8vmax 8vmax at 64% 22%, color-mix(in srgb, var(--glow1) 60%, #ffd36b), transparent 70%),
-      radial-gradient(9vmax 9vmax at 84% 46%, var(--glow3), transparent 70%),
-      radial-gradient(7vmax 7vmax at 40% 58%, color-mix(in srgb, var(--glow3) 50%, #b56bff), transparent 70%),
+      /* soft, dim city lights: bright spots behind text made it hard to read */
+      radial-gradient(18vmax 18vmax at 14% 26%, color-mix(in srgb, var(--glow1) 34%, transparent), transparent 70%),
+      radial-gradient(16vmax 16vmax at 70% 18%, color-mix(in srgb, color-mix(in srgb, var(--glow1) 60%, #ffd36b) 26%, transparent), transparent 70%),
+      radial-gradient(18vmax 18vmax at 92% 52%, color-mix(in srgb, var(--glow3) 30%, transparent), transparent 70%),
+      radial-gradient(16vmax 16vmax at 30% 70%, color-mix(in srgb, color-mix(in srgb, var(--glow3) 50%, #b56bff) 26%, transparent), transparent 70%),
       radial-gradient(60vmax 40vmax at 50% 20%, var(--glow2), transparent 70%),
       linear-gradient(180deg, #1b1530, var(--bg)); }
   html[data-theme="frosted"][data-scene="night"] :is(.panel, .kpi, .insight, .extra, .split, .login form, .dash-bar) {
@@ -894,7 +902,8 @@
   html[data-theme="frosted"][data-scene="night"] :is(.btn.primary, .seg button.on, .tabs a.on, .tabbar .plus, .fab) { background: var(--ink); color: #15111c; border-color: var(--ink); }
   html[data-theme="frosted"][data-scene="night"] :is(.tbl.feed td) { background: rgba(29, 24, 40, .45); border-color: rgba(255, 255, 255, .08); }
   html[data-theme="frosted"][data-scene="night"] .tbl.feed tr.dayhead div { background: rgba(26, 21, 36, .7); }
-  html[data-theme="frosted"][data-scene="night"] :is(.side, .tabbar) { background: rgba(26, 21, 36, .5); border-color: rgba(255, 255, 255, .14); }
+  html[data-theme="frosted"][data-scene="night"] .side { background: rgba(26, 21, 36, .5); border-color: rgba(255, 255, 255, .14); }
+  html[data-theme="frosted"][data-scene="night"] .tabbar { background: rgba(26, 21, 36, .8); border-color: rgba(255, 255, 255, .14); }
   html[data-theme="frosted"][data-scene="night"] .tabbar a { color: var(--muted); }
   html[data-theme="frosted"][data-scene="night"] :is(.tab-pill, .nav a.on) { background: rgba(255, 255, 255, .16); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2); }
   html[data-theme="frosted"][data-scene="night"] :is(.tabbar a.on, .nav a.on) { color: var(--text); }

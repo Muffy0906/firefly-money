@@ -73,7 +73,7 @@ function nlParse(text: string, submit?: boolean) {
   ]) : '';
   const caret = el<HTMLInputElement>('nlq') ? el<HTMLInputElement>('nlq').selectionStart : text.length;
   renderTxForm();
-  const q = el<HTMLInputElement>('nlq'); if (q) { q.focus(); try { q.setSelectionRange(caret, caret); } catch (e) { /* ignore */ } }
+  const q = el<HTMLInputElement>('nlq'); if (q && document.activeElement !== q) { q.focus(); try { q.setSelectionRange(caret, caret); } catch (e) { /* ignore */ } }
   if (payee && type !== 'transfer' && !out.category && !out.catHint) payeeFill(0, payee);
   if (submit) {
     if (num(sp.amount) > 0 && sp.description.trim()) el<HTMLFormElement>('txForm').requestSubmit();
