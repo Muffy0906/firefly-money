@@ -116,6 +116,18 @@ async def check(pw, width, height, mobile):
     if await page.locator('#view .xfer-pair').count() != 1:
         errors.append('the transfer imported as an expense and an income is not offered as a match')
     await goto(page, 'transactions'); await page.wait_for_selector('tr[data-gid]')
+    # The phone's bento Overview: two small tiles to a row, Half/Full in Customize changes a tile's width and is kept
+    if mobile:
+        await goto(page, ''); await page.wait_for_selector('#dash.bento [data-w="spent"]')
+        half = await page.evaluate("() => el('dash').querySelector('[data-w=spent]').offsetWidth / el('dash').offsetWidth")
+        if not .3 < half < .6: errors.append(f'the Spent tile is not half the width on a phone: {half:.2f}')
+        await page.evaluate('App.dashEdit(true)'); await page.wait_for_selector('#dash.bento.editing')
+        await page.locator('#dash [data-w="spent"] .wbtn').click(); await page.wait_for_timeout(400)
+        if await page.evaluate("JSON.parse(localStorage.getItem('money.dash')).size.spent") != 'm': errors.append('Full on a phone tile was not kept')
+        await page.locator('#dash [data-w="spent"] button[aria-label="Move earlier"]').click(); await page.wait_for_timeout(400)
+        order = await page.evaluate("JSON.parse(localStorage.getItem('money.dash')).order")
+        if order.index('spent') > order.index('safe'): errors.append(f'moving a tile earlier on a phone was not kept: {order}')
+        await page.evaluate('App.dashReset()'); await page.evaluate('App.dashEdit(false)')
     # a background refresh must not drop what you're in the middle of
     if not mobile:
         await page.evaluate("App.selAll(false)")
@@ -148,7 +160,7 @@ async def check(pw, width, height, mobile):
         if await page.evaluate('S.all'):
             errors.append('picking Month on an account did not leave All time')
         await page.locator('#view .seg').get_by_role('button', name='Month', exact=True).click()   # back to this month
-        # Customize the overview: a calm set of cards to start with, the rest added from Customize, column count, hiding the summary
+        # Customize the overview: a calm set of cards to start with, the rest added from Customize, column count, hiding a tile
         await goto(page, ''); await page.wait_for_selector('#dash [data-w="spending"] .part', timeout=15000)
         for k in ['safe', 'spending', 'budgets', 'cashflow']:
             if not await page.locator(f'#dash [data-w="{k}"]').count(): errors.append(f'overview card {k!r} is missing')
@@ -186,10 +198,10 @@ async def check(pw, width, height, mobile):
           for (const [a, p] of r) for (const [b, q] of r) if (a < b && p.left < q.right - 1 && q.left < p.right - 1 && p.top < q.bottom - 1 && q.top < p.bottom - 1) return a + '/' + b; return ''; }""")
         if overlap: errors.append('overview tiles overlap: ' + overlap)
         await page.locator('#dashCols button', has_text='2').click(); await page.wait_for_function(PAINTED, timeout=15000); await page.wait_for_selector('#dashCols')
-        await page.locator('.dash-opts input[type=checkbox]').first.uncheck(); await page.wait_for_function(PAINTED, timeout=15000)
+        await page.locator('#dash [data-w="networth"] .hbtn').click(); await page.wait_for_function(PAINTED, timeout=15000)
         await page.wait_for_selector('#dashCols')
-        if await page.locator('#view .hero').count() or await page.evaluate("el('dash').dataset.cols") != '2':
-            errors.append('hiding the net worth summary did not stick')
+        if await page.locator('#dash [data-w="networth"]').count() or await page.evaluate("el('dash').dataset.cols") != '2':
+            errors.append('hiding the net worth tile did not stick')
         # Payees list what was spent at each one in the month picked at the top
         await goto(page, 'accounts?tab=expense'); await page.wait_for_selector('#view .tbl td.amt')
         if '$' not in await page.locator('#view .tbl tbody tr td.amt').first.inner_text() or not await page.locator('#view .month').count():
@@ -237,7 +249,7 @@ async def check(pw, width, height, mobile):
         n = await page.locator('#dash [data-w="recent"] tr.click').count()
         if n != 5: errors.append(f'the recent transactions setting showed {n} rows instead of 5')
         await page.evaluate('App.dashReset()'); await page.wait_for_function(PAINTED, timeout=15000)
-        if not await page.locator('#view .hero').count(): errors.append('Reset did not bring the summary back')
+        if not await page.locator('#dash [data-w="networth"]').count(): errors.append('Reset did not bring the net worth tile back')
         await page.evaluate('App.dashEdit(false)')
         # Signing out ends the session: the API refuses until you sign in again
         if '/demo/' not in BASE:

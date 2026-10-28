@@ -23,6 +23,14 @@ export function togglePrivacy() {
   vt('prefs', applyPrefs); buzz(8);
   toast(on ? 'Amounts hidden · press P or hover to peek' : 'Amounts visible');
 }
+// Fold the sidebar down to its icons for more room, or open it again. Kept per device: a laptop and a big screen differ.
+const sideLabels = (on: boolean) => document.querySelectorAll<HTMLElement>('.side-tg').forEach(b => { b.title = (on ? 'Expand' : 'Collapse') + ' the sidebar ([)'; b.setAttribute('aria-label', (on ? 'Expand' : 'Collapse') + ' the sidebar'); });
+sideLabels(!!LS.get('sideMini', false));
+export function toggleSide() {
+  const on = !LS.get('sideMini', false); LS.set('sideMini', on);
+  document.documentElement.classList.toggle('side-mini', on); sideLabels(on); buzz(8);
+  setTimeout(() => dispatchEvent(new Event('resize')), 260);     // once it has slid: the Overview lays its tiles out for the new width
+}
 function toggleDensity() { LS.set('compact', !LS.get('compact', false)); vt('prefs', applyPrefs); buzz(8); }
 applyPrefs();
 
@@ -36,6 +44,7 @@ applyPrefs();
 // The methods markup handlers call (see events.ts), added to App and to its type
 const methods = {
   togglePrivacy,
+  toggleSide,
   toggleDensity,
   drawToggles,
 };
