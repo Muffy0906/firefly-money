@@ -4,6 +4,17 @@
    When built with GOATCOUNTER set, it also counts visits to each page for GoatCounter (no cookies, no personal data). */
 import { NotFound, createMockApi } from './mockapi';
 
+// A first visit opens in Frosted glass, with the Overview arranged like the README's screenshots (this runs before
+// boot.js reads the theme). Anything the visitor changes is kept, and Customize → Reset gives the usual defaults.
+try {
+  if (!localStorage.getItem('moneyTheme')) localStorage.setItem('moneyTheme', 'frosted');
+  if (!localStorage.getItem('money.dash')) localStorage.setItem('money.dash', JSON.stringify({
+    v: 3, order: ['insights', 'networth', 'earned', 'spent', 'attention', 'spending', 'cash', 'cards', 'flow', 'heatmap', 'loans'],
+    shown: ['cash', 'cards', 'flow', 'heatmap', 'loans'], hidden: ['safe', 'budgets', 'bills', 'cashflow'],
+    size: { networth: 's', attention: 's', cash: 's', cards: 's', heatmap: 's', loans: 's', spending: 'm', flow: 'm' },
+  }));
+} catch (e) { /* storage blocked */ }
+
 const handle = createMockApi();
 const realFetch = window.fetch.bind(window);
 const json = { 'Content-Type': 'application/json' };
