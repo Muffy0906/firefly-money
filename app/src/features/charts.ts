@@ -233,7 +233,7 @@ function sankeySvg(d: Flow, W: number) {
   left.forEach(n => { nodes = html`${nodes}<rect x="${n.x}" y="${n.y}" width="${NW}" height="${n.h}" rx="3" fill="${col(n)}"/>`; labels = html`${labels}${narrow ? label(n, 'start', xl + NW + PAD) : label(n, 'end', xl - 8)}`; });
   right.forEach(n => { nodes = html`${nodes}<rect x="${n.x}" y="${n.y}" width="${NW}" height="${n.h}" rx="3" fill="${col(n)}"/>`; labels = html`${labels}${narrow ? label(n, 'end', xr - PAD) : label(n, 'start', xr + NW + 8)}`; });
   nodes = html`${nodes}<rect x="${xm}" y="${my}" width="${NW}" height="${mh}" rx="3" fill="var(--text)" opacity=".75"/>`;
-  return html`<svg viewBox="0 0 ${W} ${H}" data-w="${W}"${narrow ? ' class="sk-in"' : ''} role="img" aria-label="Income flowing into spending categories">${links}${nodes}${labels}</svg>`;
+  return html`<svg viewBox="0 0 ${W} ${H}" data-w="${W}" class="${narrow ? 'sk-in' : ''}" role="img" aria-label="Income flowing into spending categories">${links}${nodes}${labels}</svg>`;
 }
 // Redraw each money-flow chart at the width its card actually has, now and whenever the card changes size
 const skSeen = new WeakSet();
