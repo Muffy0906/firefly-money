@@ -736,6 +736,27 @@
   @media (max-width: 900px) {
     html[data-theme="glass"] :is(.panel, .kpi, .insight, .extra, .split, .dash-bar) { -webkit-backdrop-filter: blur(calc(var(--glass-blur) * .54)) saturate(160%); backdrop-filter: blur(calc(var(--glass-blur) * .54)) saturate(160%); }
   }
+  /* ---------- Alignment: centered labels, even controls, room to breathe ---------- */
+  .btn { justify-content: center; text-align: center; }
+  .round { display: inline-grid; place-items: center; padding: 0; flex: none; }
+  .month { gap: 6px; }
+  .month .round { width: 34px; height: 34px; }
+  .month .btn { height: 34px; padding-block: 0; }
+  .row > span:is(.neutral, .num):last-child { white-space: nowrap; }
+  .panel-head { flex-wrap: wrap; row-gap: 8px; }
+  .panel-head > .check { white-space: nowrap; }
+  .show-s { display: none; }
+  .review-row > .btn { flex: none; }
+  .drawer footer { flex-wrap: wrap; align-items: center; }
+  @media (min-width: 901px) { main { padding-bottom: 112px; } }     /* the last card scrolls clear of the + button */
+  @media (max-width: 600px) {
+    .tbl .show-s { display: block; margin-top: 4px; }
+    .review-row > .btn .lbl { display: none; }
+    .review-row > .btn { width: 36px; height: 36px; padding: 0; border-radius: 50%; }
+    .drawer footer { gap: 8px; padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); }
+    .drawer footer .btn { padding: 9px 12px; }
+    .drawer footer .grow { flex: 1 1 0; min-width: 0; }
+  }
   /* ---------- Theme: Frosted glass (warm light glass over a soft-focus room) ---------- */
   html[data-theme="frosted"] { --bg: #d9c7b3; --panel: rgba(255, 250, 244, .5); --line: rgba(255, 255, 255, .55); --text: #1d1915; --muted: #6a5e54; --faint: rgba(255, 255, 255, .35);
     --good: #2a9163; --spend: #d94f27; --income: #2a9163; --warn: #c98a12; --accent: #e2552c; --on-accent: #ffffff;
@@ -769,14 +790,17 @@
   /* pill buttons: ink for the main action, glass for the rest */
   html[data-theme="frosted"] .btn { border-radius: 999px; background: rgba(255, 255, 255, .45); border-color: rgba(255, 255, 255, .7); }
   html[data-theme="frosted"] .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); box-shadow: 0 6px 18px rgba(23, 19, 15, .25); }
-  html[data-theme="frosted"] .seg { background: rgba(255, 255, 255, .35); border-radius: 999px; }
+  html[data-theme="frosted"] .seg { background: rgba(255, 255, 255, .35); border-radius: 22px; }
   html[data-theme="frosted"] .seg button { border-radius: 999px; }
   html[data-theme="frosted"] .seg button.on { background: var(--ink); color: #fff; }
   html[data-theme="frosted"] .tbl.feed td { background: rgba(255, 250, 244, .42); border-color: rgba(255, 255, 255, .5); }
   html[data-theme="frosted"] .tbl.feed tr.dayhead div { background: rgba(255, 248, 240, .6); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
   html[data-theme="frosted"] .tbl tr.click:hover td { background: rgba(255, 255, 255, .35); }
-  html[data-theme="frosted"] .tabs { border-bottom-color: rgba(255, 255, 255, .55); }
-  html[data-theme="frosted"] .tabs a.on { color: var(--text); }
+  /* tabs as a pill switch, like the reel's This week / This month */
+  html[data-theme="frosted"] .tabs { width: fit-content; max-width: 100%; gap: 2px; padding: 4px; border: 0; border-radius: 999px; background: rgba(255, 255, 255, .35); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5); scrollbar-width: none; }
+  html[data-theme="frosted"] .tabs::-webkit-scrollbar { display: none; }
+  html[data-theme="frosted"] .tabs a { padding: 7px 14px; margin: 0; border: 0; border-radius: 999px; line-height: 1.2; }
+  html[data-theme="frosted"] .tabs a.on { background: var(--ink); color: #fff; }
   html[data-theme="frosted"] .track { background: rgba(255, 255, 255, .5); }
   html[data-theme="frosted"] .big { color: var(--text); }
   html[data-theme="frosted"] .appbar.scrolled { background: rgba(240, 228, 214, .55); }
@@ -849,10 +873,10 @@
     background: linear-gradient(160deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .03)), color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent);
     border-color: rgba(255, 255, 255, .13); box-shadow: var(--frost-edge), 0 12px 40px rgba(0, 0, 0, .35); }
   html[data-theme="frosted"][data-scene="night"] :is(.drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar) { background: rgba(26, 21, 36, .82); border-color: rgba(255, 255, 255, .14); }
-  html[data-theme="frosted"][data-scene="night"] :is(input[type=text], input[type=number], input[type=date], input[type=password], input[type=search], select, textarea, .round, .wctl button, .btn, .seg) {
+  html[data-theme="frosted"][data-scene="night"] :is(input[type=text], input[type=number], input[type=date], input[type=password], input[type=search], select, textarea, .round, .wctl button, .btn, .seg, .tabs) {
     background: rgba(255, 255, 255, .07); border-color: rgba(255, 255, 255, .14); box-shadow: none; }
   html[data-theme="frosted"][data-scene="night"] select option { background: #1d1828; }
-  html[data-theme="frosted"][data-scene="night"] :is(.btn.primary, .seg button.on, .tabbar .plus, .fab) { background: var(--ink); color: #15111c; border-color: var(--ink); }
+  html[data-theme="frosted"][data-scene="night"] :is(.btn.primary, .seg button.on, .tabs a.on, .tabbar .plus, .fab) { background: var(--ink); color: #15111c; border-color: var(--ink); }
   html[data-theme="frosted"][data-scene="night"] :is(.tbl.feed td) { background: rgba(29, 24, 40, .45); border-color: rgba(255, 255, 255, .08); }
   html[data-theme="frosted"][data-scene="night"] .tbl.feed tr.dayhead div { background: rgba(26, 21, 36, .7); }
   html[data-theme="frosted"][data-scene="night"] :is(.side, .tabbar) { background: rgba(26, 21, 36, .5); border-color: rgba(255, 255, 255, .14); }
