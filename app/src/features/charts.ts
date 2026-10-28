@@ -42,6 +42,23 @@ export function donut(parts: Part[], middle: Html | string, label: string) {
   }));
   return html`<div class="donut"><svg viewBox="0 0 120 120" role="img" aria-label="${label}"><circle class="base" cx="60" cy="60" r="48"/>${segs}</svg><div class="mid">${middle}</div></div>`;
 }
+// A breakdown of a whole (spending by category, payees, income sources): a donut with the total in the middle, then
+// a row for each part with its colour, a bar and its share. The biggest six get colours and their own slice; the rest
+// are grey and share one slice. limit: rows listed (the others are summed into one); ring false: the rows only.
+export type Share = { name: string, v: number, href?: string, sub?: Html | string };
+export function shareChart(rows: Share[], middle: Html | string, label: string, o: { limit?: number, ring?: boolean, other?: string } = {}) {
+  rows = rows.filter(r => r.v > 0).sort((a, b) => b.v - a.v);
+  if (!rows.length) return '';
+  const limit = o.limit || 6, total = rows.reduce((s, r) => s + r.v, 0), shown: (Share & { c: string })[] = rows.slice(0, limit).map((r, i) => ({ ...r, c: i < 6 ? SERIES[i] : 'var(--muted)' }));
+  const rest = rows.slice(limit);
+  if (rest.length === 1) shown.push({ ...rest[0], c: 'var(--muted)' });
+  else if (rest.length) shown.push({ name: o.other || 'Everything else', v: rest.reduce((s, r) => s + r.v, 0), c: 'var(--muted)', sub: rest.length + ' more' });
+  const slices: Part[] = shown.slice(0, 6).map(r => ({ name: r.name, v: r.v, color: r.c })), grey = shown.slice(6).reduce((s, r) => s + r.v, 0);
+  if (grey) slices.push({ name: shown.length > 7 ? 'Everything else' : shown[6].name, v: grey, color: 'var(--muted)' });
+  const most = Math.max(1, ...shown.map(r => r.v));
+  const list = html`<div class="parts">${htmlList(shown.map(r => html`<div class="part"><i style="background:${r.c}"></i><span class="name">${r.href ? html`<a href="${r.href}">${r.name}</a>` : r.name}${r.sub ? html`<span class="sub-s">${r.sub}</span>` : ''}</span><span class="track"><span class="fill" style="width:${(r.v / most * 100).toFixed(1)}%;background:${r.c}"></span></span><span class="num">${(r.v / total * 100).toFixed(0)}%</span></div>`))}</div>`;
+  return o.ring === false ? list : html`${donut(slices, middle, label)}${list}`;
+}
 // How far along something is (a goal, a loan), as a ring with the percentage in the middle
 export function ring(pct: number, cls = '', sub = '') {
   const p = Math.max(0, Math.min(100, pct));
