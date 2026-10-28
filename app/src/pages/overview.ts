@@ -7,8 +7,8 @@ import { addDays, budgetAlert } from '../core/helpers';
 import { type Account, isAsset, isCard, isLiab, lists } from '../core/lists';
 import { VIEWS } from '../core/router';
 import { DASH_NAMES, tileOn, tileOpt } from '../features/dashboard';
-import { barChart, miniLine, paceChart, ring, shareChart, sparkBars } from '../features/charts';
-import { type NetWorthPoint, nwSeg, nwYears } from '../features/networth';
+import { barChart, paceChart, ring, shareChart, sparkBars } from '../features/charts';
+import { type NetWorthPoint, nwLine, nwSeg, nwYears } from '../features/networth';
 import { bindSwipe } from '../features/phone';
 import { drafts } from '../features/txform';
 import { billAmount } from './bills';
@@ -158,7 +158,7 @@ function attentionPanel({ uncat, bills, budgets, limits, future }: { uncat: ApiD
 // The bento's number tiles: net worth with its trend, what was spent against last month, what came in and was kept
 function networthTile(netWorth: number, pts: NetWorthPoint[] | null | undefined) {
   const d = pts && pts.length > 1 ? netWorth - pts[0].net : null;
-  const line = pts === undefined ? html`<div class="sk" style="height:56px"></div>` : pts && pts.length > 1 ? miniLine(pts.map(p => p.net), d! >= 0 ? 'var(--good)' : 'var(--spend)', 'Net worth over time') : '';
+  const line = pts === undefined ? html`<div class="sk" style="height:56px"></div>` : pts && pts.length > 1 ? nwLine(pts, d! >= 0 ? 'var(--good)' : 'var(--spend)') : '';
   return html`<section class="panel stat nw"><div class="panel-head"><div class="eyebrow">Net worth</div>${nwSeg()}</div><div class="big num${netWorth < 0 ? ' negative' : ''}" data-count="${netWorth}">${money0(netWorth)}</div><div class="sub-s">${d === null ? html`&nbsp;` : html`<span class="${d >= 0 ? 'down' : 'up'}">${d >= 0 ? '▲' : '▼'} ${money0(Math.abs(d))}</span> over ${nwYears() === 3 ? 'three years' : 'the year'}`}</div>${line}</section>`;
 }
 function spentTile(spend: number, before: number, prevShort: string, trend: CashMonth[], all: boolean) {

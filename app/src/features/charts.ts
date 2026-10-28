@@ -36,7 +36,7 @@ export function donut(parts: Part[], middle: Html | string, label: string) {
   let at = 0;
   const segs = htmlList(parts.map((p, i) => {
     const len = Math.max(0, p.v / total * 100 - gap), off = at; at += p.v / total * 100;
-    return html`<circle class="seg" cx="60" cy="60" r="48" pathLength="100" stroke="${p.color || SERIES[i % SERIES.length]}" stroke-dasharray="${len.toFixed(2)} ${(100 - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" style="--at:${(off / 100).toFixed(3)}"><title>${p.name}: ${money0(p.v)}</title></circle>`;
+    return html`<circle class="seg" cx="60" cy="60" r="48" pathLength="100" stroke="${p.color || SERIES[i % SERIES.length]}" stroke-dasharray="${len.toFixed(2)} ${(100 - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" style="--at:${(off / 100).toFixed(3)}" data-tip="${p.name + ' · ' + money0(p.v) + ' · ' + Math.round(p.v / total * 100) + '%'}" data-i="${i}"></circle>`;
   }));
   return html`<div class="donut"><svg viewBox="0 0 120 120" role="img" aria-label="${label}"><circle class="base" cx="60" cy="60" r="48"/>${segs}</svg><div class="mid">${middle}</div></div>`;
 }

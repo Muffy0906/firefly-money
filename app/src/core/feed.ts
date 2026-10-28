@@ -2,6 +2,7 @@ import { Html, html, htmlList } from './html';
 import { type ApiData, S, money, num, todayIso } from './base';
 import { daysBetween } from './helpers';
 import { logoImg } from './logo';
+import { hoursText, learnRate, lensOn } from './worklens';
 
 /* ================= Transactions: normalize ================= */
 // One split (Firefly "transaction") of a group, in the shape the app uses
@@ -41,7 +42,13 @@ export function signed(g: Group, accountId?: string) {
 function amountCell(g: Group, accountId?: string) {
   const v = signed(g, accountId);
   if (!accountId && g.type === 'transfer') return html`<td class="amt neutral">${money(g.total)}</td>`;
-  return html`<td class="amt ${v < 0 ? 'neg' : v > 0 ? 'pos' : 'neutral'}">${v > 0 ? '+' : ''}${money(v)}</td>`;
+  return html`<td class="amt ${v < 0 ? 'neg' : v > 0 ? 'pos' : 'neutral'}">${amtInner(v)}</td>`;
+}
+// A signed amount, and under money out the hours of work it cost when that lens is on (Settings → Appearance)
+export function amtInner(v: number) {
+  const hrs = v < 0 && lensOn() ? hoursText(v, true) : '';
+  if (v < 0 && lensOn() && !hrs) learnRate();
+  return html`<span>${v > 0 ? '+' : ''}${money(v)}</span>${hrs ? html`<span class="hrs" title="Hours of work">${hrs}</span>` : ''}`;
 }
 
 /* ---------- Merchant avatars ---------- */
