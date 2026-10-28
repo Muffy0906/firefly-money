@@ -41,7 +41,8 @@ function playIn() {
   // the charts draw in
   v.classList.toggle('calm', document.documentElement.classList.contains('vt-page'));
   v.classList.remove('anim'); void v.offsetWidth; v.classList.add('anim');
-  clearTimeout(animT); animT = window.setTimeout(() => v.classList.remove('anim'), 2600);
+  // Take .enter off with it: without .anim the page's own fade-in rules apply again and would play a second time (a flicker)
+  clearTimeout(animT); animT = window.setTimeout(() => v.classList.remove('anim', 'enter'), 2600);
 }
 function countUp() {
   if (reduceMotion) return;
