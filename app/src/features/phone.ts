@@ -14,8 +14,6 @@ function drawTabbar(active: string) {
   const t = (r: string, label: string, ic: string) => html`<a href="#/${r}" class="${r === active ? 'on' : ''}">${icon(ic)}<span>${label}</span></a>`;
   tb.innerHTML = String(html`<i class="tab-pill" aria-hidden="true"></i>${t('', 'Home', 'overview')}${t('transactions', 'Activity', 'transactions')}<button type="button" class="plus" data-onclick="App.quickAdd()" aria-label="Add transaction"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>${t('budgets', 'Budgets', 'budgets')}<button type="button" data-onclick="App.moreSheet()">${icon('categories')}<span>More</span></button>`);
   movePill();
-  // the tabs only have their width back once a folded bar has finished opening
-  tb.addEventListener('transitionend', e => { if (e.target === tb && !tb.classList.contains('mini')) movePill(); });
   requestAnimationFrame(() => tb.classList.add('pill-ready'));     // no slide in from the edge the first time
 }
 function movePill() {
@@ -25,13 +23,15 @@ function movePill() {
   if (on && on.offsetWidth) { pill.style.width = on.offsetWidth + 'px'; pill.style.transform = 'translateX(' + on.offsetLeft + 'px)'; }
 }
 addEventListener('resize', movePill);
-/* Scrolling down the page folds the tab bar into just the + button; scrolling back up, or reaching the top, opens it again */
+/* Scrolling down the page folds the tab bar away into the + button at the bottom right (#fab); scrolling back up,
+   or reaching the top, opens it again */
 (function foldOnScroll() {
   let last = scrollY, folded = false;
   const fold = (on: boolean) => {
+    const tb = el('tabbar');
+    if (on && (tb.hidden || !tb.offsetWidth)) on = false;     // desktop, or the native app's own tabs
     if (on === folded) return;
-    folded = on; el('tabbar').classList.toggle('mini', on);
-    if (!on && matchMedia('(prefers-reduced-motion: reduce)').matches) requestAnimationFrame(movePill);     // no transition to wait for
+    folded = on; tb.classList.toggle('mini', on); el('fab').classList.toggle('on', on);
   };
   addEventListener('scroll', () => {
     const y = scrollY, dy = y - last;

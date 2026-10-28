@@ -35,6 +35,9 @@ function playIn() {
   if (reduceMotion) return;
   const v = el('view');
   v.querySelectorAll<HTMLElement>(':scope :is(.hero, .kpi, .panel, .insight)').forEach((n, i) => n.style.setProperty('--i', String(Math.min(i, 10))));
+  // Inside a page slide the whole page is already moving: cards rising on top of that reads as a stutter, so then only
+  // the charts draw in
+  v.classList.toggle('calm', document.documentElement.classList.contains('vt-page'));
   v.classList.remove('anim'); void v.offsetWidth; v.classList.add('anim');
   clearTimeout(animT); animT = window.setTimeout(() => v.classList.remove('anim'), 2600);
 }

@@ -64,6 +64,41 @@ export function twoLines(pts: LinePoint[], names: [string, string], colors: [str
   return html`<svg class="lines" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}"><defs><linearGradient id="lg-a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${colors[0]}" stop-opacity=".32"/><stop offset="1" stop-color="${colors[0]}" stop-opacity="0"/></linearGradient></defs><g class="grid">${grid}</g><path class="area" d="${area}" fill="url(#lg-a)"/><path class="draw" pathLength="1" d="${la}" fill="none" stroke="${colors[0]}" stroke-width="2.6" stroke-linecap="round"/><path class="draw late" pathLength="1" d="${lb}" fill="none" stroke="${colors[1]}" stroke-width="2.2" stroke-linecap="round"/>${ticks}${hits}</svg><div class="legend"><span><i style="background:${colors[0]}"></i>${names[0]}</span><span><i style="background:${colors[1]}"></i>${names[1]}</span></div>`;
 }
 
+/* ---------- Spending pace: this month's running total against last month's, day by day ---------- */
+// days: this month's spending on each day so far (index 0 = the 1st); before: last month's, every day of it
+export function paceChart(days: number[], before: number[], dim: number, label: [string, string]) {
+  const W = innerWidth < 600 ? 360 : 640, H = innerWidth < 600 ? 210 : 250, pl = 46, pr = 10, pt = 12, pb = 26, base = H - pb;
+  const run = (v: number[]) => { let t = 0; return v.map(x => (t += x)); };
+  const a = run(days), b = run(before), n = Math.max(dim, b.length);
+  const max = niceMax(Math.max(1, ...a, ...b) / 4) * 4;
+  const x = (i: number) => pl + (W - pl - pr) * (n < 2 ? .5 : i / (n - 1)), y = (v: number) => pt + (base - pt) * (1 - v / max);
+  const la = a.length > 1 ? smoothPath(a.map((v, i) => [x(i), y(v)])) : '', lb = b.length > 1 ? smoothPath(b.map((v, i) => [x(i), y(v)])) : '';
+  const area = la && la + ' L' + x(a.length - 1).toFixed(1) + ' ' + base + ' L' + x(0).toFixed(1) + ' ' + base + ' Z';
+  const grid = htmlList([0, 1, 2, 3, 4].map(k => { const v = max * k / 4, yy = y(v).toFixed(1); return html`<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 8}" y="${(+yy + 4).toFixed(1)}" text-anchor="end">${short$(v)}</text>`; }));
+  const ticks = htmlList([1, 8, 15, 22, n].filter((d, i, l) => d <= n && l.indexOf(d) === i).map(d => html`<text x="${x(d - 1).toFixed(1)}" y="${H - 6}" text-anchor="${d === 1 ? 'start' : d === n ? 'end' : 'middle'}">${d}</text>`));
+  const i = a.length - 1, dot = i >= 0 ? html`<circle class="pace-dot" cx="${x(i).toFixed(1)}" cy="${y(a[i]).toFixed(1)}" r="4.5" fill="var(--accent)"/>` : '';
+  const hits = htmlList([...Array(n)].map((_, d) => html`<rect x="${(x(d) - (W - pl - pr) / Math.max(1, n - 1) / 2).toFixed(1)}" y="0" width="${((W - pl - pr) / Math.max(1, n - 1)).toFixed(1)}" height="${base}" fill="transparent" data-tip="${'Day ' + (d + 1) + (d < a.length ? '\n' + label[0] + ' ' + money0(a[d]) : '') + (d < b.length ? '\n' + label[1] + ' ' + money0(b[d]) : '')}"/>`));
+  return html`<svg class="lines" viewBox="0 0 ${W} ${H}" role="img" aria-label="Spending this month against last month"><defs><linearGradient id="lg-pace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".28"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs><g class="grid">${grid}</g>${lb ? html`<path class="draw" pathLength="1" d="${lb}" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="1" stroke-linecap="round" opacity=".7"/>` : ''}${area ? html`<path class="area" d="${area}" fill="url(#lg-pace)"/>` : ''}${la ? html`<path class="draw late" pathLength="1" d="${la}" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linecap="round"/>` : ''}${dot}${ticks}${hits}</svg><div class="legend"><span><i style="background:var(--accent)"></i>${label[0]}</span><span><i style="background:var(--muted)"></i>${label[1]}</span></div>`;
+}
+
+/* ---------- Bars: one value a month (the savings rate), below the line when negative ---------- */
+export function barChart(pts: { label: string, v: number | null, go?: string }[], fmt: (v: number) => string, label: string) {
+  const W = innerWidth < 600 ? 360 : 640, H = 200, pt = 18, pb = 26, n = pts.length, vals = pts.map(p => p.v || 0);
+  const hi = Math.max(0, ...vals), lo = Math.min(0, ...vals), rng = hi - lo || 1;
+  const y = (v: number) => pt + (H - pb - pt) * (hi - v) / rng, zero = y(0), slot = W / n, bw = Math.min(38, slot * .5);
+  const bars = htmlList(pts.map((p, i) => {
+    const cx = slot * i + slot / 2, v = p.v, top = v == null ? zero : Math.min(y(v), zero), h = v == null ? 0 : Math.max(2, Math.abs(y(v) - zero));
+    return html`<g${p.go ? html` data-go="${p.go}" style="cursor:pointer"` : ''}><rect x="${slot * i}" y="0" width="${slot}" height="${H}" fill="transparent" data-tip="${p.label + ' · ' + (v == null ? 'no income' : fmt(v))}"></rect>${v == null ? '' : html`<rect class="bar${v < 0 ? ' neg' : ''}" style="--j:${i};transform-origin:50% ${v < 0 ? '0' : '100'}%" x="${(cx - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="${Math.min(8, bw / 3).toFixed(1)}"></rect><text class="bv" x="${cx.toFixed(1)}" y="${(v < 0 ? top + h + 13 : top - 6).toFixed(1)}" text-anchor="middle">${fmt(v)}</text>`}<text x="${cx.toFixed(1)}" y="${H - 6}" text-anchor="middle">${p.label}</text></g>`;
+  }));
+  return html`<svg class="barchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}"><line x1="0" x2="${W}" y1="${zero.toFixed(1)}" y2="${zero.toFixed(1)}" stroke="var(--line)"/>${bars}</svg>`;
+}
+
+/* ---------- Little bars in a row: one category's months, the last one (now) in the accent ---------- */
+export function sparkBars(vals: number[], max: number) {
+  const W = 84, H = 26, n = vals.length, gap = 3, bw = (W - gap * (n - 1)) / n;
+  return html`<svg class="sbars" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true">${htmlList(vals.map((v, i) => { const h = Math.max(v ? 2 : 1, H * v / (max || 1)); return html`<rect class="bar${i === n - 1 ? ' now' : ''}" style="--j:${i}" x="${(i * (bw + gap)).toFixed(1)}" y="${(H - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2"></rect>`; }))}</svg>`;
+}
+
 /* ---------- Sparklines: last 30 days of each account's balance ---------- */
 async function balanceSparks(accounts: Account[]) {
   const start = addDays(todayIso(), -30), end = todayIso(), out: Record<string, number[]> = {};

@@ -6,7 +6,8 @@ import { normGroup, txRows } from '../core/feed';
 import { addDays, budgetAlert } from '../core/helpers';
 import { type Account, isAsset, isCard, isLiab, lists } from '../core/lists';
 import { VIEWS } from '../core/router';
-import { DASH_NAMES, dashColumns, tileOpt } from '../features/dashboard';
+import { DASH_NAMES, dashColumns, tileOn, tileOpt } from '../features/dashboard';
+import { barChart, paceChart, sparkBars } from '../features/charts';
 import { bindSwipe } from '../features/phone';
 import { drafts } from '../features/txform';
 import { billAmount } from './bills';
@@ -52,13 +53,17 @@ VIEWS[''] = async (r, paint) => {
     all ? Promise.all([insight('/insight/income/total', p(cur), rsFor(cur)), insight('/insight/expense/total', p(cur), rsFor(cur))])
       .then(([i, e]) => ({ income: sumDiff(i), spend: sumDiff(e) })) : null,
   ]);
-  const slowP = Promise.all([loanHistory(loansShown), App.safeCard(),
+  // Only what the cards on the page need: a card that's off (Customize → Add cards) costs no requests
+  const on = (...ks: string[]) => ks.some(tileOn), none = Promise.resolve([] as any);
+  const slowP = Promise.all([on('loans') ? loanHistory(loansShown) : {}, on('safe') ? App.safeCard() : '',
     coreP.then(c => App.insightCards({ cur, future: monthOnly, budgets: arr(c[7]), limits: c[8], cards, trend: c[5], max: Math.max(4, dashColumns()) })).catch(() => ''),
-    App.balanceSparks([...cashShown, ...cardsShown]).catch(() => ({})),
-    monthOnly ? [] : getAll('/transactions', { start: cur.start, end: cur.end, type: 'withdrawal' }).catch(() => []),
-    insight('/insight/income/revenue', p(cur), rsFor(cur)).catch(() => []),
-    insight('/insight/expense/expense', p(cur), rsFor(cur)).catch(() => []), all ? [] : insight('/insight/expense/expense', p(prev), rsFor(prev)).catch(() => []),
-    getAll('/piggy-banks').then(ps => ps.map(normPiggy)).catch(() => []), App.netWorthHistory().catch(() => null)]);
+    on('cash', 'cards') ? App.balanceSparks([...cashShown, ...cardsShown]).catch(() => ({})) : {},
+    monthOnly || !on('heatmap', 'pace') ? none : getAll('/transactions', { start: cur.start, end: cur.end, type: 'withdrawal' }).catch(() => []),
+    on('flow', 'income') ? insight('/insight/income/revenue', p(cur), rsFor(cur)).catch(() => []) : none,
+    on('payees') ? insight('/insight/expense/expense', p(cur), rsFor(cur)).catch(() => []) : none, all || !on('payees') ? none : insight('/insight/expense/expense', p(prev), rsFor(prev)).catch(() => []),
+    on('goals') ? getAll('/piggy-banks').then(ps => ps.map(normPiggy)).catch(() => []) : none, on('networth') ? App.netWorthHistory().catch(() => null) : null,
+    monthOnly || !on('pace') ? none : getAll('/transactions', { start: prev.start, end: prev.end, type: 'withdrawal' }).catch(() => []),
+    on('trends') ? Promise.all(months.map(mo => insight('/insight/expense/category', p(mo), monthsRs).catch(() => []))) : none]);
   slowP.catch(() => {});
   const [summary, catNow, catPrev, noCatNow, noCatPrev, trend, recent, budgets, limits, bills, uncat, allTot] = await coreP;
   const nwKey = Object.keys(summary || {}).find(k => k.startsWith('net-worth-in'));
@@ -74,7 +79,7 @@ VIEWS[''] = async (r, paint) => {
   if (un || unP) cats.set('Uncategorized', { name: 'Uncategorized', amt: un, prev: unP });
 
   const build = (slow: ApiData[] | null) => {
-    const [prog, safe, insights, sparks, dayTx, incomeSrc, payNow, payPrev, piggies, nw] = slow || [];
+    const [prog, safe, insights, sparks, dayTx, incomeSrc, payNow, payPrev, piggies, nw, prevTx, monthCats] = slow || [];
     const wait = (k: string) => slow ? null : skeletonPanel(k);
     const W: [string, unknown][] = [
       ['safe', future ? '' : wait('safe') ?? safe],
@@ -89,10 +94,14 @@ VIEWS[''] = async (r, paint) => {
       ['flow', future ? '' : wait('flow') ?? App.sankeyPanel(arr(incomeSrc), last.income, [...cats.values()].filter(c => c.amt > 0), cur)],
       ['payees', wait('payees') ?? payeesPanel(arr(payNow), arr(payPrev), future, all, tileOpt('payees', 'count'), tileOpt('payees', 'compare'))],
       ['income', future ? '' : wait('income') ?? incomePanel(arr(incomeSrc), all)],
-      ['goals', wait('goals') ?? goalsPanel(piggies, tileOpt('goals', 'done'))],
+      ['goals', !tileOn('goals') ? 'off' : wait('goals') ?? goalsPanel(piggies, tileOpt('goals', 'done'))],     // (empty without its data, so offered as is)
       ['cashflow', html`<section class="panel chart">${cashFlow(trend)}</section>`],
       ['recent', html`<section class="panel flush"><div style="padding:24px 26px 6px" class="panel-head"><div><h2>Recent transactions</h2></div><a class="link" href="#/transactions">See all</a></div>${txRows(arr(recent).map(normGroup))}</section>`],
+      ['pace', monthOnly ? '' : wait('pace') ?? pacePanel(cur, prev, arr(dayTx).map(normGroup), arr(prevTx).map(normGroup))],
+      ['savings', html`<section class="panel chart">${savingsRate(trend)}</section>`],
+      ['trends', wait('trends') ?? trendsPanel(months.map(mo => mo.short), monthCats || [])],
     ];
+    W.forEach(w => { if (w[1] && !tileOn(w[0])) w[1] = 'off'; });     // off: not drawn, only offered under Add cards
     const ins = !App.dashShows('insights') ? '' : slow ? insights : monthOnly ? '' : html`<div class="insights" id="insights" aria-hidden="true">${raw('<div class="insight"><div class="sk" style="width:100%;height:42px"></div></div>'.repeat(3))}</div>`;
     return html`${head('Overview', '', html`${monthNav()}${App.dashButton()}`)}${App.dashShows('hero') ? heroHtml(netWorth, last, before, prev.short, future) : ''}${App.dashboard(W, ins)}`;
   };
@@ -120,7 +129,7 @@ function fillIn(markup: Html) {
   return true;
 }
 function skeletonPanel(k: string) {
-  const h = ({ safe: 70, loans: 90, heatmap: 230, flow: 240, payees: 200, networth: 230 } as Record<string, number>)[k] || 120;
+  const h = ({ safe: 70, loans: 90, heatmap: 230, flow: 240, payees: 200, networth: 230, pace: 230, trends: 220 } as Record<string, number>)[k] || 120;
   return html`<section class="panel" aria-busy="true"><h2>${DASH_NAMES[k] || ''}</h2><p class="lead">&nbsp;</p><div class="sk" style="height:${h}px"></div></section>`;
 }
 function attentionPanel({ uncat, bills, budgets, limits, future }: { uncat: ApiData, uncatQ: string, bills: ApiData[], budgets: ApiData[], limits: Record<string, BudgetLimit>, future: boolean }) {
@@ -194,6 +203,37 @@ export function cashFlow(trend: CashMonth[]) {
   const avgS = trend.reduce((s, t) => s + t.spend, 0) / n, avgK = trend.reduce((s, t) => s + t.income - t.spend, 0) / n;
   S.chartData = trend;
   return html`<h2>Cash flow</h2><p class="lead">Earned vs. spent over the last ${n === 6 ? 'six' : n} months · click a month to open it</p><svg class="flowchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Income and spending by month"><line x1="0" x2="${W}" y1="${H - bottom}" y2="${H - bottom}" stroke="var(--line)"/>${bars}</svg><div style="display:flex;gap:40px;margin-top:18px"><div><div class="eyebrow">Avg. spent / month</div><div class="num" style="font-size:21px">${money0(avgS)}</div></div><div><div class="eyebrow">Avg. kept / month</div><div class="num" style="font-size:21px">${money0(avgK)}</div></div></div><div class="legend"><span><i style="background:var(--income)"></i>Earned</span><span><i style="background:var(--spend)"></i>Spent</span></div>`;
+}
+// Spending pace: where this month's running total is against the same day last month, and where it's heading
+function pacePanel(cur: Period, prev: Period, now: { date: string, total: number }[], before: { date: string, total: number }[]) {
+  const daysIn = (x: Period) => new Date(x.y!, x.m! + 1, 0).getDate();
+  const byDay = (gs: { date: string, total: number }[], n: number) => { const v = Array(n).fill(0); gs.forEach(g => { const d = +String(g.date).slice(8, 10); if (d >= 1 && d <= n) v[d - 1] += g.total; }); return v; };
+  const dim = daysIn(cur), t = todayIso(), sofar = cur.start.slice(0, 7) === t.slice(0, 7) ? +t.slice(8, 10) : t < cur.start ? 0 : dim;
+  const a = byDay(now, dim).slice(0, sofar), b = byDay(before, daysIn(prev));
+  const spent = a.reduce((s, v) => s + v, 0), then = b.slice(0, sofar).reduce((s, v) => s + v, 0), d = spent - then;
+  const ahead = sofar < dim && sofar > 3 ? spent / sofar * dim : 0;
+  const line = !sofar ? 'This month hasn’t started yet.' : !then ? html`<strong class="num">${money0(spent)}</strong> spent so far` :
+    html`<strong class="num">${money0(spent)}</strong> by day ${sofar}: <span class="${d > 0 ? 'up' : 'down'}">${money0(Math.abs(d))} ${d > 0 ? 'more' : 'less'}</span> than by this day last month${ahead ? html` · heading for about <strong class="num">${money0(ahead)}</strong>` : ''}`;
+  return html`<section class="panel chart"><h2>Spending pace</h2><p class="lead">${line}</p>${sofar ? paceChart(a, b, dim, [cur.short, prev.short]) : ''}</section>`;
+}
+// Savings rate: the share of each month's income you kept
+function savingsRate(trend: CashMonth[]) {
+  const pts = trend.map(t => ({ label: t.label, v: t.income > 0 ? Math.round((t.income - t.spend) / t.income * 100) : null, go: t.go }));
+  const got = pts.filter(p => p.v != null) as { v: number }[], avg = got.length ? Math.round(got.reduce((s, p) => s + p.v, 0) / got.length) : 0;
+  return html`<h2>Savings rate</h2><p class="lead">${got.length ? html`How much of each month’s income you kept · <strong>${avg}%</strong> on average` : 'Shows up once income is recorded'}</p>${got.length ? barChart(pts, v => v + '%', 'Share of income kept each month') : ''}`;
+}
+// Category trends: the biggest categories over the chart's months, this month against their usual
+function trendsPanel(labels: string[], months: ApiData[][]) {
+  const by = new Map<string, { id?: string, v: number[] }>();
+  months.forEach((cs, i) => arr(cs).forEach(c => { const r = by.get(c.name) || { id: c.id, v: Array(months.length).fill(0) }; r.v[i] += absDiff(c); by.set(c.name, r); }));
+  const top = [...by.entries()].map(([name, r]) => ({ name, ...r, sum: r.v.reduce((s, x) => s + x, 0) })).filter(r => r.sum > 0).sort((a, b) => b.sum - a.sum).slice(0, 6);
+  const max = Math.max(1, ...top.flatMap(r => r.v));
+  const rows = htmlList(top.map(r => {
+    const now = r.v[r.v.length - 1], past = r.v.slice(0, -1), usual = past.length ? past.reduce((s, x) => s + x, 0) / past.length : 0, d = usual ? (now - usual) / usual * 100 : 0;
+    const name = r.id ? html`<a href="#/transactions?category=${r.id}" style="text-decoration:none">${r.name}</a>` : r.name;
+    return html`<div class="trend-row"><span class="name">${name}<span class="sub-s">${usual ? html`<span class="${d > 0 ? 'up' : 'down'}">${Math.abs(d) < 5 ? 'about usual' : Math.round(Math.abs(d)) + '% ' + (d > 0 ? 'above' : 'below') + ' usual'}</span>` : 'new'}</span></span>${sparkBars(r.v, max)}<span class="num">${money0(now)}</span></div>`;
+  }));
+  return html`<section class="panel"><h2>Category trends</h2><p class="lead">Your biggest categories, ${labels[0]} to ${labels[labels.length - 1]}</p>${rows ? html`<div class="trends">${rows}</div>` : html`<p class="empty">No spending recorded yet.</p>`}</section>`;
 }
 function budgetsMini(budgets: ApiData[], limits: Record<string, BudgetLimit>, all: boolean, unset = true) {
   const rows = htmlList(budgets.filter(b => b.attributes.active !== false && (unset || all || limits[String(b.id)])).map(b => {

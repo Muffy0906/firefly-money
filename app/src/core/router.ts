@@ -84,7 +84,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
       if (v.querySelector('input[data-sel]:checked')) App.selChanged();
       if (saved.stale) setTimeout(revalidate, 50);
     };
-    if (instant) return swap();
+    if (instant || !dir) return swap();     // a tab you've seen comes straight back, like a native tab bar
     const t = vt('page', swap, () => { document.documentElement.dataset.vtdir = dir || ''; });
     if (t) t.kind = 'page';
     return;
@@ -113,14 +113,17 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
       v.innerHTML = String(markup);
       S.pageKey = key; S.pageHtml = markup; S.pageCacheable = cacheable && !v.querySelector(':scope > .error'); S.pageLive = true;
       if (from) vtName(v.querySelector('.head h1'), 'ptitle');
-      if (!fresh || !VT_OK || opts.quiet || instant) { v.classList.remove('enter'); if (fresh && !opts.quiet && !instant) { void v.offsetWidth; v.classList.add('enter'); } }
+      if (!fresh || !VT_OK || opts.quiet || instant || !dir) { v.classList.remove('enter'); if (fresh && !opts.quiet && !instant) { void v.offsetWidth; v.classList.add('enter'); } }
       scrollTo(0, fresh ? 0 : keep);          // new pages start at the top; a refresh keeps your place
       if (window.App && App.afterPaint) App.afterPaint(r, { quiet: opts.quiet || !fresh });
       if (S.bootStale) { S.bootStale = false; S.warmed = true; setTimeout(() => refreshAll(), 60); }     // opened from saved data: update quietly (and then warm the tabs)
       else if (!S.warmed) { S.warmed = true; warmTabs(); }    // first page after signing in: get the other tabs ready too
     };
     const dir = S.vtDir; S.vtDir = '';
-    if (!fresh || !S.painted || opts.quiet || instant) { S.painted = true; return swap(); }
+    // Only moves with a direction (into an account, back out, to another month) slide the page. A plain switch to
+    // another page lets its cards rise in instead: snapshotting the whole page for a fade costs the phone a frame or
+    // more right as you tap, and the two motions on top of each other look like a stutter.
+    if (!fresh || !S.painted || opts.quiet || instant || !dir) { S.painted = true; return swap(); }
     const t = vt('page', swap, () => { document.documentElement.dataset.vtdir = dir || ''; vtName(from, 'ptitle'); });
     if (t) t.kind = 'page';
   };
@@ -161,7 +164,9 @@ async function revalidate() {
   try { await (VIEWS[r.name] || VIEWS[''])(r, h => { markup = h; }); }
   catch (e) { if (e instanceof AuthError) showLogin(e.message); return; }
   finally { S.swrOff--; }
-  const busyHere = el('drawer').classList.contains('open') || (S.sel && S.sel.size) || !el('pickpop').hidden;
+  // also when something has been typed into the page itself (a what-if, a budget amount): a redraw would wipe it
+  const typed = [...el('view').querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input:not([type=checkbox]):not([type=radio]), textarea')].some(i => i.value !== i.defaultValue);
+  const busyHere = el('drawer').classList.contains('open') || (S.sel && S.sel.size) || !el('pickpop').hidden || typed;
   if (tok === S.tok && key === S.pageKey && markup !== null && markup !== S.pageHtml && !busyHere) route({ quiet: true });
 }
 /* Fetch everything again. visible: show it right away (pull to refresh).
@@ -176,7 +181,9 @@ export async function refreshAll(opts: { visible?: boolean } = {}) {
       let markup: Html | string | null = null;
       try { await (VIEWS[r.name] || VIEWS[''])(r, h => { markup = h; }); }
       catch (e) { if (e instanceof AuthError) showLogin(e.message); return; }
-      const busyHere = el('drawer').classList.contains('open') || (S.sel && S.sel.size) || !el('pickpop').hidden;
+      // also when something has been typed into the page itself (a what-if, a budget amount): a redraw would wipe it
+  const typed = [...el('view').querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input:not([type=checkbox]):not([type=radio]), textarea')].some(i => i.value !== i.defaultValue);
+  const busyHere = el('drawer').classList.contains('open') || (S.sel && S.sel.size) || !el('pickpop').hidden || typed;
       if (tok === S.tok && key === S.pageKey && markup !== null && markup !== S.pageHtml && !busyHere) await route({ quiet: true });
     } finally {
       S.refreshing = null;
