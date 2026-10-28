@@ -1436,17 +1436,18 @@
   .side-tg svg { width: 18px; height: 18px; transition: transform .25s ease; }
   @media (min-width: 901px) {
     .app { transition: grid-template-columns .25s ease; }
-    html.side-mini .app { grid-template-columns: 88px 1fr; }
-    html.side-mini .side { padding-left: 10px; padding-right: 10px; overflow-x: hidden; }
+    html.side-mini .app { grid-template-columns: 70px 1fr; }
+    html.side-mini .side { padding-left: 6px; padding-right: 6px; overflow-x: hidden; align-items: center; }
+    html.side-mini .side > * { align-self: stretch; }
     html.side-mini .brand { justify-content: center; padding: 0 0 18px; }
     html.side-mini .brand > span { display: none; }
     html.side-mini .side-tg { margin: 0; }
     html.side-mini .side-tg svg { transform: scaleX(-1); }
-    html.side-mini .side-search { justify-content: center; padding: 9px 0; }
+    html.side-mini .side-search { justify-content: center; flex: none; width: 40px; height: 38px; margin-inline: auto; padding: 0; }
     html.side-mini .side-search :is(span, kbd) { display: none; }
-    html.side-mini .nav a { justify-content: center; padding: 10px 0; }
+    html.side-mini .nav a, html.side-mini .side .foot .nav a { justify-content: center; width: 40px; height: 38px; margin-inline: auto; padding: 0; }
     html.side-mini .nav a span { display: none; }
-    html.side-mini .nav-h { height: 1px; padding: 0; margin: 12px 14px; background: var(--line); font-size: 0; }
+    html.side-mini .nav-h { height: 1px; padding: 0; margin: 10px 12px; background: var(--line); font-size: 0; }
     html.side-mini .side .foot :is(.toggles button, a, button) { text-align: center; }
     html.side-mini .side .foot .toggles button { display: flex; justify-content: center; }
     html.side-mini .side .foot .toggles button span, html.side-mini #ffLink, html.side-mini .side .foot > button { display: none; }
