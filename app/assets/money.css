@@ -166,11 +166,13 @@
   .cards > .panel { break-inside: avoid; display: inline-block; width: 100%; margin-bottom: 20px; }
   /* Settings: named groups of rows in one column, with rarely used forms folded away */
   .settings { max-width: 720px; }
-  /* Wide screens: the sections flow into columns, with a list of them on the left that stays in place */
+  /* Wide screens: the sections flow into columns, with a list of them on the left that stays in place.
+     The list starts level with the page title and sticks at main's top padding, so it never moves. */
   .set-nav { display: none; }
   @media (min-width: 1100px) {
     .set-layout { display: grid; grid-template-columns: 184px minmax(0, 1fr); gap: 36px; align-items: start; }
-    .set-nav { display: flex; flex-direction: column; gap: 2px; position: sticky; top: 24px; }
+    .set-nav { display: flex; flex-direction: column; gap: 2px; position: sticky; top: 34px; }
+    html.compact .set-nav { top: 24px; }
     .set-nav button { text-align: left; padding: 8px 12px; border: 0; border-radius: 9px; background: none; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; }
     .set-nav button:hover { background: var(--faint); color: var(--text); }
     .set-nav button.on { color: var(--text); font-weight: 600; }

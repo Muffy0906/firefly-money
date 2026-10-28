@@ -94,7 +94,7 @@ VIEWS.settings = async (r, paint) => {
 
   const body = html`${months}${look}${sync}${applePayHtml(ingest, cards, L.own.filter(a => isAsset(a) || isLiab(a)))}${cur}${data}${aboutHtml}`, has = String(body);
   const nav = htmlList(SET_SECTIONS.filter(([id]) => has.includes('id="set-' + id + '"')).map(([id, t]) => html`<button type="button" data-k="${id}" data-onclick="App.setJump('${id}')">${t}</button>`));
-  paint(html`${head('Settings', '', '')}<div class="set-layout"><nav class="set-nav" id="setNav" aria-label="Settings sections">${nav}</nav><div class="settings">${body}</div></div>`);
+  paint(html`<div class="set-layout"><nav class="set-nav" id="setNav" aria-label="Settings sections">${nav}</nav><div class="set-main">${head('Settings', '', '')}<div class="settings">${body}</div></div></div>`);
   requestAnimationFrame(setSpy);
 };
 /* ---------- Wide screens: a list of the sections beside them, marking the ones on screen ---------- */
