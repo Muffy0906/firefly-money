@@ -1305,20 +1305,23 @@
   /* ---------- Year in Money (pages/year.ts): a full-screen story ---------- */
   html:has(#story) { overflow: hidden; }
   html:has(#story) .tabbar, html:has(#story) .fab { visibility: hidden; }
-  .story { position: fixed; inset: 0; z-index: 60; background: var(--bg); color: var(--text); overflow: hidden; touch-action: none;
+  .story { --st-pad: max(28px, calc(50% - 240px)); position: fixed; inset: 0; z-index: 60; background: var(--bg); color: var(--text); overflow: hidden; touch-action: none;
     -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-  .st-prog { position: absolute; z-index: 3; top: calc(10px + env(safe-area-inset-top)); left: 12px; right: 12px; display: flex; gap: 4px; max-width: 520px; margin: 0 auto; }
-  .st-prog i { flex: 1; height: 3px; border-radius: 2px; background: var(--line); overflow: hidden; }
+  /* The bars, the × and every card's text share one column (--st-pad), so their edges line up */
+  .st-prog { position: absolute; z-index: 3; top: calc(10px + env(safe-area-inset-top)); left: var(--st-pad); right: var(--st-pad); display: flex; gap: 4px; }
+  .st-prog i { flex: 1; height: 3px; border-radius: 2px; background: color-mix(in srgb, var(--text) 16%, transparent); overflow: hidden; }
   .st-prog b { display: block; height: 100%; width: 0; background: var(--text); }
   .st-prog i.done b { width: 100%; }
   .st-prog i.run b { animation: stFill 6.5s linear forwards; }
   .story.paused .st-prog i.run b { animation-play-state: paused; }
   @keyframes stFill { to { width: 100%; } }
-  .st-x { position: absolute; z-index: 4; top: calc(22px + env(safe-area-inset-top)); right: 12px; width: 40px; height: 40px; border: 0; border-radius: 50%;
-    background: var(--faint, var(--line)); color: var(--text); font-size: 24px; line-height: 1; cursor: pointer; }
+  /* An icon, not the × character: a font's × sits on its baseline, so it lands low and differs by system font */
+  .st-x { position: absolute; z-index: 4; top: calc(22px + env(safe-area-inset-top)); right: var(--st-pad); width: 40px; height: 40px; min-width: 0; min-height: 0; padding: 0; margin: 0;
+    display: grid; place-items: center; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--text) 9%, transparent); color: var(--text); line-height: 0; cursor: pointer; }
+  .st-x svg { display: block; width: 16px; height: 16px; }
   .st-deck { position: absolute; inset: 0; }
   .st-card { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px;
-    padding: calc(80px + env(safe-area-inset-top)) max(28px, calc(50% - 240px)) calc(60px + env(safe-area-inset-bottom));
+    padding: calc(80px + env(safe-area-inset-top)) var(--st-pad) calc(60px + env(safe-area-inset-bottom));
     background: radial-gradient(90% 45% at 50% 0%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 70%);
     opacity: 0; visibility: hidden; transform: scale(1.04); transition: opacity .35s ease, transform .5s cubic-bezier(.2, .8, .2, 1), visibility 0s .35s; }
   .st-card.on { opacity: 1; visibility: visible; transform: none; transition: opacity .35s ease, transform .5s cubic-bezier(.2, .8, .2, 1); }

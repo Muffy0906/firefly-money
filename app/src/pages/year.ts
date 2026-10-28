@@ -101,7 +101,7 @@ VIEWS.year = async (r, paint) => {
   cards.push(card(html`${line(0, html`<div class="st-kick">${done ? 'That was' : 'So far'}</div>`)}${line(1, html`<h1 class="st-big">${y}</h1>`)}${line(2, html`<div class="st-btns"><button type="button" class="btn" data-onclick="App.yearShare()">Share</button><button type="button" class="btn" data-onclick="App.yearPlay(0)">Watch again</button><button type="button" class="btn primary" data-onclick="App.yearClose()">Done</button></div>`)}${line(3, nav)}`));
   SHARE = [y + ' in Money' + (done ? '' : ' (so far)'), earned ? 'Earned ' + money0(earned) + ', spent ' + money0(spent) + (earned > 0 ? ', kept ' + Math.round(kept / earned * 100) + '%' : '') : 'Spent ' + money0(spent),
     catRows[0] ? 'Top category: ' + catRows[0].name : '', st.often ? 'Most visited: ' + st.often.name + ' (' + st.often.n + ' times)' : '', st.count ? st.free + ' no-spend days' : ''].filter(Boolean).join('\n');
-  paint(html`<div class="story" id="story" role="dialog" aria-label="${y} in Money"><div class="st-prog">${htmlList(cards.map(() => html`<i><b></b></i>`))}</div><button type="button" class="st-x" aria-label="Close" data-onclick="App.yearClose()">×</button><div class="st-deck">${htmlList(cards)}</div></div>`);
+  paint(html`<div class="story" id="story" role="dialog" aria-label="${y} in Money"><div class="st-prog">${htmlList(cards.map(() => html`<i><b></b></i>`))}</div><button type="button" class="st-x" aria-label="Close" data-onclick="App.yearClose()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg></button><div class="st-deck">${htmlList(cards)}</div></div>`);
   play(0);
 };
 
