@@ -28,7 +28,8 @@ export function smoothPath(pts: [number, number][]) {
   return d;
 }
 // Colors for the parts of a whole (a donut's slices and their legend), from the theme so they suit every theme
-export const SERIES = ['var(--accent)', 'var(--text)', 'var(--warn)', '#4a7bd8', 'var(--good)', '#9b6bdf', '#3fa7c4', 'var(--muted)'];
+// (not --text or --good: some themes' accent is the text color or the same green)
+export const SERIES = ['var(--accent)', '#4a7bd8', 'var(--warn)', '#9b6bdf', '#e0607e', '#3fa7c4', 'var(--muted)'];
 export type Part = { name: string, v: number, color?: string };
 // A ring split into parts, with something (the total) in the middle. Each slice is a dashed circle, so it can sweep
 // in (see .anim in money.css): --at is when it starts, as a share of the sweep.
@@ -52,7 +53,7 @@ export type LinePoint = { label: string, a: number, b: number };
 const short$ = (v: number) => v >= 1e6 ? '$' + +(v / 1e6).toFixed(1) + 'm' : v >= 1e3 ? '$' + +(v / 1e3).toFixed(1) + 'k' : '$' + Math.round(v);
 function niceMax(v: number) { const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; }
 export function twoLines(pts: LinePoint[], names: [string, string], colors: [string, string], label: string) {
-  const W = 640, H = 280, pl = 46, pr = 8, pt = 10, pb = 26, n = pts.length, base = H - pb;
+  const W = innerWidth < 600 ? 360 : 640, H = innerWidth < 600 ? 220 : 280, pl = 46, pr = 8, pt = 10, pb = 26, n = pts.length, base = H - pb;
   const max = niceMax(Math.max(1, ...pts.flatMap(p => [p.a, p.b])) / 4) * 4;     // four even steps
   const x = (i: number) => pl + (W - pl - pr) * (n < 2 ? .5 : i / (n - 1)), y = (v: number) => pt + (base - pt) * (1 - v / max);
   const la = smoothPath(pts.map((p, i) => [x(i), y(p.a)])), lb = smoothPath(pts.map((p, i) => [x(i), y(p.b)]));
