@@ -113,7 +113,7 @@ function fillIn(markup: Html) {
   if (olds.map(w => w.dataset.w).join() !== news.map(w => w.dataset.w).join()) return false;      // a card came or went: redraw it all
   const insOld = v.querySelector('#insights'), insNew = t.content.querySelector('#insights');
   if (insOld) insNew ? insOld.replaceWith(insNew) : insOld.remove();
-  olds.forEach((o, i) => { if (news[i].innerHTML !== o.innerHTML) o.replaceWith(news[i]); });
+  olds.forEach((o, i) => { if (news[i].innerHTML !== o.innerHTML) { if (o.querySelector('.sk')) { const n = news[i]; n.classList.add('pop'); setTimeout(() => n.classList.remove('pop'), 2600); } o.replaceWith(news[i]); } });     // a card arriving plays its chart in
   S.pageHtml = markup;
   bindSwipe();
   if (App.fitSankey) App.fitSankey();
@@ -189,7 +189,7 @@ export function cashFlow(trend: CashMonth[]) {
   const yy = (v: number) => top + (H - top - bottom) * (1 - v / max);
   const bars = htmlList(trend.map((t, i) => {
     const cx = slot * i + slot / 2;
-    return html`<g class="col"><rect class="hit" x="${slot * i}" y="0" width="${slot}" height="${H}" fill="transparent" data-i="${i}"${t.go ? html` data-go="${t.go}" style="cursor:pointer"` : ''}></rect><rect class="band" x="${slot * i + 4}" y="${top - 6}" width="${slot - 8}" height="${H - bottom - top + 6}" rx="10"></rect><rect data-i="${i}" x="${cx - bw - 3}" y="${yy(t.income)}" width="${bw}" height="${H - bottom - yy(t.income)}" rx="6" fill="var(--income)" style="color:var(--income)${t.go ? ';cursor:pointer' : ''}"><title>Earned ${money0(t.income)}</title></rect><rect data-i="${i}" x="${cx + 3}" y="${yy(t.spend)}" width="${bw}" height="${H - bottom - yy(t.spend)}" rx="6" fill="var(--spend)" style="color:var(--spend)${t.go ? ';cursor:pointer' : ''}" opacity=".85"><title>Spent ${money0(t.spend)}</title></rect><text x="${cx}" y="${H - 7}" text-anchor="middle">${t.label}</text></g>`;
+    return html`<g class="col"><rect class="hit" x="${slot * i}" y="0" width="${slot}" height="${H}" fill="transparent" data-i="${i}"${t.go ? html` data-go="${t.go}" style="cursor:pointer"` : ''}></rect><rect class="band" x="${slot * i + 4}" y="${top - 6}" width="${slot - 8}" height="${H - bottom - top + 6}" rx="10"></rect><rect data-i="${i}" x="${cx - bw - 3}" y="${yy(t.income)}" width="${bw}" height="${H - bottom - yy(t.income)}" rx="6" fill="var(--income)" class="bar" style="--j:${i};color:var(--income)${t.go ? ';cursor:pointer' : ''}"><title>Earned ${money0(t.income)}</title></rect><rect data-i="${i}" x="${cx + 3}" y="${yy(t.spend)}" width="${bw}" height="${H - bottom - yy(t.spend)}" rx="6" fill="var(--spend)" class="bar" style="--j:${i};color:var(--spend)${t.go ? ';cursor:pointer' : ''}" opacity=".85"><title>Spent ${money0(t.spend)}</title></rect><text x="${cx}" y="${H - 7}" text-anchor="middle">${t.label}</text></g>`;
   }));
   const avgS = trend.reduce((s, t) => s + t.spend, 0) / n, avgK = trend.reduce((s, t) => s + t.income - t.spend, 0) / n;
   S.chartData = trend;

@@ -23,10 +23,20 @@ function prefetch(name: string) {
 
 /* ---------- After every page paint ---------- */
 function afterPaint(r: RouteInfo, o: { quiet?: boolean } = {}) {
-  if (!o.quiet) countUp();
+  if (!o.quiet) { countUp(); playIn(); }
   bindChart();
   bindSwipe();
   if (App.afterPaint2) App.afterPaint2(r);
+}
+// A newly opened page eases in: cards rise one after another, lines draw, bars grow, donuts and rings sweep round
+// (the animations are in money.css under .anim). Refreshes of the page you're on don't replay it.
+let animT = 0;
+function playIn() {
+  if (reduceMotion) return;
+  const v = el('view');
+  v.querySelectorAll<HTMLElement>(':scope :is(.hero, .kpi, .panel, .insight)').forEach((n, i) => n.style.setProperty('--i', String(Math.min(i, 10))));
+  v.classList.remove('anim'); void v.offsetWidth; v.classList.add('anim');
+  clearTimeout(animT); animT = window.setTimeout(() => v.classList.remove('anim'), 2600);
 }
 function countUp() {
   if (reduceMotion) return;
