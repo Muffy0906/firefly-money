@@ -108,6 +108,7 @@
   .head .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .month { display: flex; align-items: center; gap: 4px; }
   .month span { min-width: 132px; text-align: center; font-weight: 500; }
+  .month .today-gap { visibility: hidden; }
   .month span small.cycle { display: block; font-size: 11px; font-weight: 400; color: var(--muted); line-height: 1.2; }
   .round { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); cursor: pointer; font-size: 15px; line-height: 1; }
   .round:disabled { opacity: .35; cursor: default; }
@@ -608,9 +609,13 @@
   .cards.editing .w > :not(.wctl):not(.rsz):not(.wopts) { pointer-events: none; }
   .cards.editing .w.off > :not(.wctl):not(.rsz):not(.wopts) { opacity: .35; filter: grayscale(1); }
   .cards.editing .w { user-select: none; -webkit-user-select: none; }
-  .cards.editing .w.dragging { opacity: .3; }
+  /* the spot the tile will land in, while you carry a solid copy of it */
+  .cards.editing .w.dragging { background: color-mix(in srgb, var(--accent) 7%, transparent); outline-color: color-mix(in srgb, var(--accent) 70%, transparent); }
+  .cards.editing .w.dragging > * { opacity: 0; }
   .cards.moving, .cards.moving * { cursor: grabbing !important; }
-  .dash-ghost { position: fixed; z-index: 60; margin: 0; pointer-events: none; opacity: .92; box-shadow: 0 18px 40px rgba(0,0,0,.22); border-radius: var(--radius); }
+  .dash-ghost { position: fixed; z-index: 60; margin: 0; pointer-events: none; border-radius: var(--radius); will-change: transform; transform-origin: 50% 40%; display: flex; flex-direction: column; }
+  .dash-ghost > .panel { flex: 1; }
+  .dash-ghost > .panel { background: linear-gradient(var(--panel), var(--panel)), var(--bg); box-shadow: 0 24px 60px rgba(0,0,0,.28), 0 4px 14px rgba(0,0,0,.12); }
   .dash-ghost > :not(.wctl) { pointer-events: none; }
   .wctl { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 12.5px; }
   .wctl .grip { cursor: grab; color: var(--muted); font-size: 16px; }
@@ -1450,6 +1455,7 @@
     .head .actions:has(.dash-edit) { gap: 8px; flex-wrap: nowrap; }
     .head .actions:has(.dash-edit) .month span { min-width: 0; padding: 0 4px; }
     .head .actions:has(.dash-edit) .month .btn { padding-inline: 12px; }
+    .month .today-gap { display: none; }
   }
   /* a narrow tile: bills put the amount under the name rather than cutting the name short; budget rings two to a row */
   @container (max-width: 240px) {
@@ -1478,3 +1484,21 @@
     .add-card:is(:hover, :focus-visible) .pv { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition: opacity .15s ease .12s, transform .15s ease .12s, visibility 0s .12s; }
   }
   @media (hover: none) { .add-card .pv { width: 72px; padding: 4px; border-radius: 8px; background: color-mix(in srgb, var(--panel) 70%, transparent); border: 1px solid var(--line); } }
+  /* Earned: in and out on one scale */
+  .panel.stat .io { display: grid; gap: 8px; margin-top: auto; padding-top: 14px; }
+  .io-r { display: grid; grid-template-columns: 2.4em minmax(0, 1fr) auto; align-items: center; gap: 8px; font-size: 12px; }
+  .io-l { color: var(--muted); }
+  .io-t { height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--muted) 16%, transparent); overflow: hidden; }
+  .io-t i { display: block; height: 100%; border-radius: inherit; transition: width .5s cubic-bezier(.2, .8, .2, 1); }
+  .io-t i.in { background: var(--good); } .io-t i.out { background: color-mix(in srgb, var(--spend) 70%, transparent); } .io-t i.over { background: var(--spend); }
+  .io-v { min-width: 4.5em; text-align: right; color: var(--muted); }
+  @container (max-width: 190px) { .io-v { display: none; } .io-r { grid-template-columns: 2.4em minmax(0, 1fr); } }
+  /* a card with nothing for this month keeps its spot */
+  .panel.quiet .lead { margin-bottom: 0; }
+  .attention .all-clear { display: flex; align-items: center; gap: 8px; margin: 14px 0 0; color: var(--muted); font-size: 13.5px; }
+  .attention .all-clear span { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); font-size: 12px; }
+  .attention .att-more { display: contents; }
+  .attention .att-more[hidden] { display: none; }
+  .attention :is(.list, .all-clear) { min-height: var(--att-h, 88px); }
+  .attention .all-clear { align-items: flex-start; }
+  .dash-ghost > .wctl { visibility: hidden; }
