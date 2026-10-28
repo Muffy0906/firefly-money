@@ -207,7 +207,7 @@ function loansPanel(loans: Account[], prog: any = {}) {
   return html`<section class="panel"><div class="panel-head"><h2>Loans</h2><a class="link" href="#/loans">Plan payoff</a></div><p class="lead">Remaining balance and payoff progress</p>${loans.length ? html`<div class="total num" style="margin-bottom:4px">${money0(loans.reduce((s, l) => s + l.debt, 0))}</div>${rows}` : html`<p class="empty">No loans.</p>`}</section>`;
 }
 export function cashFlow(trend: CashMonth[]) {
-  const W = window.innerWidth < 600 ? 420 : 960, H = 210, top = 10, bottom = 28, n = trend.length;
+  const W = window.innerWidth < 600 ? 420 : window.innerWidth >= 1700 ? 1500 : 960, H = 210, top = 10, bottom = 28, n = trend.length;
   const max = Math.max(1, ...trend.flatMap(t => [t.income, t.spend])), slot = W / n, bw = Math.min(34, slot / 4);
   const yy = (v: number) => top + (H - top - bottom) * (1 - v / max);
   const bars = htmlList(trend.map((t, i) => {
