@@ -6,9 +6,23 @@ import { NAV_GROUPS, icon, navItem, openDrawer } from '../core/dom';
 /* ---------- Phone: tab bar, More sheet, swipe to delete ---------- */
 function drawTabbar(active: string) {
   const tb = el('tabbar'); tb.hidden = false;
+  // Drawn once, then only the current tab changes, so the pill behind it (Frosted glass) can slide across
+  if (tb.querySelector('.tab-pill')) {
+    tb.querySelectorAll('a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#/' + active));
+    return movePill();
+  }
   const t = (r: string, label: string, ic: string) => html`<a href="#/${r}" class="${r === active ? 'on' : ''}">${icon(ic)}<span>${label}</span></a>`;
-  tb.innerHTML = String(html`${t('', 'Home', 'overview')}${t('transactions', 'Activity', 'transactions')}<button type="button" class="plus" data-onclick="App.quickAdd()" aria-label="Add transaction"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>${t('budgets', 'Budgets', 'budgets')}<button type="button" data-onclick="App.moreSheet()">${icon('categories')}<span>More</span></button>`);
+  tb.innerHTML = String(html`<i class="tab-pill" aria-hidden="true"></i>${t('', 'Home', 'overview')}${t('transactions', 'Activity', 'transactions')}<button type="button" class="plus" data-onclick="App.quickAdd()" aria-label="Add transaction"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>${t('budgets', 'Budgets', 'budgets')}<button type="button" data-onclick="App.moreSheet()">${icon('categories')}<span>More</span></button>`);
+  movePill();
+  requestAnimationFrame(() => tb.classList.add('pill-ready'));     // no slide in from the edge the first time
 }
+function movePill() {
+  const tb = el('tabbar'), on = tb.querySelector<HTMLElement>('a.on'), pill = tb.querySelector<HTMLElement>('.tab-pill');
+  if (!pill) return;
+  pill.classList.toggle('off', !on || !on.offsetWidth);
+  if (on && on.offsetWidth) { pill.style.width = on.offsetWidth + 'px'; pill.style.transform = 'translateX(' + on.offsetLeft + 'px)'; }
+}
+addEventListener('resize', movePill);
 export function moreSheet() {
   const link = (r: string) => { const [, label, ic] = navItem(r); return html`<a class="row" href="#/${r}" data-onclick="App.closeDrawer()"><span class="name"><span class="ic">${icon(ic)}</span>${label}</span><span class="neutral">›</span></a>`; };
   // the tab bar already has Home, Activity and Budgets

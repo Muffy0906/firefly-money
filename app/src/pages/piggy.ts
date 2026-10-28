@@ -6,6 +6,7 @@ import { closeDrawer, formError, head, openDrawer, opt, toast } from '../core/do
 import { isAsset, isCard, lists } from '../core/lists';
 import { VIEWS, route } from '../core/router';
 import { goalPace } from '../features/pace';
+import { ring } from '../features/charts';
 
 /* ================= Piggy banks ================= */
 // What a goal needs from here on, and a chip saying whether it keeps up (shared with the Overview's Savings goals card)
@@ -35,7 +36,7 @@ VIEWS.piggy = async (r, paint) => {
   const cards = htmlList(piggies.map((p, i) => {
     const heading = p.group && (i === 0 || piggies[i - 1].group !== p.group) ? html`<div class="eyebrow" style="grid-column:1/-1;margin:6px 0 -6px">${p.group}</div>` : '';
     const pct = p.target ? Math.min(100, p.current / p.target * 100) : 0;
-    return html`${heading}<section class="panel"><div class="panel-head"><h2>${p.name}</h2><button class="btn small" data-onclick="App.piggyForm('${p.id}')">Edit</button></div><p class="lead">${p.accounts.map(a => a.name || (L.byId[a.id] || {}).name).filter(Boolean).join(', ') || 'No account'}${p.targetDate ? ' · by ' + fmtDate(p.targetDate) : ''}</p><div class="total num" style="margin-bottom:2px">${money0(p.current)} <span class="neutral" style="font-size:16px">of ${money0(p.target)}</span></div><div class="track"><div class="fill good" style="width:${pct.toFixed(1)}%"></div></div><div class="sub-s" style="margin-bottom:16px">${pct.toFixed(0)}% saved · ${paceBits(p).line} ${paceBits(p).chip}</div><div style="display:flex;gap:8px"><button class="btn small" data-onclick="App.piggyMoney('${p.id}',1)">+ Add money</button><button class="btn small" data-onclick="App.piggyMoney('${p.id}',-1)">− Take out</button></div></section>`;
+    return html`${heading}<section class="panel"><div class="panel-head"><h2>${p.name}</h2><button class="btn small" data-onclick="App.piggyForm('${p.id}')">Edit</button></div><p class="lead">${p.accounts.map(a => a.name || (L.byId[a.id] || {}).name).filter(Boolean).join(', ') || 'No account'}${p.targetDate ? ' · by ' + fmtDate(p.targetDate) : ''}</p><div class="goal">${ring(pct, 'good', 'saved')}<div><div class="total num" style="margin-bottom:2px">${money0(p.current)}</div><div class="neutral">of ${money0(p.target)}</div><div class="sub-s" style="margin-top:8px">${paceBits(p).line} ${paceBits(p).chip}</div></div></div><div style="display:flex;gap:8px"><button class="btn small" data-onclick="App.piggyMoney('${p.id}',1)">+ Add money</button><button class="btn small" data-onclick="App.piggyMoney('${p.id}',-1)">− Take out</button></div></section>`;
   }));
   paint(html`${head('Piggy banks', piggies.length ? money0(saved) + ' saved toward ' + money0(goal) + ' in goals' : 'Set money aside for goals', html`<button class="btn primary" data-onclick="App.piggyForm()">+ New piggy bank</button>`)}${cards ?
     html`<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))">${cards}</div>` :

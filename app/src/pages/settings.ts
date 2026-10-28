@@ -7,7 +7,7 @@ import { LS, budgetAlert, saveBlob } from '../core/helpers';
 import { buzz, hapticsOn } from '../core/haptics';
 import { logosOn } from '../core/logo';
 import { THEMES, themeButtons } from '../core/login';
-import { type Custom, KEY, applyCustom, isHex, lum, readCustom } from '../core/themevars';
+import { type Custom, KEY, PHOTO_KEY, SCENES, applyCustom, isHex, lum, readCustom } from '../core/themevars';
 import { type Account, invalidate, isAsset, isLiab, lists, ordinal } from '../core/lists';
 import { VIEWS, route } from '../core/router';
 
@@ -115,7 +115,7 @@ function setSpy() {
 }
 addEventListener('scroll', () => { if (!spyQueued && el('setNav')) { spyQueued = true; requestAnimationFrame(setSpy); } }, { passive: true });
 addEventListener('resize', () => { if (el('setNav')) requestAnimationFrame(setSpy); });
-/* ---------- Customize colors: your own background, accent and (for Liquid glass) light, tint and blur ---------- */
+/* ---------- Customize colors: your own background, accent and (for the glass themes) light, tint and blur ---------- */
 const curTheme = () => document.documentElement.getAttribute('data-theme') || 'auto';
 const themeName = () => { const t = THEMES.find(x => x[0] === curTheme()); return t ? t[1] : ''; };
 // The colour the theme shows right now (yours, or its own), as #rrggbb for a colour well
@@ -127,6 +127,18 @@ function shown(v: string) {
 }
 // Text sits right on the background (titles, the month), so warn when the two get too close
 function lowContrast() { const a = lum(shown('--bg')), b = lum(shown('--text')); return (Math.max(a, b) + .05) / (Math.min(a, b) + .05) < 4.5; }
+// Frosted glass: what's behind the glass. Swatches hint at each scene's colors.
+const SCENE_SW: Record<string, string> = {
+  room: 'linear-gradient(135deg,#efe4d6,#b98a64 55%,#8a5a3c)', dunes: 'radial-gradient(circle at 70% 30%,#fff1d6 0 18%,transparent 22%),linear-gradient(180deg,#f3c9b8,#b5654a)',
+  garden: 'linear-gradient(135deg,#fffbe6,#a9bf8e 50%,#5f8050)', coast: 'linear-gradient(180deg,#f2f8fb 30%,#3f87a3 52%,#e8d8bd 72%)',
+  blossom: 'linear-gradient(135deg,#d47fa8,#fff4f8 50%,#a596e0)', night: 'radial-gradient(circle at 30% 40%,#ff7a3d 0 12%,transparent 15%),radial-gradient(circle at 70% 60%,#2bb3c9 0 10%,transparent 13%),linear-gradient(180deg,#3b2a6b,#120f1c)',
+};
+function scenePicker(c: Custom) {
+  const cur = c.scene || 'room';
+  const btns = htmlList(SCENES.map(([k, label]) => html`<button type="button" title="${label}" aria-label="${label} scene" class="${k === cur ? 'on' : ''}" style="background:${SCENE_SW[k]};background-origin:border-box" data-s="${k}" data-onclick="App.themeScene(this.dataset.s)"></button>`));
+  const photo = LS.get(PHOTO_KEY, '');
+  return html`<div class="themes scenes">${btns}${photo ? html`<button type="button" title="Your photo" aria-label="Your photo" class="${cur === 'photo' ? 'on' : ''}" style="background:center/cover url('${photo}')" data-onclick="App.themeScene('photo')"></button>` : ''}<label class="btn small">${photo ? 'New photo…' : 'Your photo…'}<input type="file" accept="image/*" hidden data-onchange="App.themePhoto(this)"></label></div>`;
+}
 function customizer() {
   const t = curTheme();
   if (t === 'auto') return html`<p class="sub-s" style="margin:4px 0 0">Calm switches between light and dark with your system, so it can’t take your own colors. Pick Calm light, Calm dark or another theme to customize it.</p>`;
@@ -136,12 +148,13 @@ function customizer() {
     ${row('Background', html`Behind everything<span class="up tc-warn"${lowContrast() ? '' : ' hidden'}>. Text may be hard to read on this color.</span>`,
       html`<input type="color" aria-label="Background color" value="${shown('--bg')}" data-oninput="App.themeVar('bg', this.value)">`)}
     ${row('Accent', 'Buttons, switches and highlights', html`<input type="color" aria-label="Accent color" value="${shown('--accent')}" data-oninput="App.themeVar('accent', this.value)">`)}
-    ${t === 'glass' ? html`
-    ${row('Light', 'The three colors glowing behind the glass', html`<input type="color" aria-label="First light color" value="${shown('--glow1')}" data-oninput="App.themeVar('glow1', this.value)"><input type="color" aria-label="Second light color" value="${shown('--glow2')}" data-oninput="App.themeVar('glow2', this.value)"><input type="color" aria-label="Third light color" value="${shown('--glow3')}" data-oninput="App.themeVar('glow3', this.value)">`)}
+    ${t === 'frosted' ? row('Scene', 'What’s behind the glass', scenePicker(c)) : ''}
+    ${t === 'glass' || t === 'frosted' ? html`
+    ${row(t === 'glass' ? 'Light' : 'Room', t === 'glass' ? 'The three colors glowing behind the glass' : 'The three colors of the room behind the glass', html`<input type="color" aria-label="First light color" value="${shown('--glow1')}" data-oninput="App.themeVar('glow1', this.value)"><input type="color" aria-label="Second light color" value="${shown('--glow2')}" data-oninput="App.themeVar('glow2', this.value)"><input type="color" aria-label="Third light color" value="${shown('--glow3')}" data-oninput="App.themeVar('glow3', this.value)">`)}
     ${row('Glass tint', 'The color of the cards', html`<input type="color" aria-label="Glass tint" value="${shown('--glass-base')}" data-oninput="App.themeVar('tint', this.value)">`)}
     ${row('Frost', 'Clear to solid', html`<input type="range" min="0" max="90" step="1" aria-label="Frost" value="${frost}" data-oninput="App.themeRange('frost', this)"><output>${frost}%</output>`)}
     ${row('Blur', 'How much the light softens behind the cards', html`<input type="range" min="0" max="60" step="1" aria-label="Blur" value="${blur}" data-oninput="App.themeRange('blur', this)"><output>${blur}px</output>`)}
-    ${row('Moving light', 'Let the light drift slowly', html`<input ${SWITCH} aria-label="Moving light"${c.motion === false ? '' : ' checked'} data-onchange="App.themeVar('motion', this.checked)">`)}` : ''}
+    ${t === 'glass' ? row('Moving light', 'Let the light drift slowly', html`<input ${SWITCH} aria-label="Moving light"${c.motion === false ? '' : ' checked'} data-onchange="App.themeVar('motion', this.checked)">`) : ''}` : ''}
     ${Object.keys(c).length ? row('', '', html`<button class="btn small" type="button" data-onclick="App.resetThemeCustom()">Reset ${themeName()}</button>`) : ''}`;
 }
 // Redraw after the theme changes (setTheme) or the colors are reset
@@ -163,6 +176,30 @@ function themeRange(k: 'frost' | 'blur', input: HTMLInputElement) {
   const v = +input.value, out = input.nextElementSibling;
   if (out) out.textContent = v + (k === 'blur' ? 'px' : '%');
   saveCustom(k, v);
+}
+// A scene brings its own colors, so picking one drops colors you'd set for the last
+function themeScene(k: string) {
+  if (k !== 'photo' && !SCENES.some(x => x[0] === k)) return;
+  const t = curTheme(), all = readCustom(), c = { ...all[t], scene: k };
+  delete c.bg; delete c.glow1; delete c.glow2; delete c.glow3; delete c.accent;
+  all[t] = c; LS.set(KEY, all); applyCustom(t); drawThemeCustom(); buzz(8);
+}
+// Your own photo behind the glass: made smaller (it's blurred anyway) and kept on this device
+function themePhoto(input: HTMLInputElement) {
+  const f = input.files && input.files[0]; if (!f) return;
+  const img = new Image(), url = URL.createObjectURL(f);
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    const k = Math.min(1, 1200 / Math.max(img.width, img.height)), cv = document.createElement('canvas');
+    cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+    cv.getContext('2d')!.drawImage(img, 0, 0, cv.width, cv.height);
+    const data = cv.toDataURL('image/jpeg', .8);
+    LS.set(PHOTO_KEY, data);
+    if (LS.get(PHOTO_KEY, '') !== data) { toast('That photo is too big to keep. Try a smaller one.'); return; }
+    themeScene('photo');
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); toast('Couldn’t open that photo'); };
+  img.src = url;
 }
 function resetThemeCustom() {
   const all = readCustom();
@@ -362,6 +399,8 @@ const methods = {
   themeVar,
   themeRange,
   resetThemeCustom,
+  themeScene,
+  themePhoto,
   drawThemeCustom,
   setJump,
 };

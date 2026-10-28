@@ -54,7 +54,7 @@
   html[data-theme="carbon"] .neg, html[data-theme="carbon"] .up { text-shadow: 0 0 10px color-mix(in srgb, var(--spend) 45%, transparent); }
   html[data-theme="carbon"] .big { filter: drop-shadow(0 0 18px rgba(57,255,159,.25)); }
   /* glow on the underline only, inside the tab: an outer shadow is clipped by the scrolling tab row and leaves a sliver at the tab's right edge */
-  html[data-theme="carbon"] .tabs a.on { box-shadow: inset 0 -6px 6px -6px var(--accent); }
+  html[data-theme="carbon"] .tabs a.on { box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 45%, transparent); }
   html[data-theme="carbon"] .bulkbar { box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 25%, transparent); }
   html[data-theme] .big.negative { --hero-grad: linear-gradient(90deg, var(--spend), var(--warn)); }
   html[data-theme="carbon"] .big.negative { filter: drop-shadow(0 0 18px rgba(255,61,129,.3)); }
@@ -88,7 +88,7 @@
   .nav svg { width: 17px; height: 17px; flex: none; }
   .nav-h { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 16px 12px 5px; }
   .side .foot .nav a { display: flex; align-items: center; gap: 11px; padding: 8px 12px; border-radius: 10px; font-size: inherit; font-weight: 500; margin-bottom: 6px; }
-  .side .foot .nav a.on { color: var(--text); background: var(--panel); box-shadow: 0 1px 0 var(--line), 0 0 0 1px var(--line); }
+  .side .foot .nav a.on { color: var(--text); }
   .list.menu .row { padding: 13px 0; align-items: center; }
   .list.menu .row .name { display: flex; gap: 12px; align-items: center; }
   .list.menu .ic { width: 20px; display: inline-flex; }
@@ -357,6 +357,57 @@
   .chart .pt .dot { transition: r .1s; }
   .chart .pt:hover .dot { r: 6.5; }
   .tip { white-space: pre-line; max-width: 320px; }
+  /* ---------- Charts: smooth lines, donuts, progress rings ---------- */
+  .lines { display: block; width: 100%; height: auto; overflow: visible; }
+  .lines .grid line { stroke: var(--line); stroke-dasharray: 3 5; }
+  .lines text { font-size: 11px; fill: var(--muted); }
+  .chart .lines rect { filter: none !important; }
+  .lines + .legend { margin-top: 10px; }
+  .report-top { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 20px; margin-bottom: 20px; align-items: stretch; }
+  .report-top.one { grid-template-columns: minmax(0, 1fr); }
+  .report-top > .panel { margin: 0; }
+  @media (max-width: 900px) { .report-top { grid-template-columns: minmax(0, 1fr); } }
+  .donut, .ring { position: relative; display: grid; place-items: center; }
+  .donut { width: min(180px, 64%); margin: 4px auto 18px; }
+  .donut svg, .ring svg { width: 100%; height: auto; transform: rotate(-90deg); overflow: visible; }
+  :is(.donut, .ring) circle { fill: none; }
+  .donut .base { stroke: var(--faint); stroke-width: 14; }
+  .donut .seg { stroke-width: 14; }
+  .donut .seg:hover { stroke-width: 18; }
+  :is(.donut, .ring) .mid { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; line-height: 1.2; pointer-events: none; }
+  .donut .mid strong { font-size: 22px; font-weight: 650; letter-spacing: -.01em; }
+  .donut .mid .eyebrow { margin: 0 0 2px; }
+  .parts { display: flex; flex-direction: column; gap: 10px; }
+  .part { display: grid; grid-template-columns: 10px minmax(0, 7fr) minmax(0, 6fr) 38px; gap: 10px; align-items: center; font-size: 13.5px; }
+  .part > i { width: 9px; height: 9px; border-radius: 50%; }
+  .part .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .part .track { margin: 0; height: 5px; }
+  .part .track .fill { opacity: 1; }
+  .part .num { text-align: right; color: var(--muted); font-size: 12.5px; }
+  .ring { width: 92px; flex: none; }
+  .ring .base { stroke: var(--faint); stroke-width: 10; }
+  .ring .seg { stroke: var(--accent); stroke-width: 10; stroke-linecap: round; }
+  .ring.good .seg { stroke: var(--good); }
+  .ring .mid strong { font-size: 19px; font-weight: 650; }
+  .ring .mid span { font-size: 11px; color: var(--muted); }
+  .goal { display: flex; align-items: center; gap: 18px; margin: 4px 0 16px; }
+  /* ---------- Page entrance (polish.ts playIn adds .anim; a card that arrives late gets .pop) ---------- */
+  @media (prefers-reduced-motion: no-preference) {
+    #view.anim :is(.hero, .kpi, .panel, .insight) { animation: riseIn .5s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 45ms); }
+    :is(#view.anim, .pop) .draw { stroke-dasharray: 1; animation: drawIn 1.1s .2s cubic-bezier(.45, 0, .2, 1) both; }
+    :is(#view.anim, .pop) .draw.late { animation-delay: .4s; }
+    :is(#view.anim, .pop) .area { animation: fadeIn .9s .55s ease both; }
+    :is(#view.anim, .pop) .flowchart .bar { transform-box: fill-box; transform-origin: 50% 100%; animation: growUp .7s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(.15s + var(--j, 0) * 60ms); }
+    :is(#view.anim, .pop) .fill { transform-origin: left; animation: growRight .8s .2s cubic-bezier(.2, .8, .2, 1) both; }
+    :is(#view.anim, .pop) :is(.donut, .ring) .seg { animation: sweepIn .6s cubic-bezier(.3, 0, .2, 1) both; animation-delay: calc(.25s + var(--at, 0) * .9s); }
+    :is(#view.anim, .pop) .chart .pt .dot { animation: fadeIn .4s 1.1s both; }
+  }
+  @keyframes riseIn { from { opacity: 0; transform: translateY(16px) scale(.985); } }
+  @keyframes drawIn { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+  @keyframes fadeIn { from { opacity: 0; } }
+  @keyframes growUp { from { transform: scaleY(0); } }
+  @keyframes growRight { from { transform: scaleX(0); } }
+  @keyframes sweepIn { from { stroke-dasharray: 0 100; } }
   /* ---------- Command palette ---------- */
   .palette { position: fixed; inset: 0; background: rgba(20,20,18,.35); z-index: 50; display: grid; justify-items: center; align-items: start; padding-top: 12vh; }
   .palette-box { width: min(620px, 92vw); background: var(--panel); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; animation: fadeUp .14s ease both; }
@@ -654,7 +705,7 @@
   html[data-theme="glass"] select option { background: #16122e; }
   html[data-theme="glass"] :is(input, select, textarea):focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent), 0 0 18px color-mix(in srgb, var(--accent) 25%, transparent); }
   html[data-theme="glass"] .seg { background: rgba(255, 255, 255, .06); }
-  html[data-theme="glass"] .seg button.on { background: rgba(255, 255, 255, .14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2); }
+  html[data-theme="glass"] :is(.seg button, .tabs a).on { background: rgba(255, 255, 255, .14); color: var(--text); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2); }
   html[data-theme="glass"] .tbl.feed tr.dayhead div { background: rgba(20, 16, 42, .55); }
   html[data-theme="glass"] .tbl tr.click:hover td { background: rgba(255, 255, 255, .05); }
   html[data-theme="glass"] .side { border-right-color: rgba(255, 255, 255, .08); background: rgba(10, 8, 22, .35); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
@@ -672,7 +723,7 @@
   html[data-theme="glass"] .chart rect { filter: drop-shadow(0 0 6px currentColor); }
   html[data-theme="glass"] .sankey .lk { fill-opacity: .32; }
   html[data-theme="glass"] .tabs a.on { text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 60%, transparent); }
-  html[data-theme="glass"] .tabs { border-bottom-color: rgba(255, 255, 255, .1); }
+  html[data-theme="glass"] .tabs { background: rgba(255, 255, 255, .06); }
   html[data-theme="glass"] .hm-cell[style*="--p"] { box-shadow: 0 0 10px color-mix(in srgb, var(--spend) calc(var(--p) * .6), transparent); }
   html[data-theme="glass"] .av { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .15), 0 0 0 1px color-mix(in oklab, var(--c) 35%, transparent), 0 0 14px color-mix(in oklab, var(--c) 30%, transparent); }
   html[data-theme="glass"] .appbar.scrolled { background: rgba(10, 8, 24, .45); }
@@ -683,6 +734,174 @@
   html.scrolling[data-theme="glass"] body::after { animation-play-state: paused; }
   @media (max-width: 900px) {
     html[data-theme="glass"] :is(.panel, .kpi, .insight, .extra, .split, .dash-bar) { -webkit-backdrop-filter: blur(calc(var(--glass-blur) * .54)) saturate(160%); backdrop-filter: blur(calc(var(--glass-blur) * .54)) saturate(160%); }
+  }
+  /* ---------- Alignment: centered labels, even controls, room to breathe ---------- */
+  .btn { justify-content: center; text-align: center; }
+  .round { display: inline-grid; place-items: center; padding: 0; flex: none; }
+  .month { gap: 6px; }
+  .month .round { width: 34px; height: 34px; }
+  .month .btn { height: 34px; padding-block: 0; }
+  .row > span:is(.neutral, .num):last-child { white-space: nowrap; }
+  .panel-head { flex-wrap: wrap; row-gap: 8px; }
+  .panel-head > .check { white-space: nowrap; }
+  .show-s { display: none; }
+  .review-row > .btn { flex: none; }
+  .drawer footer { flex-wrap: wrap; align-items: center; }
+  @media (min-width: 901px) { main { padding-bottom: 112px; } }     /* the last card scrolls clear of the + button */
+  @media (max-width: 600px) {
+    .tbl .show-s { display: block; margin-top: 4px; }
+    .review-row > .btn .lbl { display: none; }
+    .review-row > .btn { width: 36px; height: 36px; padding: 0; border-radius: 50%; }
+    .drawer footer { gap: 8px; padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); }
+    .drawer footer .btn { padding: 9px 12px; }
+    .drawer footer .grow { flex: 1 1 0; min-width: 0; }
+  }
+  /* ---------- Shape, every theme: pill buttons and switches, a floating sidebar and tab bar ----------
+     Colors come from the theme; Frosted glass and the glass/neon themes lay their own on top. */
+  .btn, .btn.small { border-radius: 999px; }
+  .seg { border-radius: 22px; }
+  .seg button { border-radius: 999px; }
+  :is(.seg button, .tabs a).on { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+  .tabs { width: fit-content; max-width: 100%; gap: 2px; padding: 4px; border: 0; border-radius: 999px; background: var(--faint); box-shadow: inset 0 0 0 1px var(--line); scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs a { padding: 7px 14px; margin: 0; border: 0; border-radius: 999px; line-height: 1.2; }
+  @media (min-width: 901px) {
+    .side { margin: 14px 0 14px 14px; height: calc(100vh - 28px); top: 14px; border: 1px solid var(--line); border-radius: 26px; background: var(--panel); box-shadow: var(--shadow); }
+  }
+  .nav a { border-radius: 999px; }
+  .nav a.on { background: color-mix(in srgb, var(--accent) 13%, transparent); box-shadow: none; }
+  html[data-theme="carbon"] .nav a.on::before { display: none; }
+  .tabbar { left: 14px; right: 14px; bottom: calc(10px + env(safe-area-inset-bottom)); padding: 6px; border: 1px solid var(--line); border-radius: 999px; align-items: center;
+    background: color-mix(in srgb, var(--panel) 84%, transparent); box-shadow: var(--shadow); -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%); }
+  .tabbar :is(a, button) { position: relative; z-index: 1; }
+  .tabbar a { border-radius: 999px; padding: 7px 0; margin: 0 3px; }
+  .tabbar .plus { margin: 0 auto; width: 48px; height: 48px; }
+  .tab-pill { display: block; position: absolute; left: 0; top: 6px; bottom: 6px; border-radius: 999px; pointer-events: none; background: color-mix(in srgb, var(--accent) 15%, transparent); }
+  .tab-pill.off { opacity: 0; }
+  .pill-ready .tab-pill { transition: transform .42s cubic-bezier(.3, 1.3, .5, 1), width .42s cubic-bezier(.3, 1.3, .5, 1), opacity .2s; }
+  @media (max-width: 900px) {
+    main { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important; }
+    :is(.undo, .toast) { bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); }
+  }
+  /* ---------- Theme: Frosted glass (warm light glass over a soft-focus room) ---------- */
+  html[data-theme="frosted"] { --bg: #d9c7b3; --panel: rgba(255, 250, 244, .5); --line: rgba(255, 255, 255, .55); --text: #1d1915; --muted: #6a5e54; --faint: rgba(255, 255, 255, .35);
+    --good: #2a9163; --spend: #d94f27; --income: #2a9163; --warn: #c98a12; --accent: #e2552c; --on-accent: #ffffff;
+    --shadow: 0 18px 50px rgba(60, 35, 15, .18); --radius: 22px; color-scheme: light;
+    --ink: #17130f; --frost-edge: inset 0 1px 0 rgba(255, 255, 255, .75), inset 0 0 0 1px rgba(255, 255, 255, .35);
+    /* what Settings → Appearance → Customize can change (themevars.ts sets these on <html>): the room's colors and the glass */
+    --glow1: #8a5a3c; --glow2: #f1e4d3; --glow3: #5f6b4a; --glass-base: #fffaf4; --glass-tint: 22%; --glass-blur: 28px;
+    background: var(--bg); }
+  html[data-theme="frosted"] body { background: transparent; }
+  /* the room: wood, a bright window, a dark screen, a plant, a rug */
+  html[data-theme="frosted"] body::after { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(30vmax 40vmax at 12% 18%, color-mix(in srgb, var(--glow1) 70%, transparent), transparent 70%),
+      radial-gradient(40vmax 26vmax at 70% 12%, color-mix(in srgb, var(--glow2) 95%, transparent), transparent 70%),
+      radial-gradient(34vmax 22vmax at 55% 48%, rgba(40, 32, 28, .5), transparent 70%),
+      radial-gradient(28vmax 28vmax at 88% 70%, color-mix(in srgb, var(--glow3) 55%, transparent), transparent 70%),
+      radial-gradient(50vmax 30vmax at 40% 95%, color-mix(in srgb, var(--glow1) 75%, transparent), transparent 70%),
+      linear-gradient(180deg, color-mix(in srgb, var(--bg) 40%, #fff), var(--bg)); }
+  html[data-theme="frosted"] :is(.panel, .kpi, .insight, .extra, .split, .login form, .dash-bar) {
+    background: linear-gradient(160deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, .18)), color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent);
+    border: 1px solid rgba(255, 255, 255, .6); box-shadow: var(--frost-edge), 0 10px 30px rgba(70, 40, 20, .12);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%); backdrop-filter: blur(var(--glass-blur)) saturate(150%); }
+  html[data-theme="frosted"] :is(.drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar) {
+    background: rgba(250, 243, 235, .8); border-color: rgba(255, 255, 255, .7);
+    -webkit-backdrop-filter: blur(36px) saturate(160%); backdrop-filter: blur(36px) saturate(160%); }
+  html[data-theme="frosted"] .drawer footer { background: transparent; border-top-color: rgba(255, 255, 255, .6); }
+  html[data-theme="frosted"] :is(input[type=text], input[type=number], input[type=date], input[type=password], input[type=search], select, textarea, .round, .wctl button) {
+    background: rgba(255, 255, 255, .45); border-color: rgba(255, 255, 255, .7); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6); }
+  html[data-theme="frosted"] select option { background: #f6efe7; }
+  html[data-theme="frosted"] :is(input, select, textarea):focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+  /* pill buttons: ink for the main action, glass for the rest */
+  html[data-theme="frosted"] .btn { background: rgba(255, 255, 255, .45); border-color: rgba(255, 255, 255, .7); }
+  html[data-theme="frosted"] .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); box-shadow: 0 6px 18px rgba(23, 19, 15, .25); }
+  html[data-theme="frosted"] .seg { background: rgba(255, 255, 255, .35); }
+  html[data-theme="frosted"] .seg button.on { background: var(--ink); color: #fff; }
+  html[data-theme="frosted"] .tbl.feed td { background: rgba(255, 250, 244, .42); border-color: rgba(255, 255, 255, .5); }
+  html[data-theme="frosted"] .tbl.feed tr.dayhead div { background: rgba(255, 248, 240, .6); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+  html[data-theme="frosted"] .tbl tr.click:hover td { background: rgba(255, 255, 255, .35); }
+  html[data-theme="frosted"] .tabs { background: rgba(255, 255, 255, .35); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5); }
+  html[data-theme="frosted"] .tabs a.on { background: var(--ink); color: #fff; }
+  html[data-theme="frosted"] .track { background: rgba(255, 255, 255, .5); }
+  html[data-theme="frosted"] .big { color: var(--text); }
+  html[data-theme="frosted"] .appbar.scrolled { background: rgba(240, 228, 214, .55); }
+  html[data-theme="frosted"] .scrim { background: rgba(40, 25, 12, .25); }
+  /* floating glass sidebar, a white pill on the current page */
+  html[data-theme="frosted"] .side { background: rgba(255, 250, 244, .38); border: 1px solid rgba(255, 255, 255, .6); box-shadow: var(--frost-edge), 0 10px 30px rgba(70, 40, 20, .12);
+    -webkit-backdrop-filter: blur(28px) saturate(150%); backdrop-filter: blur(28px) saturate(150%); }
+  html[data-theme="frosted"] .nav a.on { background: #fff; color: var(--text); box-shadow: 0 4px 14px rgba(70, 40, 20, .14); }
+  /* floating glass tab bar on phones, a white pill on the current tab */
+  html[data-theme="frosted"] .tabbar { background: rgba(255, 250, 244, .55); border: 1px solid rgba(255, 255, 255, .7); box-shadow: var(--frost-edge), 0 14px 40px rgba(60, 35, 15, .22);
+    -webkit-backdrop-filter: blur(30px) saturate(170%); backdrop-filter: blur(30px) saturate(170%); }
+  html[data-theme="frosted"] .tabbar a { color: #5d5249; }
+  html[data-theme="frosted"] .tabbar a.on { color: var(--text); }
+  html[data-theme="frosted"] .tab-pill { background: #fff; box-shadow: 0 3px 12px rgba(70, 40, 20, .16); }
+  html[data-theme="frosted"] :is(.tabbar .plus, .fab) { background: var(--ink); color: #fff; box-shadow: 0 6px 18px rgba(23, 19, 15, .3); }
+  /* Other scenes (Settings → Appearance → Customize colors → Scene; themevars.ts sets data-scene). Each sets its own
+     colors for the three --glow variables, so your own colors still apply on top. */
+  html[data-theme="frosted"][data-scene="dunes"] { --bg: #e7a07f; --glow1: #b5654a; --glow2: #fff1d6; --glow3: #f3c9b8; }
+  html[data-theme="frosted"][data-scene="dunes"] body::after { background:
+      radial-gradient(16vmax 16vmax at 72% 26%, var(--glow2), transparent 70%),
+      radial-gradient(60vmax 40vmax at 72% 26%, color-mix(in srgb, var(--glow2) 45%, transparent), transparent 70%),
+      radial-gradient(70vmax 18vmax at 50% 72%, color-mix(in srgb, var(--glow1) 45%, transparent), transparent 70%),
+      radial-gradient(90vmax 30vmax at 15% 100%, var(--glow1), transparent 70%),
+      radial-gradient(80vmax 26vmax at 90% 95%, color-mix(in srgb, var(--glow1) 70%, var(--glow2)), transparent 70%),
+      linear-gradient(180deg, var(--glow3), var(--bg)); }
+  html[data-theme="frosted"][data-scene="garden"] { --bg: #cfd8bf; --glow1: #5f8050; --glow2: #fffbe6; --glow3: #a9bf8e; --accent: #d9662f; }
+  html[data-theme="frosted"][data-scene="garden"] body::after { background:
+      radial-gradient(50vmax 34vmax at 55% 8%, var(--glow2), transparent 70%),
+      radial-gradient(26vmax 34vmax at 6% 30%, var(--glow1), transparent 70%),
+      radial-gradient(30vmax 26vmax at 96% 22%, color-mix(in srgb, var(--glow1) 80%, transparent), transparent 70%),
+      radial-gradient(40vmax 26vmax at 80% 80%, var(--glow3), transparent 70%),
+      radial-gradient(44vmax 24vmax at 18% 92%, color-mix(in srgb, var(--glow1) 65%, var(--glow3)), transparent 70%),
+      linear-gradient(180deg, color-mix(in srgb, var(--glow2) 60%, var(--bg)), var(--bg)); }
+  html[data-theme="frosted"][data-scene="coast"] { --bg: #e8d8bd; --glow1: #3f87a3; --glow2: #f2f8fb; --glow3: #9ccbd8; --accent: #e0612f; }
+  html[data-theme="frosted"][data-scene="coast"] body::after { background:
+      radial-gradient(60vmax 20vmax at 50% 0%, var(--glow2), transparent 70%),
+      radial-gradient(18vmax 14vmax at 78% 18%, #fff, transparent 70%),
+      radial-gradient(100vmax 22vmax at 50% 52%, var(--glow1), transparent 70%),
+      radial-gradient(70vmax 12vmax at 30% 44%, var(--glow3), transparent 70%),
+      linear-gradient(180deg, var(--glow3) 0%, var(--glow2) 30%, color-mix(in srgb, var(--glow1) 60%, var(--glow3)) 48%, var(--glow1) 58%, var(--bg) 72%, var(--bg)); }
+  html[data-theme="frosted"][data-scene="blossom"] { --bg: #f1d3df; --glow1: #d47fa8; --glow2: #fff4f8; --glow3: #a596e0; --accent: #d9467a; }
+  html[data-theme="frosted"][data-scene="blossom"] body::after { background:
+      radial-gradient(36vmax 30vmax at 15% 15%, var(--glow1), transparent 70%),
+      radial-gradient(44vmax 30vmax at 70% 10%, var(--glow2), transparent 70%),
+      radial-gradient(36vmax 36vmax at 92% 60%, var(--glow3), transparent 70%),
+      radial-gradient(30vmax 24vmax at 30% 70%, color-mix(in srgb, var(--glow1) 55%, var(--glow2)), transparent 70%),
+      radial-gradient(50vmax 26vmax at 50% 100%, color-mix(in srgb, var(--glow3) 70%, var(--glow1)), transparent 70%),
+      linear-gradient(180deg, var(--glow2), var(--bg)); }
+  /* Your photo, softened like the scenes */
+  html[data-theme="frosted"][data-scene="photo"] body::after { inset: -60px; background: var(--photo) center / cover no-repeat; filter: blur(22px) saturate(115%); }
+  /* Night city: the same glass, dark */
+  html[data-theme="frosted"][data-scene="night"] { --bg: #120f1c; --glow1: #ff7a3d; --glow2: #3b2a6b; --glow3: #2bb3c9; --text: #f4efe9; --muted: #aba2b6; --faint: rgba(255, 255, 255, .08);
+    --line: rgba(255, 255, 255, .14); --glass-base: #1d1828; --glass-tint: 45%; --accent: #ff7a3d; --on-accent: #1a0d05; --ink: #f4efe9; --good: #47d18c; --income: #47d18c; --spend: #ff7a3d; color-scheme: dark;
+    --frost-edge: inset 0 1px 0 rgba(255, 255, 255, .16), inset 0 0 0 1px rgba(255, 255, 255, .05); }
+  html[data-theme="frosted"][data-scene="night"] body::after { background:
+      radial-gradient(10vmax 10vmax at 20% 30%, var(--glow1), transparent 70%),
+      radial-gradient(8vmax 8vmax at 64% 22%, color-mix(in srgb, var(--glow1) 60%, #ffd36b), transparent 70%),
+      radial-gradient(9vmax 9vmax at 84% 46%, var(--glow3), transparent 70%),
+      radial-gradient(7vmax 7vmax at 40% 58%, color-mix(in srgb, var(--glow3) 50%, #b56bff), transparent 70%),
+      radial-gradient(60vmax 40vmax at 50% 20%, var(--glow2), transparent 70%),
+      linear-gradient(180deg, #1b1530, var(--bg)); }
+  html[data-theme="frosted"][data-scene="night"] :is(.panel, .kpi, .insight, .extra, .split, .login form, .dash-bar) {
+    background: linear-gradient(160deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .03)), color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent);
+    border-color: rgba(255, 255, 255, .13); box-shadow: var(--frost-edge), 0 12px 40px rgba(0, 0, 0, .35); }
+  html[data-theme="frosted"][data-scene="night"] :is(.drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar) { background: rgba(26, 21, 36, .82); border-color: rgba(255, 255, 255, .14); }
+  html[data-theme="frosted"][data-scene="night"] :is(input[type=text], input[type=number], input[type=date], input[type=password], input[type=search], select, textarea, .round, .wctl button, .btn, .seg, .tabs) {
+    background: rgba(255, 255, 255, .07); border-color: rgba(255, 255, 255, .14); box-shadow: none; }
+  html[data-theme="frosted"][data-scene="night"] select option { background: #1d1828; }
+  html[data-theme="frosted"][data-scene="night"] :is(.btn.primary, .seg button.on, .tabs a.on, .tabbar .plus, .fab) { background: var(--ink); color: #15111c; border-color: var(--ink); }
+  html[data-theme="frosted"][data-scene="night"] :is(.tbl.feed td) { background: rgba(29, 24, 40, .45); border-color: rgba(255, 255, 255, .08); }
+  html[data-theme="frosted"][data-scene="night"] .tbl.feed tr.dayhead div { background: rgba(26, 21, 36, .7); }
+  html[data-theme="frosted"][data-scene="night"] :is(.side, .tabbar) { background: rgba(26, 21, 36, .5); border-color: rgba(255, 255, 255, .14); }
+  html[data-theme="frosted"][data-scene="night"] .tabbar a { color: var(--muted); }
+  html[data-theme="frosted"][data-scene="night"] :is(.tab-pill, .nav a.on) { background: rgba(255, 255, 255, .16); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2); }
+  html[data-theme="frosted"][data-scene="night"] :is(.tabbar a.on, .nav a.on) { color: var(--text); }
+  html[data-theme="frosted"][data-scene="night"] .track { background: rgba(255, 255, 255, .1); }
+  html[data-theme="frosted"][data-scene="night"] .appbar.scrolled { background: rgba(18, 15, 28, .55); }
+  @media (max-width: 900px) {
+    html[data-theme="frosted"] :is(.panel, .kpi, .insight, .extra, .split, .dash-bar) { -webkit-backdrop-filter: blur(calc(var(--glass-blur) * .6)) saturate(150%); backdrop-filter: blur(calc(var(--glass-blur) * .6)) saturate(150%); }
   }
   /* ---------- iPhone: notch / home bar, no accidental zoom, native-app shell ---------- */
   body { touch-action: manipulation; }

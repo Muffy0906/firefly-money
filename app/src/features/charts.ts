@@ -5,6 +5,65 @@ import { normGroup, signed, type Group } from '../core/feed';
 import { addDays } from '../core/helpers';
 import type { Account } from '../core/lists';
 
+/* ---------- Shapes the charts share: smooth lines, donuts and progress rings ---------- */
+// A smooth line through the points. Monotone (as d3's curveMonotoneX), so it never bulges past a peak or dips
+// below a flat stretch the way a plain spline would.
+export function smoothPath(pts: [number, number][]) {
+  const n = pts.length, f = (v: number) => v.toFixed(1);
+  if (n < 3) return pts.map((p, i) => (i ? 'L' : 'M') + f(p[0]) + ' ' + f(p[1])).join(' ');
+  const dx = pts.slice(1).map((p, i) => p[0] - pts[i][0]), m = pts.slice(1).map((p, i) => (p[1] - pts[i][1]) / (dx[i] || 1));
+  const t = pts.map((_, i) => {
+    if (i === 0) return m[0];
+    if (i === n - 1) return m[n - 2];
+    const a = m[i - 1], b = m[i];
+    if (a * b <= 0) return 0;
+    const p = (a * dx[i] + b * dx[i - 1]) / (dx[i - 1] + dx[i]);
+    return Math.sign(a) * Math.min(Math.abs(a), Math.abs(b), Math.abs(p) / 2) * 2;
+  });
+  let d = 'M' + f(pts[0][0]) + ' ' + f(pts[0][1]);
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i] / 3;
+    d += ' C' + f(pts[i][0] + h) + ' ' + f(pts[i][1] + t[i] * h) + ' ' + f(pts[i + 1][0] - h) + ' ' + f(pts[i + 1][1] - t[i + 1] * h) + ' ' + f(pts[i + 1][0]) + ' ' + f(pts[i + 1][1]);
+  }
+  return d;
+}
+// Colors for the parts of a whole (a donut's slices and their legend), from the theme so they suit every theme
+// (not --text or --good: some themes' accent is the text color or the same green)
+export const SERIES = ['var(--accent)', '#4a7bd8', 'var(--warn)', '#9b6bdf', '#e0607e', '#3fa7c4', 'var(--muted)'];
+export type Part = { name: string, v: number, color?: string };
+// A ring split into parts, with something (the total) in the middle. Each slice is a dashed circle, so it can sweep
+// in (see .anim in money.css): --at is when it starts, as a share of the sweep.
+export function donut(parts: Part[], middle: Html | string, label: string) {
+  const total = parts.reduce((s, p) => s + p.v, 0) || 1, gap = parts.length > 1 ? .9 : 0;
+  let at = 0;
+  const segs = htmlList(parts.map((p, i) => {
+    const len = Math.max(0, p.v / total * 100 - gap), off = at; at += p.v / total * 100;
+    return html`<circle class="seg" cx="60" cy="60" r="48" pathLength="100" stroke="${p.color || SERIES[i % SERIES.length]}" stroke-dasharray="${len.toFixed(2)} ${(100 - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" style="--at:${(off / 100).toFixed(3)}"><title>${p.name}: ${money0(p.v)}</title></circle>`;
+  }));
+  return html`<div class="donut"><svg viewBox="0 0 120 120" role="img" aria-label="${label}"><circle class="base" cx="60" cy="60" r="48"/>${segs}</svg><div class="mid">${middle}</div></div>`;
+}
+// How far along something is (a goal, a loan), as a ring with the percentage in the middle
+export function ring(pct: number, cls = '', sub = '') {
+  const p = Math.max(0, Math.min(100, pct));
+  return html`<div class="ring ${cls}"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="base" cx="60" cy="60" r="50"/><circle class="seg" cx="60" cy="60" r="50" pathLength="100" stroke-dasharray="${p.toFixed(2)} ${(100 - p).toFixed(2)}" style="--at:0"/></svg><div class="mid"><strong class="num">${p.toFixed(0)}%</strong>${sub ? html`<span>${sub}</span>` : ''}</div></div>`;
+}
+
+// Two amounts over time (earned and spent) as smooth lines, the first with a soft fill under it
+export type LinePoint = { label: string, a: number, b: number };
+const short$ = (v: number) => v >= 1e6 ? '$' + +(v / 1e6).toFixed(1) + 'm' : v >= 1e3 ? '$' + +(v / 1e3).toFixed(1) + 'k' : '$' + Math.round(v);
+function niceMax(v: number) { const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; }
+export function twoLines(pts: LinePoint[], names: [string, string], colors: [string, string], label: string) {
+  const W = innerWidth < 600 ? 360 : 640, H = innerWidth < 600 ? 220 : 280, pl = 46, pr = 8, pt = 10, pb = 26, n = pts.length, base = H - pb;
+  const max = niceMax(Math.max(1, ...pts.flatMap(p => [p.a, p.b])) / 4) * 4;     // four even steps
+  const x = (i: number) => pl + (W - pl - pr) * (n < 2 ? .5 : i / (n - 1)), y = (v: number) => pt + (base - pt) * (1 - v / max);
+  const la = smoothPath(pts.map((p, i) => [x(i), y(p.a)])), lb = smoothPath(pts.map((p, i) => [x(i), y(p.b)]));
+  const area = la + ' L' + x(n - 1).toFixed(1) + ' ' + base + ' L' + x(0).toFixed(1) + ' ' + base + ' Z';
+  const grid = htmlList([0, 1, 2, 3, 4].map(k => { const v = max * k / 4, yy = y(v).toFixed(1); return html`<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 8}" y="${(+yy + 4).toFixed(1)}" text-anchor="end">${short$(v)}</text>`; }));
+  const every = Math.max(1, Math.ceil(n / 6)), ticks = htmlList(pts.map((p, i) => (i % every || n - 1 - i < every / 2) && i !== n - 1 ? '' : html`<text x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}">${p.label}</text>`));
+  const hits = htmlList(pts.map((p, i) => html`<rect x="${(x(i) - (W - pl - pr) / Math.max(1, n - 1) / 2).toFixed(1)}" y="0" width="${((W - pl - pr) / Math.max(1, n - 1)).toFixed(1)}" height="${base}" fill="transparent" data-tip="${p.label + '\n' + names[0] + ' ' + money0(p.a) + '\n' + names[1] + ' ' + money0(p.b)}"/>`));
+  return html`<svg class="lines" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}"><defs><linearGradient id="lg-a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${colors[0]}" stop-opacity=".32"/><stop offset="1" stop-color="${colors[0]}" stop-opacity="0"/></linearGradient></defs><g class="grid">${grid}</g><path class="area" d="${area}" fill="url(#lg-a)"/><path class="draw" pathLength="1" d="${la}" fill="none" stroke="${colors[0]}" stroke-width="2.6" stroke-linecap="round"/><path class="draw late" pathLength="1" d="${lb}" fill="none" stroke="${colors[1]}" stroke-width="2.2" stroke-linecap="round"/>${ticks}${hits}</svg><div class="legend"><span><i style="background:${colors[0]}"></i>${names[0]}</span><span><i style="background:${colors[1]}"></i>${names[1]}</span></div>`;
+}
+
 /* ---------- Sparklines: last 30 days of each account's balance ---------- */
 async function balanceSparks(accounts: Account[]) {
   const start = addDays(todayIso(), -30), end = todayIso(), out: Record<string, number[]> = {};
