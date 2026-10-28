@@ -194,7 +194,9 @@ function balancesPanel(title: string, lead: string, items: Account[], val: (a: A
   return html`<section class="panel"><h2>${title}</h2><p class="lead">${lead}</p>${items.length ? html`<div class="total num">${money0(items.reduce((s, a) => s + val(a), 0))}</div><div class="list">${rows}</div>` : html`<p class="empty">None yet.</p>`}</section>`;
 }
 function loansPanel(loans: Account[], prog: any = {}) {
-  const rows = htmlList([...loans].sort((a, b) => b.debt - a.debt).map(l => {
+  // The biggest four; the rest are a tap away on Loans, so one long list doesn't set the height of its whole row
+  const sorted = [...loans].sort((a, b) => b.debt - a.debt), more = sorted.length > 4 ? sorted.length - 3 : 0;
+  const rows = htmlList(sorted.slice(0, more ? 3 : undefined).map(l => {
     const pr = prog[l.id] || {}, paid = l.debt ? pr.pct ?? null : null;
     const months = pr.monthly > 0 && l.debt > 0 ? Math.ceil(l.debt / pr.monthly) : 0;
     const bits: string[] = [];
@@ -204,7 +206,7 @@ function loansPanel(loans: Account[], prog: any = {}) {
     if (!l.debt) bits.push('Paid off');
     return html`<div style="padding:11px 0;border-top:1px solid var(--line)"><a class="row" href="#/account/${l.id}" style="text-decoration:none"><span class="name">${l.name}</span><span class="num">${money0(l.debt)}</span></a>${paid ? html`<div class="track"><div class="fill good" style="width:${paid.toFixed(1)}%"></div></div>` : ''}<div class="sub-s">${bits.join(' · ')}</div></div>`;
   }));
-  return html`<section class="panel"><div class="panel-head"><h2>Loans</h2><a class="link" href="#/loans">Plan payoff</a></div><p class="lead">Remaining balance and payoff progress</p>${loans.length ? html`<div class="total num" style="margin-bottom:4px">${money0(loans.reduce((s, l) => s + l.debt, 0))}</div>${rows}` : html`<p class="empty">No loans.</p>`}</section>`;
+  return html`<section class="panel"><div class="panel-head"><h2>Loans</h2><a class="link" href="#/loans">Plan payoff</a></div><p class="lead">Remaining balance and payoff progress</p>${loans.length ? html`<div class="total num" style="margin-bottom:4px">${money0(loans.reduce((s, l) => s + l.debt, 0))}</div><div class="loan-rows">${rows}${more ? html`<a class="row more" href="#/loans" style="padding:11px 0;border-top:1px solid var(--line)"><span class="name">${more} more</span><span class="neutral">→</span></a>` : ''}</div>` : html`<p class="empty">No loans.</p>`}</section>`;
 }
 export function cashFlow(trend: CashMonth[]) {
   const W = window.innerWidth < 600 ? 420 : window.innerWidth >= 1700 ? 1500 : 960, H = 210, top = 10, bottom = 28, n = trend.length;
