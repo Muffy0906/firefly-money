@@ -117,7 +117,7 @@ function hideInsight(btn: HTMLElement) {
   Object.keys(hidden).forEach(k => { if (Date.now() - hidden[k] > 100 * 864e5) delete hidden[k]; });
   LS.set('insightsHidden', hidden);
   const rest = [...box.children].filter(c => c !== card);
-  vt('ins', () => { card.remove(); if (!rest.length) box.remove(); }, () => rest.forEach((c, i) => vtName(c, 'ins' + i)));
+  vt('ins', () => { card.remove(); if (!rest.length) (box.closest('#dash > .w') || box).remove(); }, () => rest.forEach((c, i) => vtName(c, 'ins' + i)));
 }
 
 // The methods markup handlers call (see events.ts), added to App and to its type
