@@ -1268,3 +1268,5 @@
     #view .daycards .tbl.feed tr.dayhead div { padding: 12px 14px 2px; }
   }
 
+  .txsum:empty { min-height: 95px; }
+  @media (max-width: 900px) { .txsum:empty { min-height: 136px; } }
