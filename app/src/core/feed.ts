@@ -74,6 +74,21 @@ export function avatarHtml(g: Group, cls = '') {
 // A coloured monogram for a payee or account name, with its logo on top when there is one
 export const nameAvatar = (name: string, cls = '') => html`<span class="av ${cls}" style="--h:${hueOf(name)}" aria-hidden="true">${monogram(name)}${logoImg(name)}</span>`;
 
+/* ---------- Category colours ---------- */
+// Colors for the parts of a whole (a donut's slices and their legend), from the theme so they suit every theme
+// (not --text or --good: some themes' accent is the text color or the same green)
+export const SERIES = ['var(--accent)', '#4a7bd8', 'var(--warn)', '#9b6bdf', '#e0607e', '#3fa7c4', 'var(--muted)'];
+// The month's biggest categories take the donut's colours in the same order (see shareChart), so a category is the
+// same colour in the feed as in "Where it went"; any other category gets a steady colour of its own
+export function rankCats(rows: { name: string, v: number }[]) {
+  S.catRank = rows.filter(r => r.v > 0).sort((a, b) => b.v - a.v).slice(0, 6).map(r => r.name);
+}
+export function catColor(name: string) {
+  if (!name) return '';
+  const i = (S.catRank || []).indexOf(name);
+  return i >= 0 ? SERIES[i] : 'hsl(' + hueOf(name) + ' 50% 55%)';
+}
+
 /* ---------- Day labels for the grouped feed ---------- */
 export function dayLabel(iso: string) {
   const d = String(iso).slice(0, 10), t = todayIso(), diff = daysBetween(d, t);
@@ -83,6 +98,13 @@ export function dayLabel(iso: string) {
   const dt = new Date(d + 'T12:00:00');
   if (diff > 1 && diff < 7) return dt.toLocaleDateString('en-US', { weekday: 'long' });
   return dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', ...(dt.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) });
+}
+// A day header's title: "Today · Tue, Oct 28", "Sunday · Oct 26", "Thu, Oct 2"
+function dayTitle(iso: string) {
+  const rel = dayLabel(iso), dt = new Date(String(iso).slice(0, 10) + 'T12:00:00');
+  if (rel.includes(',')) return html`${rel}`;
+  const date = dt.toLocaleDateString('en-US', rel.endsWith('day') && !/^(Today|Yesterday)$/.test(rel) ? { month: 'short', day: 'numeric' } : { weekday: 'short', month: 'short', day: 'numeric' });
+  return html`${rel}<span class="dd"> · ${date}</span>`;
 }
 // What a rendered transaction row was drawn from, by group id, so a row can be redrawn or edited in place
 export type TxMeta = { g: Group, accountId: string, opts: { select: boolean, accountId: string } };
@@ -105,14 +127,14 @@ export function txRows(groups: Group[], opts: TxRowsOpts = {}) {
     const tags = [...new Set<string>(g.splits.flatMap(s => s.tags))].filter(t => !t.startsWith('Data Import on'));
     const fx = htmlList(g.splits.filter(s => s.fa && s.fc).map(s => html`<span class="chip">${s.fc} ${num(s.fa).toFixed(2)}</span>`));
     const inl = (k: string) => multi ? '' : html` inl" data-k="${k}" data-onclick="event.stopPropagation();App.pick(this)" title="Change ${k}`;
-    const chips = html`<span class="cat-s${inl('category')}">${cats.length ? cats.join(', ') : g.type === 'withdrawal' ? 'Uncategorized' : g.type === 'deposit' ? 'Income' : 'Transfer'}</span>${fx}${multi ? html`<span class="chip">${g.splits.length} splits</span>` : ''}${htmlList(buds.map(b => html`<span class="chip${inl('budget')}">Budget · ${b}</span>`))}${!buds.length && !multi && g.type === 'withdrawal' ? html`<span class="chip ghost${inl('budget')}">+ Budget</span>` : ''}${htmlList(tags.map(t => html`<span class="chip"># ${t}</span>`))}`;
+    const chips = html`<span class="cat-s${inl('category')}">${cats.length ? cats.join(', ') : g.type === 'withdrawal' ? 'Uncategorized' : g.type === 'deposit' ? 'Income' : 'Transfer'}</span>${fx}${multi ? html`<span class="chip">${g.splits.length} splits</span>` : ''}${htmlList(buds.map(b => html`<span class="bud-s${inl('budget')}">${b} budget</span>`))}${!buds.length && !multi && g.type === 'withdrawal' ? html`<span class="chip ghost${inl('budget')}">+ Budget</span>` : ''}${htmlList(tags.map(t => html`<span class="tag-s">#${t}</span>`))}`;
     S.txMeta[g.id] = { g, accountId: opts.accountId || '', opts: { select: !!opts.select, accountId: opts.accountId || '' } };
     let dh: Html | '' = '';
     if (day !== lastDay) {
       const close = lastDay ? html`</tbody>` : ''; lastDay = day; const net = byDay[day];
-      dh = html`${close}<tbody class="day"><tr class="dayhead" data-day="${day}"><td colspan="${cols}"><div><span>${dayLabel(day)}</span>${Math.abs(net) >= .005 ? html`<span class="num ${net < 0 ? '' : 'pos'}">${net > 0 ? '+' : ''}${money(net)}</span>` : ''}</div></td></tr>`;
+      dh = html`${close}<tbody class="day"><tr class="dayhead" data-day="${day}"><td colspan="${cols}"><div><span class="dl">${dayTitle(day)}</span>${Math.abs(net) >= .005 ? html`<span class="num ${net < 0 ? '' : 'pos'}">${net > 0 ? '+' : ''}${money(net)}</span>` : ''}</div></td></tr>`;
     }
-    return html`${dh}<tr class="click" data-gid="${g.id}" data-day="${day}" data-onclick="App.editTx('${g.id}')">${opts.select ? html`<td class="sel" data-onclick="event.stopPropagation()"><input type="checkbox" data-sel="${g.id}" data-onchange="App.selChanged()"${(S.sel || new Set()).has(g.id) ? ' checked' : ''} aria-label="Select"></td>` : ''}<td><div class="txmain">${avatarHtml(g)}<div class="txt"><div class="desc">${desc}</div><div class="meta">${chips}</div></div></div></td><td class="flow hide-s"><span>${flow}</span></td><td class="catcol hide-s"><span class="${cats.length ? '' : 'neutral'}${inl('category')}">${cats.length ? cats.join(', ') : '—'}</span></td>${amountCell(g, opts.accountId)}</tr>`;
+    return html`${dh}<tr class="click" data-gid="${g.id}" data-day="${day}"${cats.length ? html` style="--cat:${catColor(cats[0])}"` : ''} data-onclick="App.editTx('${g.id}')">${opts.select ? html`<td class="sel" data-onclick="event.stopPropagation()"><input type="checkbox" data-sel="${g.id}" data-onchange="App.selChanged()"${(S.sel || new Set()).has(g.id) ? ' checked' : ''} aria-label="Select"></td>` : ''}<td><div class="txmain">${avatarHtml(g)}<div class="txt"><div class="desc">${desc}</div><div class="meta">${chips}</div></div></div></td><td class="flow hide-s"><span>${flow}</span></td><td class="catcol hide-s"><span class="${cats.length ? '' : 'neutral'}${inl('category')}">${cats.length ? cats.join(', ') : '—'}</span></td>${amountCell(g, opts.accountId)}</tr>`;
   }));
   return html`<table class="tbl feed${opts.select ? ' has-sel' : ''}">${rows}</tbody></table>`;
 }

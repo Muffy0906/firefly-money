@@ -490,8 +490,6 @@
   .fab svg { width: 26px; height: 26px; }
   .tabbar .plus svg { width: 24px; height: 24px; }
   .tabbar .plus { width: 46px; height: 46px; margin: -18px auto 0; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: 26px; box-shadow: var(--shadow); padding: 0; display: grid; place-items: center; }
-  .tbl tr.swiping td { transition: none; }
-  .tbl tr.swipe-del td { background: color-mix(in srgb, var(--spend) 18%, var(--panel)); }
   /* ---------- Grouped transaction feed ---------- */
   .panel.flush { overflow: clip; }
   /* Rows are grids and each day is its own block, so a day's header pushes the previous one away while scrolling */
@@ -719,7 +717,7 @@
     filter: saturate(130%); animation: glassDrift 38s ease-in-out infinite alternate; animation-play-state: var(--glass-motion, running); will-change: transform; }
   @keyframes glassDrift { 0% { transform: translate3d(0, 0, 0) rotate(0deg); } 50% { transform: translate3d(4vmax, -3vmax, 0) rotate(8deg); } 100% { transform: translate3d(-3vmax, 3vmax, 0) rotate(-6deg); } }
   /* frosted surfaces */
-  html[data-theme="glass"] :is(.panel, .kpi, .insight, .extra, .split, .login form, .dash-bar) {
+  html[data-theme="glass"] :is(.panel, .daycards tbody.day, .daycards > .center-empty, .kpi, .insight, .extra, .split, .login form, .dash-bar) {
     background: var(--glass), color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent); border: 1px solid rgba(255, 255, 255, .14);
     box-shadow: var(--glass-edge), 0 12px 40px rgba(0, 0, 0, .35);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(170%); backdrop-filter: blur(var(--glass-blur)) saturate(170%); }
@@ -837,7 +835,7 @@
       radial-gradient(28vmax 28vmax at 88% 70%, color-mix(in srgb, var(--glow3) 55%, transparent), transparent 70%),
       radial-gradient(50vmax 30vmax at 40% 95%, color-mix(in srgb, var(--glow1) 75%, transparent), transparent 70%),
       linear-gradient(180deg, color-mix(in srgb, var(--bg) 40%, #fff), var(--bg)); }
-  html[data-theme="frosted"] :is(.panel, .kpi, .insight, .extra, .split, .login form, .dash-bar) {
+  html[data-theme="frosted"] :is(.panel, .daycards tbody.day, .daycards > .center-empty, .kpi, .insight, .extra, .split, .login form, .dash-bar) {
     background: linear-gradient(160deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, .18)), color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent);
     border: 1px solid rgba(255, 255, 255, .6); box-shadow: var(--frost-edge), 0 10px 30px rgba(70, 40, 20, .12);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%); backdrop-filter: blur(var(--glass-blur)) saturate(150%); }
@@ -921,7 +919,7 @@
       radial-gradient(16vmax 16vmax at 30% 70%, color-mix(in srgb, color-mix(in srgb, var(--glow3) 50%, #b56bff) 26%, transparent), transparent 70%),
       radial-gradient(60vmax 40vmax at 50% 20%, var(--glow2), transparent 70%),
       linear-gradient(180deg, #1b1530, var(--bg)); }
-  html[data-theme="frosted"][data-scene="night"] :is(.panel, .kpi, .insight, .extra, .split, .login form, .dash-bar) {
+  html[data-theme="frosted"][data-scene="night"] :is(.panel, .daycards tbody.day, .daycards > .center-empty, .kpi, .insight, .extra, .split, .login form, .dash-bar) {
     background: linear-gradient(160deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .03)), color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent);
     border-color: rgba(255, 255, 255, .13); box-shadow: var(--frost-edge), 0 12px 40px rgba(0, 0, 0, .35); }
   html[data-theme="frosted"][data-scene="night"] :is(.drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar) { background: rgba(26, 21, 36, .82); border-color: rgba(255, 255, 255, .14); }
@@ -1199,3 +1197,76 @@
   .ask-answer { margin-bottom: 16px; }
   .ask-examples { display: flex; flex-wrap: wrap; gap: 8px; }
   .ask-examples .chip { font-size: 13px; padding: 5px 12px; border: 0; cursor: pointer; white-space: normal; text-align: left; }
+
+  /* ---------- Transaction feed: day titles, category colours, quieter amounts ---------- */
+  .tbl.feed tr.dayhead .dd { color: var(--muted); font-weight: 500; }
+  .tbl.feed tr.dayhead .num { padding: 2px 9px; border-radius: 999px; background: var(--faint); color: var(--text); font-size: 12px; font-weight: 600; }
+  .tbl.feed tr.dayhead .num.pos { color: var(--good); background: color-mix(in srgb, var(--good) 13%, transparent); }
+  /* Money out reads in the text colour; only money in is green */
+  .tbl.feed .amt { font-weight: 600; }
+  .tbl.feed .amt.neg { color: var(--text); text-shadow: none; }
+  /* The category's colour (the same as its slice in "Where it went"): a ring round the avatar and a dot by its name */
+  .tbl.feed tr[style*="--cat"] .av { outline: 2px solid var(--cat); outline-offset: 2px; }
+  .tbl.feed tr[style*="--cat"] :is(.cat-s, .catcol > span)::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--cat); margin-right: 6px; vertical-align: 1px; }
+  .tbl.feed tr[style*="--cat"] :is(.cat-s, .catcol > span) { color: color-mix(in oklab, var(--cat) 38%, var(--muted)); }
+  .bud-s, .tag-s { font-size: 12.5px; color: var(--muted); opacity: .85; margin-right: 8px; white-space: nowrap; }
+  /* Swipe a row left for Categorize and Delete (features/phone.ts): the cells slide by --sx and the buttons fill the gap */
+  .tbl.feed tr[data-gid] { position: relative; }
+  .tbl.feed tr[data-sw] > td:not(.swacts) { transform: translateX(var(--sx, 0px)); transition: transform .34s cubic-bezier(.25, 1, .4, 1); }
+  .tbl.feed tr[data-sw].swiping > td { transition: none; }
+  .tbl.feed tr[data-gid] td.swacts { position: absolute; top: 0; right: 0; bottom: 0; width: calc(-1 * var(--sx, 0px)); padding: 0; border: 0; display: flex; align-items: stretch; overflow: hidden; transition: width .34s cubic-bezier(.25, 1, .4, 1); }
+  .swacts button { flex: 1 1 0; min-width: 0; border: 0; border-radius: 0; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    font: inherit; font-size: 11.5px; font-weight: 600; color: #fff; overflow: hidden; white-space: nowrap; cursor: pointer; }
+  .swacts .sw-cat { background: #4a7bd8; }
+  .swacts .sw-del { background: var(--spend); }
+  .swacts svg { width: 20px; height: 20px; flex: none; }
+
+  /* ---------- Transactions page: the month at a glance, search and filters in one row, each day a card ---------- */
+  .txsum { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 36px; padding: 18px 22px; margin-bottom: 16px; }
+  .txsum .ts-k { display: flex; gap: 30px; }
+  .txsum .ts-k > div { display: flex; flex-direction: column; gap: 3px; }
+  .txsum .ts-k strong { font-size: 21px; font-weight: 600; letter-spacing: -.01em; }
+  .txsum .ts-k strong.pos { text-shadow: none; }
+  .dbars { flex: 1 1 280px; display: flex; align-items: flex-end; gap: 2px; height: 48px; min-width: 0; }
+  .dbars .db { flex: 1 1 0; min-width: 0; height: 100%; padding: 0; border: 0; background: none; display: flex; align-items: flex-end; cursor: pointer; }
+  .dbars .db i { display: block; width: 100%; height: max(3px, calc(var(--v) * 100%)); border-radius: 3px; background: color-mix(in srgb, var(--spend) 50%, var(--faint)); transform-origin: bottom; transition: background .15s; }
+  .dbars .db:hover i, .dbars .db:active i { background: var(--spend); }
+  .dbars .db.now i { background: var(--accent); }
+  .dbars .db.fut { cursor: default; }
+  .dbars .db.fut i { background: var(--faint); }
+  #view.anim:not(.calm) .dbars .db i { animation: growUp .55s cubic-bezier(.2, .8, .2, 1) both; }
+  .txbar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; }
+  .txbar .search { flex: 0 1 340px; max-width: none; }
+  .txbar .search input { border-radius: 999px; }
+  .txbar .tabs { margin: 0; flex: none; }
+  .txbar .selall { margin-left: auto; }
+  .daycards tbody.day { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: clip; margin-bottom: 12px;
+    scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 14px); -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+  .daycards .tbl.feed tr.dayhead { position: static; }
+  .daycards .tbl.feed tr.dayhead td { border-bottom: 0; }
+  #view .daycards .tbl.feed tr.dayhead div { background: none; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; padding: 13px 16px 2px; font-size: 13px; letter-spacing: 0; color: var(--text); }
+  .daycards > .center-empty { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+  .daycards tbody.day.flash { animation: dayFlash 1.4s ease; }
+  @keyframes dayFlash { 0%, 35% { box-shadow: 0 0 0 2px var(--accent); } 100% { box-shadow: 0 0 0 2px transparent; } }
+  @media (max-width: 900px) {
+    .head .new-tx { display: none; }       /* the + in the corner does this */
+    .txsum { padding: 14px 16px; gap: 12px; }
+    .txsum .ts-k { width: 100%; justify-content: space-between; gap: 12px; }
+    .txsum .ts-k strong { font-size: 19px; }
+    .dbars { flex-basis: 100%; height: 40px; }
+    .txbar { gap: 8px; }
+    /* Search folds to a round button next to the filters, and takes the row while it's in use */
+    .txbar .search { flex: 0 0 40px; min-width: 0; transition: flex-basis .25s ease; }
+    .txbar .search input { height: 40px; padding: 0 12px 0 38px; }
+    .txbar .search input::placeholder { color: transparent; }
+    .txbar .search:focus-within input::placeholder { color: var(--muted); }
+    .txbar.searching .search, .txbar .search:focus-within, .txbar .search:has(input:not(:placeholder-shown)) { flex: 1 1 auto; }
+    .txbar.searching .tabs, .txbar:has(.search:focus-within) .tabs, .txbar:has(.search input:not(:placeholder-shown)) .tabs { display: none; }
+    .txbar .tabs { flex: 0 1 auto; min-width: 0; overflow-x: auto; }
+    .txbar .tabs a { padding: 7px 11px; }
+    .txbar .selall { display: none; }
+    #view .daycards .tbl.feed tr.dayhead div { padding: 12px 14px 2px; }
+  }
+
+  .txsum:empty { min-height: 95px; }
+  @media (max-width: 900px) { .txsum:empty { min-height: 136px; } }
