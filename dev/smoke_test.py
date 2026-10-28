@@ -276,31 +276,43 @@ async def check(pw, width, height, mobile):
     return errors
 
 
+# The Overview as the README and the online demo show it (app/src/demo/demo.ts sets up the same layout)
+SHOT_DASH = ('{"v":3,"order":["insights","networth","earned","spent","attention","spending","cash","cards","flow","heatmap","loans"],'
+             '"shown":["cash","cards","flow","heatmap","loans"],"hidden":["safe","budgets","bills","cashflow"],'
+             '"size":{"networth":"s","attention":"s","cash":"s","cards":"s","heatmap":"s","loans":"s","spending":"m","flow":"m"}}')
+
+
 async def screenshots(pw, out):
     br = await pw.chromium.launch()
-    async def shot(route, name, w=1440, h=900, mobile=False, theme='glass', action=None, full=False):
-        ctx = await br.new_context(viewport={'width': w, 'height': h}, is_mobile=mobile, has_touch=mobile, device_scale_factor=2 if mobile else 1)
+    async def shot(route, name, w=1440, h=900, mobile=False, theme='frosted', action=None, full=False, scale=None):
+        ctx = await br.new_context(viewport={'width': w, 'height': h}, is_mobile=mobile, has_touch=mobile, device_scale_factor=scale or (2 if mobile else 1))
         await ctx.add_cookies([{'name': 'money_session', 'value': 'demo', 'url': BASE.split('#')[0].rstrip('/') + '/api/'}])
+        await ctx.add_init_script(f"localStorage.setItem('money.dash', '{SHOT_DASH}'); localStorage.setItem('money.syncOff', 'true')")
         if theme: await ctx.add_init_script(f"localStorage.setItem('moneyTheme','{theme}')")
         pg = await ctx.new_page(); await pg.goto(BASE + '#/' + route)
-        await pg.wait_for_function(PAINTED); await pg.wait_for_function("() => !document.querySelector('#view .sk, #view [aria-busy]')"); await pg.wait_for_timeout(1200)
+        await pg.wait_for_function(PAINTED); await pg.wait_for_function("() => !document.querySelector('#view .sk, #view [aria-busy]')"); await pg.wait_for_timeout(2800)
         if action: await action(pg)
         await pg.screenshot(path=f'{out}/{name}.png', full_page=full); await ctx.close()
     async def open_tx(pg):
-        await pg.locator('tr[data-gid] .desc').nth(1).click(); await pg.wait_for_selector('#txForm'); await pg.wait_for_timeout(700)
+        await pg.locator('tr[data-gid] .desc, .daycards [data-gid]').nth(1).click(); await pg.wait_for_selector('#txForm'); await pg.wait_for_timeout(700)
     async def quick_add(pg):
         await pg.evaluate('App.quickAdd()'); await pg.wait_for_selector('#nlq'); await pg.wait_for_timeout(300)
         await pg.locator('#nlq').press_sequentially('coffee 5.40 rewards yesterday', delay=10); await pg.wait_for_timeout(500)
     async def to_flow(pg):
-        await pg.evaluate("document.querySelector('[data-w=flow]').scrollIntoView({block:'end'})"); await pg.evaluate('scrollBy(0,30)'); await pg.wait_for_timeout(500)
-    await shot('', 'overview')
-    await shot('', 'overview-charts', action=to_flow)
+        await pg.evaluate("document.querySelector('[data-w=flow]').scrollIntoView({block:'end'})"); await pg.evaluate('scrollBy(0,30)'); await pg.wait_for_timeout(900)
+    async def phone_scroll(pg):
+        await pg.evaluate("document.querySelector('[data-w=spending]').scrollIntoView({block:'start'})"); await pg.evaluate('scrollBy(0,-90)'); await pg.wait_for_timeout(900)
+    # Frosted glass first: it's the theme the README leads with
+    await shot('', 'overview', 1600, 1000, scale=2)
+    await shot('', 'overview-charts', 1600, 1000, action=to_flow)
     await shot('transactions', 'transactions')
     await shot('transactions', 'quick-add', action=quick_add)
+    await shot('', 'phone-overview', 402, 874, True)
+    await shot('', 'phone-overview-charts', 402, 874, True, action=phone_scroll)
+    await shot('transactions', 'phone-transactions', 402, 874, True)
+    await shot('transactions', 'phone-edit-sheet', 402, 874, True, action=open_tx)
     await shot('', 'overview-light', theme='light')
-    await shot('', 'phone-overview', 390, 844, True)
-    await shot('transactions', 'phone-edit-sheet', 390, 844, True, action=open_tx)
-    for k in ['dark', 'carbon', 'midnight', 'neon', 'ocean', 'sunrise', 'forest', 'nord', 'rose', 'frosted']:   # one per theme, for the theme gallery
+    for k in ['glass', 'dark', 'carbon', 'midnight', 'neon', 'ocean', 'sunrise', 'forest', 'nord', 'rose']:   # one per theme, for the theme gallery
         await shot('', f'theme-{k}', theme=k)
     await br.close()
 
