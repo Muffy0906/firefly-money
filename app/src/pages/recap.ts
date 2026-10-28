@@ -20,7 +20,7 @@ const delta = (now: number, then: number, up = 'up') => {
   return html`<span class="${(d > 0) === (up === 'up') ? 'up' : 'down'}">${d > 0 ? '▲' : '▼'} ${money0(Math.abs(d))} (${pct > 0 ? '+' : ''}${pct}%)</span> vs usual`;
 };
 // The month's own accounts on a day, summed: assets minus debts (Firefly keeps liabilities as negative balances)
-async function netOn(date: string) {
+export async function netOn(date: string) {
   const [as, ls] = await Promise.all([getAll('/accounts', { type: 'asset', date }), getAll('/accounts', { type: 'liabilities', date })]);
   const byId = new Map([...as, ...ls].map(a => [String(a.id), normAccount(a)]));
   return [...byId.values()].filter(a => a.active && a.netWorth && (isAsset(a) || isLiab(a))).reduce((s, a) => s + a.balance, 0);

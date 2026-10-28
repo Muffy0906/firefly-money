@@ -20,7 +20,7 @@ const PAGE_KEYS: Record<string, string> = {
   '': 'home dashboard summary net worth', forecast: 'future cash flow safe to spend what if scenarios', transactions: 'activity spending history expenses income transfers',
   inbox: 'uncategorized categorize sort', review: 'new imported check', accounts: 'banks balances checking savings credit cards', loans: 'debt payoff mortgage interest',
   budgets: 'limits spending plan', categories: 'tags labels', bills: 'subscriptions due calendar', recurring: 'repeating scheduled automatic',
-  piggy: 'savings goals', rules: 'automation auto categorize', recap: 'month summary', ask: 'question how much', map: 'places locations',
+  piggy: 'savings goals', rules: 'automation auto categorize', recap: 'month summary', year: 'wrapped year review annual story recap', ask: 'question how much', map: 'places locations',
   reports: 'charts compare year csv sankey', settings: 'preferences options',
 };
 // Settings: [label, extra words, where on the Settings page: a group (#set-…) or a folded section (data-k), which opens]
@@ -31,6 +31,7 @@ const SETTINGS: [string, string, string][] = [
   ['Customize theme colors', 'theme color colour background accent liquid glass frosted blur tint frost glow light custom scene background wallpaper photo', 'theme-custom'],
   ['Payee and bank logos', 'logos icons images duckduckgo merchant', '#set-look'],
   ['About logos', 'logos duckduckgo privacy', 'logos'],
+  ['Hours of work', 'hours work wage hourly salary time cost lens worked', '#set-look'],
   ['Haptics', 'haptic feedback vibration vibrate buzz tap feel iphone android', '#set-look'],
   ['Sync between devices', 'sync iphone ipad devices cloud preferences sync now', '#set-sync'],
   ['Apple Pay', 'shortcut iphone wallet automation ingest key', '#set-applepay'],
@@ -64,6 +65,7 @@ function baseItems(): PalItem[] {
     { label: 'Recalculate everything (fetch all numbers fresh)', kind: 'Action', run: () => App.recalcAll() });
   SETTINGS.forEach(([label, keys, focus]) => items.push({ label, kind: 'Setting', keys: 'settings ' + keys, go: '#/settings', focus }));
   items.push({ label: 'Hide amounts (privacy)', kind: 'Setting', keys: 'settings privacy blur hide numbers', run: () => App.togglePrivacy() },
+    { label: 'Hours of work: show what purchases cost in hours', kind: 'Setting', keys: 'settings lens wage hourly time', run: () => App.toggleWorkLens(!LS.get('workLens', false)) },
     { label: 'Compact view', kind: 'Setting', keys: 'settings density compact spacing', run: () => App.toggleDensity() },
     { label: 'Sign out', kind: 'Setting', keys: 'log out', run: () => App.signOut() });
   THEMES.forEach(([k, label]) => items.push({ label: 'Theme: ' + label, kind: 'Setting', keys: 'settings appearance dark light color', run: () => setTheme(k) }));

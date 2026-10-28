@@ -7,7 +7,7 @@ import { applyCustom } from '../core/themevars';
 /* ---------- Settings that follow you between devices ----------
    The Overview layout and the choices below are kept in one Firefly user preference, so every device signed in to
    the same Firefly sees them. Your colours for each theme follow too; the theme itself, hide amounts and density stay with each device. The latest change wins. */
-export const SYNCED = ['dash', 'insightsHidden', 'fcExclude', 'fcBuffer', 'fcDays', 'fcAccount', 'fcWhatIf', 'loanPlan', 'subsHidden', 'nwYears', 'logos', 'logoSites', 'reviewedAt', 'reviewed', 'cycleDay', 'budgetAlert', 'drafts', 'fcLog', 'savedReports', 'xferSkip', 'themeCustom'];
+export const SYNCED = ['dash', 'insightsHidden', 'fcExclude', 'fcBuffer', 'fcDays', 'fcAccount', 'fcWhatIf', 'loanPlan', 'subsHidden', 'nwYears', 'logos', 'logoSites', 'reviewedAt', 'reviewed', 'cycleDay', 'budgetAlert', 'drafts', 'fcLog', 'savedReports', 'xferSkip', 'themeCustom', 'workLens', 'workHours', 'workRate'];
 const PREF = 'money_settings';
 let timer: any = 0, applying = false, pulledAt = 0;
 const syncOn = () => S.signedIn && !LS.get('syncOff', false);

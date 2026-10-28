@@ -5,7 +5,8 @@ import { type ApiData, App, S, el, fmtDate, fmtDay, money, num, sameName, todayI
 import { LS } from '../core/helpers';
 import { BUZZ_SAVE, buzz } from '../core/haptics';
 import { closeDrawer, formError, icon, openDrawer, opt, toast, vt, vtName } from '../core/dom';
-import { type Group, avatarHtml, normGroup, payeeOf, signed } from '../core/feed';
+import { type Group, amtInner, avatarHtml, normGroup, payeeOf, signed } from '../core/feed';
+import { hoursText, lensOn } from '../core/worklens';
 import { type Account, invalidate, isAsset, isCard, isLiab, lists } from '../core/lists';
 import { REFUND_TAG, isRefundTag, refundLinkType } from './refunds';
 import { route } from '../core/router';
@@ -47,7 +48,7 @@ export async function editTx(id: string) {
   if (meta) {
     const g = meta.g, v = signed(g, meta.accountId);
     S.drawerHero = { id, av: avatarHtml(g, 'lg'), name: payeeOf(g).name, date: g.date, kicker: 'Transaction',
-      amount: !meta.accountId && g.type === 'transfer' ? money(g.total) : (v > 0 ? '+' : '') + money(v) };
+      amount: !meta.accountId && g.type === 'transfer' ? money(g.total) : (v > 0 ? '+' : '') + money(v) + (v < 0 && lensOn() && hoursText(v) ? ' · ' + hoursText(v) + ' of work' : '') };
   } else S.drawerHero = null;
   // The list already has the whole transaction, so the form opens filled in straight away; the copy fetched
   // from Firefly III replaces it only if it differs and you haven't started editing.
@@ -193,7 +194,7 @@ async function saveTx(formEl: HTMLFormElement) {
   if (row) {
     row.classList.add('saving');
     const d = row.querySelector('.desc'); if (d && f.splits.length === 1) d.textContent = f.splits[0].description;
-    const a = row.querySelector('.amt'); if (a && f.splits.length === 1 && f.type !== 'transfer') a.textContent = (f.type === 'deposit' ? '+' : '-') + money(num(f.splits[0].amount)).replace('-', '');
+    const a = row.querySelector('.amt'); if (a && f.splits.length === 1 && f.type !== 'transfer') a.innerHTML = String(amtInner((f.type === 'deposit' ? 1 : -1) * Math.abs(num(f.splits[0].amount))));
     const c = row.querySelector('.catcol span'); if (c && f.splits.length === 1) { c.textContent = f.splits[0].category || '—'; }
   } else toast('Saving…');
   try {

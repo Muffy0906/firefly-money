@@ -1,11 +1,12 @@
 import { html, htmlList, raw } from '../core/html';
 import { AuthError, PAGES, api, getAll, type ApiError } from '../core/api';
 import { withAuth } from '../core/auth';
-import { App, S, cycleDay, el, fmtDate, isoDate, monthRange, nowMonth, num, todayIso } from '../core/base';
+import { App, S, cycleDay, el, fmtDate, isoDate, money, monthRange, nowMonth, num, todayIso } from '../core/base';
 import { confirmBox, head, opt, toast } from '../core/dom';
 import { LS, budgetAlert, saveBlob } from '../core/helpers';
 import { buzz, hapticsOn } from '../core/haptics';
 import { logosOn } from '../core/logo';
+import { hourlyRate, learnRate, lensOn, workHours } from '../core/worklens';
 import { THEMES, themeButtons } from '../core/login';
 import { type Custom, KEY, PHOTO_KEY, SCENES, applyCustom, isHex, lum, readCustom } from '../core/themevars';
 import { type Account, invalidate, isAsset, isLiab, lists, ordinal } from '../core/lists';
@@ -35,6 +36,7 @@ VIEWS.settings = async (r, paint) => {
   const L = await lists(true);
   const [about, rates, hooks, ingest] = await Promise.all([
     api('/about').catch(() => ({})), getAll('/exchange-rates').catch(() => null), getAll('/webhooks').catch(() => null), ingestKey(),
+    lensOn() ? learnRate() : null,
   ]);
   const cards = ingest ? await loadCards() : null;
   const enabled = L.currencies.filter(c => c.enabled), disabled = L.currencies.filter(c => !c.enabled);
@@ -55,8 +57,11 @@ VIEWS.settings = async (r, paint) => {
     ${row('Compact view', 'Tighter spacing to fit more in', html`<input ${SWITCH} aria-label="Compact view" data-pref="compact"${compact ? ' checked' : ''} data-onchange="App.toggleDensity()">`)}
     ${row('Logos', 'Payees’ and banks’ logos instead of initials', html`<input ${SWITCH} aria-label="Show logos"${logosOn() ? ' checked' : ''} data-onchange="App.toggleLogos(this.checked)">`)}
     ${row('Haptics', 'A light tap when you save, delete or flip a switch. iPhone needs iOS 18 or later.', html`<input ${SWITCH} aria-label="Haptics"${hapticsOn() ? ' checked' : ''} data-onchange="App.toggleHaptics(this.checked)">`)}
+    ${row('Hours of work', 'Under each purchase, the hours you worked to pay for it', html`<input ${SWITCH} aria-label="Hours of work"${lensOn() ? ' checked' : ''} data-onchange="App.toggleWorkLens(this.checked)">`)}
+    ${lensOn() ? html`${row('Hours a week', 'How long you work', html`<select aria-label="Hours a week" data-onchange="App.setWorkHours(this.value)">${htmlList([10, 15, 20, 25, 30, 32, 35, 37.5, 40, 45, 50, 55, 60].map(h => opt(h, h + ' hours', workHours())))}</select>`)}
+    ${row('Hourly take-home', +LS.get('workRate', 0) > 0 ? 'Yours. Clear it to work it out from your income.' : hourlyRate() ? 'Worked out from what came in over the last six months: ' + money(hourlyRate()) + ' an hour' : 'Working it out from your income…', html`<input type="number" inputmode="decimal" min="0" step="0.01" class="set-num" aria-label="Hourly take-home" placeholder="${hourlyRate() ? hourlyRate().toFixed(2) : 'Auto'}" value="${+LS.get('workRate', 0) > 0 ? String(LS.get('workRate', 0)) : ''}" data-onchange="App.setWorkRate(this.value)">`)}` : ''}
     ${more('logos', 'About logos', '', html`<p class="sub-s">Your Money server fetches each logo from DuckDuckGo’s icon service by the payee’s website (guessed from its name; change it in the account’s settings) and keeps it, so your browser never contacts another site.</p>`)}`,
-    'Theme, hide amounts, compact view and haptics are saved on this device only. Your colors for each theme sync like your other settings.');
+    'Theme, hide amounts, compact view and haptics are saved on this device only. Hours of work and your colors for each theme sync like your other settings.');
 
   const syncOff = !!LS.get('syncOff', false), syncAt = LS.get('syncAt', 0);
   const syncStatus = syncOff ? 'Off: this device keeps its own settings.' : S.syncError ? html`<span class="up">Couldn’t sync: ${S.syncError}</span>`
@@ -363,6 +368,10 @@ function toggleLogos(on: boolean) { LS.set('logos', !!on); toast(on ? 'Logos on'
 function toggleHaptics(on: boolean) { LS.set('haptics', !!on); if (on) buzz(); toast(on ? 'Haptics on' : 'Haptics off'); }
 // The month start day: stay on the current month, and redraw every page with the new ranges
 function setCycleDay(v: string) { LS.set('cycleDay', Math.min(28, Math.max(1, Math.floor(num(v)) || 1))); S.all = false; [S.y, S.m] = nowMonth(); PAGES.clear(); toast('Months now start on the ' + ordinal(cycleDay())); route(); }
+// Hours of work (core/worklens.ts): every amount list is drawn again with or without the hours
+function toggleWorkLens(on: boolean) { LS.set('workLens', !!on); PAGES.clear(); toast(on ? 'Purchases show the hours of work they cost' : 'Hours of work off'); if (on) learnRate(); route({ quiet: true }); }
+function setWorkHours(v: string) { LS.set('workHours', num(v) || 40); PAGES.clear(); route({ quiet: true }); }
+function setWorkRate(v: string) { LS.set('workRate', Math.max(0, Math.round(num(v) * 100) / 100)); PAGES.clear(); route({ quiet: true }); }
 function setBudgetAlert(v: string) { LS.set('budgetAlert', num(v)); PAGES.clear(); toast('Budget warnings at ' + budgetAlert() + '%'); }
 
 // The methods markup handlers call (see events.ts), added to App and to its type
@@ -370,6 +379,9 @@ const methods = {
   currency,
   toggleLogos,
   toggleHaptics,
+  toggleWorkLens,
+  setWorkHours,
+  setWorkRate,
   setCycleDay,
   setBudgetAlert,
   copyText,

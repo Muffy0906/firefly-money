@@ -105,6 +105,11 @@ async function insightCards({ cur: period, future, budgets, limits, cards, trend
     }
   }
 
+  // December and early January: the year's story is ready (pages/year.ts)
+  if (isCur && (nm === 11 || (nm === 0 && now.getDate() <= 20))) {
+    const yr = nm === 11 ? ny : ny - 1;
+    add('year:' + yr, 'down', 'spark', 'Your ' + yr + ' in Money', 'A few cards on your year: your places, your biggest month, days you spent nothing', '#/year?y=' + yr, 90);
+  }
   const hidden = LS.get('insightsHidden', {});
   const shown = out.filter(x => !hidden[x.id]).sort((a, b) => b.score - a.score).slice(0, max || 4);
   if (!shown.length) return '';
