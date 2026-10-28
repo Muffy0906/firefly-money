@@ -2,7 +2,7 @@ import { type Html, html, htmlList, raw } from '../core/html';
 import { api, getAll, sleep } from '../core/api';
 import { App, S, absDiff, arr, el, fmtDate, fmtDay, isoDate, money, money0, monthRange, nowMonth, num, period, sumDiff, todayIso, type ApiData, type Period } from '../core/base';
 import { head, monthNav } from '../core/dom';
-import { normGroup, txRows } from '../core/feed';
+import { normGroup, rankCats, txRows } from '../core/feed';
 import { addDays, budgetAlert } from '../core/helpers';
 import { type Account, isAsset, isCard, isLiab, lists } from '../core/lists';
 import { VIEWS } from '../core/router';
@@ -77,6 +77,7 @@ VIEWS[''] = async (r, paint) => {
   arr(catPrev).forEach(x => { const c = cats.get(x.name) || { name: x.name, id: x.id, amt: 0, prev: 0 }; c.prev = absDiff(x); cats.set(x.name, c); });
   const un = sumDiff(noCatNow), unP = sumDiff(noCatPrev);
   if (un || unP) cats.set('Uncategorized', { name: 'Uncategorized', amt: un, prev: unP });
+  rankCats([...cats.values()].map(c => ({ name: c.name, v: c.amt })));     // the feed's category colours follow the donut's
 
   const build = (slow: ApiData[] | null) => {
     const [prog, safe, insights, sparks, dayTx, incomeSrc, payNow, payPrev, piggies, nw, prevTx, monthCats] = slow || [];

@@ -64,7 +64,7 @@ async def check(pw, width, height, mobile):
         if await page.locator('#view .error').count():
             errors.append(f'#{p}: page showed an error: ' + await page.inner_text('#view .error'))
         # open each primary "new …" button on the page, then close the drawer
-        buttons = page.locator('#view .head .actions button.btn.primary')
+        buttons = page.locator('#view .head .actions button.btn.primary:visible')   # (New transaction is hidden on phones: the + does it)
         for i in range(await buttons.count()):
             await buttons.nth(i).click()
             await page.wait_for_timeout(600)

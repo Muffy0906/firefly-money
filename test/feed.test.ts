@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { type Group, dayLabel, monogram, payeeOf } from '../app/src/core/feed';
+import { type Group, SERIES, catColor, dayLabel, monogram, payeeOf, rankCats } from '../app/src/core/feed';
 
 describe('payeeOf', () => {
   const g = (type: string, splits: unknown[], title = '') => ({ type, title, splits }) as unknown as Group;
@@ -37,5 +37,20 @@ describe('dayLabel', () => {
     expect(dayLabel('2026-10-16')).toBe('Friday');
     expect(dayLabel('2026-10-01')).toBe('Thu, Oct 1');
     expect(dayLabel('2025-10-01')).toBe('Wed, Oct 1, 2025');
+  });
+});
+
+describe('catColor', () => {
+  it('gives the month\'s biggest categories the donut\'s colours, in its order', () => {
+    rankCats([{ name: 'Gas', v: 40 }, { name: 'Groceries', v: 300 }, { name: 'Nothing', v: 0 }, { name: 'Dining', v: 120 }]);
+    expect(catColor('Groceries')).toBe(SERIES[0]);
+    expect(catColor('Dining')).toBe(SERIES[1]);
+    expect(catColor('Gas')).toBe(SERIES[2]);
+  });
+  it('gives any other category a steady colour of its own, and none to no category', () => {
+    rankCats([]);
+    expect(catColor('Pets')).toMatch(/^hsl\(\d+ 50% 55%\)$/);
+    expect(catColor('Pets')).toBe(catColor('Pets'));
+    expect(catColor('')).toBe('');
   });
 });

@@ -1,7 +1,7 @@
 import { Html, html, htmlList } from '../core/html';
 import { getAll } from '../core/api';
 import { App, absDiff, fmtDay, money, money0, pad, todayIso, type ApiData, type Period } from '../core/base';
-import { normGroup, signed, type Group } from '../core/feed';
+import { SERIES, normGroup, signed, type Group } from '../core/feed';
 import { addDays } from '../core/helpers';
 import type { Account } from '../core/lists';
 
@@ -27,9 +27,7 @@ export function smoothPath(pts: [number, number][]) {
   }
   return d;
 }
-// Colors for the parts of a whole (a donut's slices and their legend), from the theme so they suit every theme
-// (not --text or --good: some themes' accent is the text color or the same green)
-export const SERIES = ['var(--accent)', '#4a7bd8', 'var(--warn)', '#9b6bdf', '#e0607e', '#3fa7c4', 'var(--muted)'];
+export { SERIES };
 export type Part = { name: string, v: number, color?: string };
 // A ring split into parts, with something (the total) in the middle. Each slice is a dashed circle, so it can sweep
 // in (see .anim in money.css): --at is when it starts, as a share of the sweep.

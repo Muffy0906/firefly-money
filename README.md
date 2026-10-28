@@ -77,7 +77,7 @@ Firefly III is a great engine for your finances. Money is a faster, friendlier w
 - **Bills calendar:** the Bills page can show the month as a calendar, with each bill on the day it was paid or is due, and totals for paid, still due and overdue.
 - **Monthly recap:** a page per month with what came in and went out against a usual month, where the money went, the biggest purchases, new payees, bills and the change in net worth.
 - **Review queue:** new transactions (from imports, rules or other apps) wait on the Review page until you tick them off or mark them all reviewed. It also finds transfers between your accounts that were imported as an expense and an income, and makes each pair one transfer in a tap.
-- **Transactions:** a feed grouped by day with sticky headers, merchant avatars and infinite scroll. You can change a category or budget inline, edit several at once, split, search, attach files and link transactions. Duplicate copies a transaction, splits and all, dated today, and Save as draft keeps a new one on a Drafts list until you add it.
+- **Transactions:** the month at a glance (spent, earned, net, and a bar for each day's spending: tap one to jump to that day), search and filters in one row, and a feed with each day as its own card, merchant avatars ringed in their category's colour (the same as in the spending donut) and infinite scroll. You can change a category or budget inline, edit several at once, split, search, attach files and link transactions. Duplicate copies a transaction, splits and all, dated today, and Save as draft keeps a new one on a Drafts list until you add it.
 - **Refunds:** open an expense and tap Refund. Money fills in an income into the account you paid from, with the same payee and category, tagged `Refund` and linked to the purchase (change the amount if only part came back). Reports, Budgets, the overview and the recap take refunds off spending instead of counting them as income, and the budget comes from the linked purchase. Quick add works too: `amazon refund 42.10 amex`.
 - **Quick add in plain words:** type `coffee 5.40 amex yesterday`, `paycheck 2850 chase` or `transfer 400 from checking to savings last friday` and the form fills itself in. Payee memory then fills in the category and budget from the last time.
 - **Apple Pay auto-logging:** an iPhone Shortcut sends each Apple Pay tap to Money, which adds it to the card's account with the category from last time, tagged "Apple Pay". Set up in Settings → Apple Pay; see [docs/apple-pay.md](docs/apple-pay.md).
@@ -94,7 +94,7 @@ Firefly III is a great engine for your finances. Money is a faster, friendlier w
 **Feel**
 - Animated page and edit-panel transitions (View Transitions API), with instant fallback in other browsers and when reduced motion is on.
 - Changes show right away and roll back if Firefly refuses them. Deleting has an undo option.
-- **Phone:** bottom tab bar, bottom sheets you can drag down to close, swipe to delete, pull to refresh, and light vibration on supported devices.
+- **Phone:** bottom tab bar, bottom sheets you can drag down to close, swipe a transaction left to categorize or delete it, pull to refresh, and light vibration on supported devices.
 - **Keyboard:**
   - `J`/`K` move through transactions and `Enter` opens one.
   - `C` and `B` change the category or budget, and `X` selects.

@@ -16,7 +16,7 @@ export const setToday = (d: Date) => { today = d; };
 export type ApiData = any;
 // The open form in the drawer. Each form keeps its own fields here (txform.ts has the biggest).
 export type FormState = ApiData;
-export type Feed = { next: number, pages: number, opts: { accountId?: string, select?: boolean }, more: (n: number) => Promise<Group[]>, busy?: boolean };
+export type Feed = { next: number, pages: number, opts: { accountId?: string, select?: boolean }, more: (n: number) => Promise<Group[]>, busy?: Promise<boolean> | null };
 // The app's state: what's on screen, what's open, and data kept between pages
 export interface State {
   y: number, m: number, all?: boolean,                 // the month in view, or all time
@@ -34,7 +34,7 @@ export interface State {
   // Cache freshness (api.ts)
   swr?: boolean, swrOff?: number, lastRefresh?: number, refreshing?: Promise<void> | null, recalcing?: boolean,
   // Transaction lists
-  feed?: Feed | null, txMeta: Record<string, TxMeta>, txPage?: Group[], sel?: Set<string>, pendingDel: Set<string>,
+  feed?: Feed | null, txMeta: Record<string, TxMeta>, txPage?: Group[], sel?: Set<string>, pendingDel: Set<string>, catRank?: string[],
   undoCommit?: (() => void) | null, undoT?: ReturnType<typeof setTimeout>, chartData?: { label: string, income: number, spend: number, go?: string }[],
   // The drawer
   drawerHero?: { id: string, av: Html, name: string | undefined, date: string, kicker: string, amount: string } | null, drawerReturn?: HTMLElement | null, drawerTok?: number,
