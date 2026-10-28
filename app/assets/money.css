@@ -1364,11 +1364,12 @@
   }
   /* ---------- Bento Overview (dashboard.ts): tiles small, medium or large; phones two small ones to a row ---------- */
   .cards .w { container-type: inline-size; }
-  .cards.bento { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap); align-items: stretch; grid-auto-flow: row dense; margin-bottom: var(--gap); }
+  .cards.bento { display: grid; grid-template-columns: repeat(var(--units, 2), minmax(0, 1fr)); gap: var(--gap); align-items: stretch; grid-auto-flow: row dense; margin-bottom: var(--gap); }
   .cards.bento.editing { grid-auto-flow: row; }
   .cards.bento > .w, .cards.bento .dash-rest > .w { display: flex; flex-direction: column; margin: 0; min-width: 0; }
   .cards.bento > .w > .panel, .cards.bento .dash-rest > .w > .panel { flex: 1; }
-  .cards.bento > .w:is(.m, .l), .cards.bento .dash-rest > .w:is(.m, .l) { grid-column: span 2; }
+  .cards.bento > .w.m, .cards.bento .dash-rest > .w.m { grid-column: span 2; }
+  .cards.bento > .w.l, .cards.bento .dash-rest > .w.l { grid-column: 1 / -1; }
   .cards.bento .dash-rest:not([hidden]) { display: contents; }
   .cards.bento .dash-more { grid-column: 1 / -1; }
   .cards.bento .wctl { flex-wrap: wrap; }
@@ -1390,16 +1391,13 @@
   .panel.stat .ring .mid strong { font-size: 14px; } .panel.stat .ring .mid span { font-size: 10px; }
   .panel.stat.nw .mini-line { display: block; width: 100%; height: 64px; margin-top: auto; padding-top: 12px; overflow: visible; }
   .panel.stat.nw .sk { margin-top: auto; }
-  @container (min-width: 240px) {
-    .panel.stat:has(> .ring) { display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto 1fr; column-gap: 12px; }
-    .panel.stat:has(> .ring) > :not(.ring) { grid-column: 1; }
-    .panel.stat > .ring { grid-column: 2; grid-row: 1 / 4; align-self: center; width: 78px; margin: 0; padding: 0; }
-  }
+  @container (min-width: 240px) { .panel.stat .ring { width: 84px; } .panel.stat .ring .mid strong { font-size: 16px; } }
   /* the insights, one at a time and swiped through on a phone, stacked in a wide tile */
   .cards .w[data-w="insights"] .insights { margin: 0; padding: 0; grid-auto-columns: 100%; gap: 10px; }
   .cards .w[data-w="insights"] .insight { height: 100%; }
   @container (max-width: 520px) { .cards .w[data-w="insights"] .insights { grid-auto-columns: 88%; } .cards .w[data-w="insights"] .insights:has(> :only-child) { grid-auto-columns: 100%; } }
   @container (min-width: 521px) { .cards .w[data-w="insights"] .insights { grid-auto-flow: row; overflow: visible; } }
+  @container (min-width: 760px) { .cards .w[data-w="insights"] .insights { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--gap, 20px); } }
   /* ring charts beside their list, once the tile has room for both */
   @container (min-width: 300px) {
     .cards .share { display: grid; grid-template-columns: minmax(104px, 38%) minmax(0, 1fr); gap: 18px; align-items: center; }
