@@ -131,11 +131,15 @@ async def check(pw, width, height, mobile):
     # a background refresh must not drop what you're in the middle of
     if not mobile:
         await page.evaluate("App.selAll(false)")
+        # (whatever empties the selection from here on leaves its stack, for the error message)
+        await page.evaluate('''() => { let v = S.sel; window.__selCleared = '';
+          Object.defineProperty(S, 'sel', { configurable: true, get: () => v, set: x => { if (v && v.size && !(x && x.size)) window.__selCleared = new Error().stack; v = x; } }); }''')
         boxes = page.locator('input[data-sel]')
         await boxes.nth(0).check(); await boxes.nth(1).check()
         await page.evaluate('refreshAll()')
         if await page.evaluate('S.sel.size') != 2:
-            errors.append('a background refresh cleared the bulk-edit selection')
+            why = await page.evaluate("[location.hash, S.sel.size, document.querySelectorAll('input[data-sel]:checked').length, window.__selCleared].join(' | ')")
+            errors.append('a background refresh cleared the bulk-edit selection: ' + why)
         await page.evaluate('App.selAll(false)')
         # switching between a cached page and one that isn't cached must not stack pages on top of each other
         for p in ['inbox', 'transactions', 'inbox', 'transactions']:
