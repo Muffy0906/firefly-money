@@ -118,7 +118,8 @@ async def check(pw, width, height, mobile):
     await goto(page, 'transactions'); await page.wait_for_selector('tr[data-gid]')
     # The phone's bento Overview: two small tiles to a row, Half/Full in Customize changes a tile's width and is kept
     if mobile:
-        await goto(page, ''); await page.wait_for_selector('#dash.bento [data-w="spent"]')
+        await goto(page, ''); await page.evaluate('App.dashReset()'); await page.wait_for_function(PAINTED, timeout=15000)
+        await page.wait_for_selector('#dash.bento [data-w="spent"]')
         half = await page.evaluate("() => el('dash').querySelector('[data-w=spent]').offsetWidth / el('dash').offsetWidth")
         if not .3 < half < .6: errors.append(f'the Spent tile is not half the width on a phone: {half:.2f}')
         await page.evaluate('App.dashEdit(true)'); await page.wait_for_selector('#dash.bento.editing')
@@ -169,7 +170,9 @@ async def check(pw, width, height, mobile):
             errors.append('picking Month on an account did not leave All time')
         await page.locator('#view .seg').get_by_role('button', name='Month', exact=True).click()   # back to this month
         # Customize the overview: a calm set of cards to start with, the rest added from Customize, column count, hiding a tile
-        await goto(page, ''); await page.wait_for_selector('#dash [data-w="spending"] .part', timeout=15000)
+        await goto(page, '')
+        await page.evaluate('App.dashReset()'); await page.wait_for_function(PAINTED, timeout=15000)     # the demo opens arranged like the README's screenshots
+        await page.wait_for_selector('#dash [data-w="spending"] .part', timeout=15000)
         for k in ['safe', 'spending', 'budgets', 'cashflow']:
             if not await page.locator(f'#dash [data-w="{k}"]').count(): errors.append(f'overview card {k!r} is missing')
         if await page.locator('#dash [data-w="payees"]').count(): errors.append('a new overview shows every card instead of the starting few')
