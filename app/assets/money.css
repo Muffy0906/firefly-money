@@ -54,7 +54,7 @@
   html[data-theme="carbon"] .neg, html[data-theme="carbon"] .up { text-shadow: 0 0 10px color-mix(in srgb, var(--spend) 45%, transparent); }
   html[data-theme="carbon"] .big { filter: drop-shadow(0 0 18px rgba(57,255,159,.25)); }
   /* glow on the underline only, inside the tab: an outer shadow is clipped by the scrolling tab row and leaves a sliver at the tab's right edge */
-  html[data-theme="carbon"] .tabs a.on { box-shadow: inset 0 -6px 6px -6px var(--accent); }
+  html[data-theme="carbon"] .tabs a.on { box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 45%, transparent); }
   html[data-theme="carbon"] .bulkbar { box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 25%, transparent); }
   html[data-theme] .big.negative { --hero-grad: linear-gradient(90deg, var(--spend), var(--warn)); }
   html[data-theme="carbon"] .big.negative { filter: drop-shadow(0 0 18px rgba(255,61,129,.3)); }
@@ -88,7 +88,7 @@
   .nav svg { width: 17px; height: 17px; flex: none; }
   .nav-h { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 16px 12px 5px; }
   .side .foot .nav a { display: flex; align-items: center; gap: 11px; padding: 8px 12px; border-radius: 10px; font-size: inherit; font-weight: 500; margin-bottom: 6px; }
-  .side .foot .nav a.on { color: var(--text); background: var(--panel); box-shadow: 0 1px 0 var(--line), 0 0 0 1px var(--line); }
+  .side .foot .nav a.on { color: var(--text); }
   .list.menu .row { padding: 13px 0; align-items: center; }
   .list.menu .row .name { display: flex; gap: 12px; align-items: center; }
   .list.menu .ic { width: 20px; display: inline-flex; }
@@ -455,7 +455,6 @@
     display: none; grid-template-columns: repeat(5, 1fr); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
   .tabbar a, .tabbar button { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: var(--muted); text-decoration: none; background: none; border: 0; padding: 6px 0; cursor: pointer; }
   .tabbar a.on { color: var(--accent); }
-  .tab-pill { display: none; }
   .tabbar svg { width: 22px; height: 22px; }
   .fab { display: grid; place-items: center; padding: 0; }
   .fab svg { width: 26px; height: 26px; }
@@ -706,7 +705,7 @@
   html[data-theme="glass"] select option { background: #16122e; }
   html[data-theme="glass"] :is(input, select, textarea):focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent), 0 0 18px color-mix(in srgb, var(--accent) 25%, transparent); }
   html[data-theme="glass"] .seg { background: rgba(255, 255, 255, .06); }
-  html[data-theme="glass"] .seg button.on { background: rgba(255, 255, 255, .14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2); }
+  html[data-theme="glass"] :is(.seg button, .tabs a).on { background: rgba(255, 255, 255, .14); color: var(--text); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2); }
   html[data-theme="glass"] .tbl.feed tr.dayhead div { background: rgba(20, 16, 42, .55); }
   html[data-theme="glass"] .tbl tr.click:hover td { background: rgba(255, 255, 255, .05); }
   html[data-theme="glass"] .side { border-right-color: rgba(255, 255, 255, .08); background: rgba(10, 8, 22, .35); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
@@ -724,7 +723,7 @@
   html[data-theme="glass"] .chart rect { filter: drop-shadow(0 0 6px currentColor); }
   html[data-theme="glass"] .sankey .lk { fill-opacity: .32; }
   html[data-theme="glass"] .tabs a.on { text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 60%, transparent); }
-  html[data-theme="glass"] .tabs { border-bottom-color: rgba(255, 255, 255, .1); }
+  html[data-theme="glass"] .tabs { background: rgba(255, 255, 255, .06); }
   html[data-theme="glass"] .hm-cell[style*="--p"] { box-shadow: 0 0 10px color-mix(in srgb, var(--spend) calc(var(--p) * .6), transparent); }
   html[data-theme="glass"] .av { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .15), 0 0 0 1px color-mix(in oklab, var(--c) 35%, transparent), 0 0 14px color-mix(in oklab, var(--c) 30%, transparent); }
   html[data-theme="glass"] .appbar.scrolled { background: rgba(10, 8, 24, .45); }
@@ -757,6 +756,33 @@
     .drawer footer .btn { padding: 9px 12px; }
     .drawer footer .grow { flex: 1 1 0; min-width: 0; }
   }
+  /* ---------- Shape, every theme: pill buttons and switches, a floating sidebar and tab bar ----------
+     Colors come from the theme; Frosted glass and the glass/neon themes lay their own on top. */
+  .btn, .btn.small { border-radius: 999px; }
+  .seg { border-radius: 22px; }
+  .seg button { border-radius: 999px; }
+  :is(.seg button, .tabs a).on { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+  .tabs { width: fit-content; max-width: 100%; gap: 2px; padding: 4px; border: 0; border-radius: 999px; background: var(--faint); box-shadow: inset 0 0 0 1px var(--line); scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs a { padding: 7px 14px; margin: 0; border: 0; border-radius: 999px; line-height: 1.2; }
+  @media (min-width: 901px) {
+    .side { margin: 14px 0 14px 14px; height: calc(100vh - 28px); top: 14px; border: 1px solid var(--line); border-radius: 26px; background: var(--panel); box-shadow: var(--shadow); }
+  }
+  .nav a { border-radius: 999px; }
+  .nav a.on { background: color-mix(in srgb, var(--accent) 13%, transparent); box-shadow: none; }
+  html[data-theme="carbon"] .nav a.on::before { display: none; }
+  .tabbar { left: 14px; right: 14px; bottom: calc(10px + env(safe-area-inset-bottom)); padding: 6px; border: 1px solid var(--line); border-radius: 999px; align-items: center;
+    background: color-mix(in srgb, var(--panel) 84%, transparent); box-shadow: var(--shadow); -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%); }
+  .tabbar :is(a, button) { position: relative; z-index: 1; }
+  .tabbar a { border-radius: 999px; padding: 7px 0; margin: 0 3px; }
+  .tabbar .plus { margin: 0 auto; width: 48px; height: 48px; }
+  .tab-pill { display: block; position: absolute; left: 0; top: 6px; bottom: 6px; border-radius: 999px; pointer-events: none; background: color-mix(in srgb, var(--accent) 15%, transparent); }
+  .tab-pill.off { opacity: 0; }
+  .pill-ready .tab-pill { transition: transform .42s cubic-bezier(.3, 1.3, .5, 1), width .42s cubic-bezier(.3, 1.3, .5, 1), opacity .2s; }
+  @media (max-width: 900px) {
+    main { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important; }
+    :is(.undo, .toast) { bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); }
+  }
   /* ---------- Theme: Frosted glass (warm light glass over a soft-focus room) ---------- */
   html[data-theme="frosted"] { --bg: #d9c7b3; --panel: rgba(255, 250, 244, .5); --line: rgba(255, 255, 255, .55); --text: #1d1915; --muted: #6a5e54; --faint: rgba(255, 255, 255, .35);
     --good: #2a9163; --spend: #d94f27; --income: #2a9163; --warn: #c98a12; --accent: #e2552c; --on-accent: #ffffff;
@@ -788,40 +814,29 @@
   html[data-theme="frosted"] select option { background: #f6efe7; }
   html[data-theme="frosted"] :is(input, select, textarea):focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
   /* pill buttons: ink for the main action, glass for the rest */
-  html[data-theme="frosted"] .btn { border-radius: 999px; background: rgba(255, 255, 255, .45); border-color: rgba(255, 255, 255, .7); }
+  html[data-theme="frosted"] .btn { background: rgba(255, 255, 255, .45); border-color: rgba(255, 255, 255, .7); }
   html[data-theme="frosted"] .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); box-shadow: 0 6px 18px rgba(23, 19, 15, .25); }
-  html[data-theme="frosted"] .seg { background: rgba(255, 255, 255, .35); border-radius: 22px; }
-  html[data-theme="frosted"] .seg button { border-radius: 999px; }
+  html[data-theme="frosted"] .seg { background: rgba(255, 255, 255, .35); }
   html[data-theme="frosted"] .seg button.on { background: var(--ink); color: #fff; }
   html[data-theme="frosted"] .tbl.feed td { background: rgba(255, 250, 244, .42); border-color: rgba(255, 255, 255, .5); }
   html[data-theme="frosted"] .tbl.feed tr.dayhead div { background: rgba(255, 248, 240, .6); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
   html[data-theme="frosted"] .tbl tr.click:hover td { background: rgba(255, 255, 255, .35); }
-  /* tabs as a pill switch, like the reel's This week / This month */
-  html[data-theme="frosted"] .tabs { width: fit-content; max-width: 100%; gap: 2px; padding: 4px; border: 0; border-radius: 999px; background: rgba(255, 255, 255, .35); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5); scrollbar-width: none; }
-  html[data-theme="frosted"] .tabs::-webkit-scrollbar { display: none; }
-  html[data-theme="frosted"] .tabs a { padding: 7px 14px; margin: 0; border: 0; border-radius: 999px; line-height: 1.2; }
+  html[data-theme="frosted"] .tabs { background: rgba(255, 255, 255, .35); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5); }
   html[data-theme="frosted"] .tabs a.on { background: var(--ink); color: #fff; }
   html[data-theme="frosted"] .track { background: rgba(255, 255, 255, .5); }
   html[data-theme="frosted"] .big { color: var(--text); }
   html[data-theme="frosted"] .appbar.scrolled { background: rgba(240, 228, 214, .55); }
   html[data-theme="frosted"] .scrim { background: rgba(40, 25, 12, .25); }
   /* floating glass sidebar, a white pill on the current page */
-  html[data-theme="frosted"] .side { margin: 14px 0 14px 14px; height: calc(100vh - 28px); top: 14px; border-radius: 26px;
-    background: rgba(255, 250, 244, .38); border: 1px solid rgba(255, 255, 255, .6); box-shadow: var(--frost-edge), 0 10px 30px rgba(70, 40, 20, .12);
+  html[data-theme="frosted"] .side { background: rgba(255, 250, 244, .38); border: 1px solid rgba(255, 255, 255, .6); box-shadow: var(--frost-edge), 0 10px 30px rgba(70, 40, 20, .12);
     -webkit-backdrop-filter: blur(28px) saturate(150%); backdrop-filter: blur(28px) saturate(150%); }
-  html[data-theme="frosted"] .nav a { border-radius: 999px; }
   html[data-theme="frosted"] .nav a.on { background: #fff; color: var(--text); box-shadow: 0 4px 14px rgba(70, 40, 20, .14); }
   /* floating glass tab bar on phones, a white pill on the current tab */
-  html[data-theme="frosted"] .tabbar { left: 14px; right: 14px; bottom: calc(10px + env(safe-area-inset-bottom)); padding: 6px; border-radius: 999px; align-items: center;
-    background: rgba(255, 250, 244, .55); border: 1px solid rgba(255, 255, 255, .7); box-shadow: var(--frost-edge), 0 14px 40px rgba(60, 35, 15, .22);
+  html[data-theme="frosted"] .tabbar { background: rgba(255, 250, 244, .55); border: 1px solid rgba(255, 255, 255, .7); box-shadow: var(--frost-edge), 0 14px 40px rgba(60, 35, 15, .22);
     -webkit-backdrop-filter: blur(30px) saturate(170%); backdrop-filter: blur(30px) saturate(170%); }
-  html[data-theme="frosted"] .tabbar a { border-radius: 999px; padding: 7px 0; margin: 0 3px; color: #5d5249; }
+  html[data-theme="frosted"] .tabbar a { color: #5d5249; }
   html[data-theme="frosted"] .tabbar a.on { color: var(--text); }
-  html[data-theme="frosted"] .tabbar :is(a, button) { position: relative; z-index: 1; }
-  html[data-theme="frosted"] .tab-pill { display: block; position: absolute; left: 0; top: 6px; bottom: 6px; border-radius: 999px; background: #fff; box-shadow: 0 3px 12px rgba(70, 40, 20, .16); pointer-events: none; }
-  html[data-theme="frosted"] .tab-pill.off { opacity: 0; }
-  html[data-theme="frosted"] .pill-ready .tab-pill { transition: transform .42s cubic-bezier(.3, 1.3, .5, 1), width .42s cubic-bezier(.3, 1.3, .5, 1), opacity .2s; }
-  html[data-theme="frosted"] .tabbar .plus { margin: 0 auto; width: 48px; height: 48px; }
+  html[data-theme="frosted"] .tab-pill { background: #fff; box-shadow: 0 3px 12px rgba(70, 40, 20, .16); }
   html[data-theme="frosted"] :is(.tabbar .plus, .fab) { background: var(--ink); color: #fff; box-shadow: 0 6px 18px rgba(23, 19, 15, .3); }
   /* Other scenes (Settings → Appearance → Customize colors → Scene; themevars.ts sets data-scene). Each sets its own
      colors for the three --glow variables, so your own colors still apply on top. */
@@ -886,8 +901,6 @@
   html[data-theme="frosted"][data-scene="night"] .track { background: rgba(255, 255, 255, .1); }
   html[data-theme="frosted"][data-scene="night"] .appbar.scrolled { background: rgba(18, 15, 28, .55); }
   @media (max-width: 900px) {
-    html[data-theme="frosted"] main { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important; }
-    html[data-theme="frosted"] :is(.undo, .toast) { bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); }
     html[data-theme="frosted"] :is(.panel, .kpi, .insight, .extra, .split, .dash-bar) { -webkit-backdrop-filter: blur(calc(var(--glass-blur) * .6)) saturate(150%); backdrop-filter: blur(calc(var(--glass-blur) * .6)) saturate(150%); }
   }
   /* ---------- iPhone: notch / home bar, no accidental zoom, native-app shell ---------- */
