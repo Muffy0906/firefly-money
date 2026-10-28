@@ -118,7 +118,7 @@ export function barChart(pts: { label: string, v: number | null, go?: string }[]
 /* ---------- Little bars in a row: one category's months, the last one (now) in the accent ---------- */
 export function sparkBars(vals: number[], max: number) {
   const W = 84, H = 26, n = vals.length, gap = 3, bw = (W - gap * (n - 1)) / n;
-  return html`<svg class="sbars" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true">${htmlList(vals.map((v, i) => { const h = Math.max(v ? 2 : 1, H * v / (max || 1)); return html`<rect class="bar${i === n - 1 ? ' now' : ''}" style="--j:${i}" x="${(i * (bw + gap)).toFixed(1)}" y="${(H - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2"></rect>`; }))}</svg>`;
+  return html`<svg class="sbars" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" preserveAspectRatio="none" aria-hidden="true">${htmlList(vals.map((v, i) => { const h = Math.max(v ? 2 : 1, H * v / (max || 1)); return html`<rect class="bar${i === n - 1 ? ' now' : ''}" style="--j:${i}" x="${(i * (bw + gap)).toFixed(1)}" y="${(H - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2"></rect>`; }))}</svg>`;
 }
 
 /* ---------- Sparklines: last 30 days of each account's balance ---------- */

@@ -1503,6 +1503,20 @@
   .attention .all-clear span { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); font-size: 12px; }
   .attention .att-more { display: contents; }
   .attention .att-more[hidden] { display: none; }
-  .attention :is(.list, .all-clear) { min-height: var(--att-h, 88px); }
+  @media (min-width: 700px) { .attention :is(.list, .all-clear) { min-height: var(--att-h, 88px); } }
   .attention .all-clear { align-items: flex-start; }
   .dash-ghost > .wctl { visibility: hidden; }
+  /* Bento: what's inside a card grows with the card (cqi = 1% of the card's width), within sensible bounds */
+  .cards.bento .panel.stat .stat-v { font-size: clamp(28px, 13cqi, 48px); }
+  .cards.bento .panel.stat .sbars { flex: 1 1 auto; height: clamp(56px, 26cqi, 130px); max-height: none; }
+  .cards.bento .panel.stat.nw .mini-line { height: clamp(64px, 20cqi, 150px); }
+  .cards.bento .panel.stat .io { gap: clamp(10px, 4cqi, 18px); }
+  .cards.bento .io-r { grid-template-columns: minmax(0, 1fr) auto; row-gap: 5px; font-size: clamp(12px, 4.4cqi, 14.5px); }
+  .cards.bento .io-r .io-t { grid-column: 1 / -1; grid-row: 2; }
+  .cards.bento .io-r .io-v { display: block; min-width: 0; }
+  .cards.bento .io-t { height: clamp(9px, 4cqi, 14px); }
+  .cards.bento .w[data-w="safe"] .total { font-size: clamp(28px, 7.5cqi, 46px); }
+  .cards.bento .brings { grid-template-columns: repeat(auto-fill, minmax(clamp(84px, 34cqi, 170px), 1fr)); }
+  .cards.bento .bring .ring { width: clamp(54px, 28cqi, 120px); }
+  .cards.bento .bring .ring .mid strong { font-size: clamp(13.5px, 4.4cqi, 20px); }
+  .cards.bento .share .donut .mid strong { font-size: clamp(17px, 4.6cqi, 26px); }
