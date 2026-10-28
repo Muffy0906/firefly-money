@@ -20,7 +20,7 @@ let abTick = false;
 function appbarScroll() {
   abTick = false;
   const h1 = document.querySelector<HTMLElement>('#view .head h1');
-  const edge = appbar.getBoundingClientRect().bottom || 44;
+  const edge = appbar.offsetHeight || 44;     // its height, not its box: the bar slides up out of sight while scrolling down
   appbar.classList.toggle('scrolled', h1 ? h1.getBoundingClientRect().bottom < edge + 2 : scrollY > 4);
 }
 function updateAppbar() {

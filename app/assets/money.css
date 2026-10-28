@@ -989,7 +989,7 @@
   .appbar { display: none; }
   @media (max-width: 900px) {
     html.shell .appbar { display: flex; position: fixed; top: 0; left: 0; right: 0; z-index: 18; height: calc(env(safe-area-inset-top, 0px) + var(--edge) + 44px);
-      padding: calc(env(safe-area-inset-top, 0px) + var(--edge)) 70px 0; align-items: center; justify-content: center; pointer-events: none; transition: background-color .2s, box-shadow .2s; }
+      padding: calc(env(safe-area-inset-top, 0px) + var(--edge)) 70px 0; align-items: center; justify-content: center; pointer-events: none; transition: transform .3s cubic-bezier(.2, .8, .2, 1), background-color .2s, box-shadow .2s; }
     html.shell .appbar.scrolled { background: color-mix(in srgb, var(--bg) 80%, transparent); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
       box-shadow: 0 .5px 0 color-mix(in srgb, var(--text) 18%, transparent); }
     html.shell .ab-title { font-weight: 600; font-size: 17px; opacity: 0; transform: translateY(6px); transition: opacity .18s, transform .18s; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1007,6 +1007,11 @@
     html.shell .tbl.feed tr.dayhead { top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 44px); }
     html.shell .bulkbar { top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 52px); }
     html.shell .ptr { top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 44px); }
+    /* Scrolling down slides the title bar away (phone.ts foldOnScroll); scrolling up or reaching the top brings it back */
+    html.shell.scroll-down .appbar { transform: translateY(-100%); }
+    html.shell :is(.tbl.feed tr.dayhead, .bulkbar) { transition: top .3s cubic-bezier(.2, .8, .2, 1); }
+    html.shell.scroll-down .tbl.feed tr.dayhead { top: calc(env(safe-area-inset-top, 0px) + var(--edge)); }
+    html.shell.scroll-down .bulkbar { top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 8px); }
     /* Native tab bar in the iPhone app replaces the web one */
     html.native-tabs .tabbar { display: none !important; }
     html.native-tabs main#view { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 49px + 28px) !important; }
@@ -1149,6 +1154,9 @@
     .search-btn svg { width: 18px; height: 18px; }
     html.shell .search-btn { top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 4px); border-color: transparent; background: none; -webkit-backdrop-filter: none; backdrop-filter: none; color: var(--accent); }
     html.shell .search-btn svg { width: 22px; height: 22px; }
+    /* leaves with the title bar, by the same distance so the two move as one */
+    .search-btn { transition: transform .3s cubic-bezier(.2, .8, .2, 1), opacity .2s; }
+    html.scroll-down .search-btn { transform: translateY(calc(-1 * (env(safe-area-inset-top, 0px) + var(--edge) + 44px))); opacity: 0; pointer-events: none; }
     html:not(.shell) #view > .head:first-child { padding-right: 44px; }
     html.pal-open .search-btn, #app[hidden] ~ .search-btn { display: none; }
     .palette { padding: 0; align-items: stretch; background: var(--bg); }
