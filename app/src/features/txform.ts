@@ -106,6 +106,22 @@ export function renderTxForm() {
   const foot = html`${f.id ? html`<button class="btn danger" type="button" data-onclick="App.deleteTx()">Delete</button><button class="btn" type="button" data-onclick="App.duplicateTx()" title="A new transaction with the same details, dated today">Duplicate</button>${f.type === 'withdrawal' ? html`<button class="btn" type="button" data-onclick="App.refundTx()" title="Money back for this purchase, into the account it was paid from">Refund</button>` : ''}` : html`<button class="btn" type="button" data-onclick="App.saveDraft()" title="Keep it on this list to finish later; nothing goes to Firefly yet">${f.draft ? 'Update draft' : 'Save as draft'}</button>`}<span class="grow"></span><button class="btn" type="button" data-onclick="App.closeDrawer()">Cancel</button><button class="btn primary" type="button" id="txSave" data-onclick="App.submit('txForm')">${f.id ? 'Save changes' : 'Add transaction'}</button>`;
   const wasOpen = el('drawer').classList.contains('open') && el('txForm');
   const scroll = wasOpen ? el('drawerBody').scrollTop : 0;
+  // Typing in "Describe it" redraws the form on every key. Keep that box itself, so the iPhone keyboard stays as it is:
+  // a new box, even focused straight away, puts the keyboard back on letters after each number.
+  const typing = wasOpen ? el<HTMLInputElement>('nlq') : null;
+  if (typing && document.activeElement === typing) {
+    const t = document.createElement('template'); t.innerHTML = String(body);
+    const form = el('txForm'), box = typing.closest('.nlq')!, fresh = t.content.querySelector('form')!;
+    [...form.children].forEach(c => { if (c !== box) c.remove(); });
+    let before = true;
+    [...fresh.children].forEach(c => {
+      if (c.classList.contains('nlq')) { before = false; el('nlChips').innerHTML = c.querySelector('#nlChips')!.innerHTML; return; }
+      if (before) box.before(c); else form.append(c);
+    });
+    const ft = el('drawer').querySelector(':scope > footer'); if (ft) ft.innerHTML = String(foot);
+    el('drawerBody').scrollTop = scroll;
+    return;
+  }
   openDrawer(f.id ? 'Edit transaction' : f.draft ? 'Draft' : f.refundOf ? 'Refund' : 'New transaction', body, foot);
   if (wasOpen) el('drawerBody').scrollTop = scroll;
   if (f.id && (window.App as Partial<AppApi>).loadTxExtras) App.loadTxExtras(f.id, f.splits.map(s => s.jid).filter(Boolean));
