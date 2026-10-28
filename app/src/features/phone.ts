@@ -14,7 +14,20 @@ function drawTabbar(active: string) {
   const t = (r: string, label: string, ic: string) => html`<a href="#/${r}" class="${r === active ? 'on' : ''}">${icon(ic)}<span>${label}</span></a>`;
   tb.innerHTML = String(html`<i class="tab-pill" aria-hidden="true"></i>${t('', 'Home', 'overview')}${t('transactions', 'Activity', 'transactions')}<button type="button" class="plus" data-onclick="App.quickAdd()" aria-label="Add transaction"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>${t('budgets', 'Budgets', 'budgets')}<button type="button" data-onclick="App.moreSheet()">${icon('categories')}<span>More</span></button>`);
   movePill();
+  tapThrough(tb); tapThrough(el('fab'));
   requestAnimationFrame(() => tb.classList.add('pill-ready'));     // no slide in from the edge the first time
+}
+// While the page is still gliding from a flick, iOS spends the first tap on stopping it and sends no click, so you'd
+// have to tap twice. The tab bar and the corner + answer the touch themselves: a short tap that didn't move clicks
+// at once (and the browser's own click is cancelled, so it never counts twice).
+function tapThrough(node: HTMLElement) {
+  let x = 0, y = 0, t = 0;
+  node.addEventListener('touchstart', e => { const p = e.touches[0]; x = p.clientX; y = p.clientY; t = Date.now(); }, { passive: true });
+  node.addEventListener('touchend', e => {
+    const p = e.changedTouches[0], hit = (e.target as Element).closest<HTMLElement>('a, button');
+    if (!hit || !node.contains(hit) || e.touches.length || Math.hypot(p.clientX - x, p.clientY - y) > 10 || Date.now() - t > 600) return;
+    e.preventDefault(); hit.click();
+  });
 }
 function movePill() {
   const tb = el('tabbar'), on = tb.querySelector<HTMLElement>('a.on'), pill = tb.querySelector<HTMLElement>('.tab-pill');

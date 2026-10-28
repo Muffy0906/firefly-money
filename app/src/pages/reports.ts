@@ -7,7 +7,7 @@ import { type Account, isAsset, isLiab, lists } from '../core/lists';
 import { VIEWS, hashWith, route } from '../core/router';
 import { cashFlow } from './overview';
 import { insight, refundsIn } from '../features/refunds';
-import { SERIES, donut, twoLines, type LinePoint } from '../features/charts';
+import { shareChart, twoLines, type LinePoint } from '../features/charts';
 import { normGroup } from '../core/feed';
 
 // Each account's balance on one day, from two list requests (assets, liabilities) rather than one per account.
@@ -76,11 +76,9 @@ function scaleTo(pts: LinePoint[], earned: number, spent: number) {
 }
 // Earned vs. spent as lines (day by day for a month, else month by month) and where the spending went as a donut
 function overviewRow(pts: LinePoint[], daily: boolean, cats: ShareRow[], spent: number) {
-  const top = cats.filter(c => c.v > 0).sort((a, b) => b.v - a.v), parts = top.slice(0, 5).map((c, i) => ({ name: c.name, v: c.v, color: SERIES[i] }));
-  if (top.length > 5) parts.push({ name: 'Everything else', v: top.slice(5).reduce((s, c) => s + c.v, 0), color: 'var(--muted)' });
-  const total = parts.reduce((s, p) => s + p.v, 0) || 1, most = Math.max(1, ...parts.map(p => p.v));
   const lines = pts.length > 1 ? html`<section class="panel chart"><h2>Earned vs. spent</h2><p class="lead">${daily ? 'Adding up day by day' : 'Month by month'} · hover the chart to compare</p>${twoLines(pts, ['Earned', 'Spent'], ['var(--income)', 'var(--spend)'], 'Earned and spent over the period')}</section>` : '';
-  const ring = parts.length ? html`<section class="panel"><h2>Where it went</h2><p class="lead">Spending by category</p>${donut(parts, html`<span class="eyebrow">Spent</span><strong class="num" data-count="${spent}">${money0(spent)}</strong>`, 'Spending by category')}<div class="parts">${htmlList(parts.map(p => html`<div class="part"><i style="background:${p.color}"></i><span class="name">${p.name}</span><span class="track"><span class="fill" style="width:${(p.v / most * 100).toFixed(1)}%;background:${p.color}"></span></span><span class="num">${(p.v / total * 100).toFixed(0)}%</span></div>`))}</div></section>` : '';
+  const chart = shareChart(cats, html`<span class="eyebrow">Spent</span><strong class="num" data-count="${spent}">${money0(spent)}</strong>`, 'Spending by category', { limit: 6 });
+  const ring = chart ? html`<section class="panel"><h2>Where it went</h2><p class="lead">Spending by category</p>${chart}</section>` : '';
   return lines || ring ? html`<div class="report-top${lines && ring ? '' : ' one'}">${lines}${ring}</div>` : '';
 }
 const CMP_LABEL: Record<string, string> = { prev: 'the period before', year: 'the same dates last year' };
@@ -102,16 +100,16 @@ const delta = (d: number, upGood: boolean) => Math.abs(d) < 1 ? html`<span class
 // Sections with nothing in the period, listed on one line under the others instead of each taking a card
 let emptyTables: string[] = [];
 const listJoin = (xs: string[]) => xs.length > 1 ? xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1] : xs.join('');
+// A breakdown as a donut and coloured bars (the spending categories only as bars: the donut at the top shows them)
 function shareTable(title: string, rows: ShareRow[], opts: any = {}) {
   rows = rows.filter(r => r.v > 0).sort((a, b) => b.v - a.v);
   if (!rows.length) { emptyTables.push(title); return ''; }
-  const total = rows.reduce((s, r) => s + r.v, 0), top = rows.slice(0, opts.limit || 12), rest = rows.slice(opts.limit || 12);
+  const total = rows.reduce((s, r) => s + r.v, 0);
   const prev: Map<string, number> | undefined = opts.prev;
   csvRows.push(...rows.map(r => [title, r.name, r.v, ...(prev ? [prev.get(r.name) || 0] : [])]));
-  if (rest.length) top.push({ name: rest.length + ' others', v: rest.reduce((s, r) => s + r.v, 0) });
-  const max = Math.max(1, ...top.map(r => r.v));
-  return html`<section class="panel"><div class="panel-head"><h2>${title}</h2><span class="num">${money0(total)}</span></div><p class="lead">${opts.lead || ''}</p>${top.length ? htmlList(top.map(r => html`<div class="cat"><div class="row"><span class="name">${r.href ? html`<a href="${r.href}" style="text-decoration:none">${r.name}</a>` : r.name}</span><span class="num">${money0(r.v)} ${prev && !r.name.endsWith(' others') ? delta(r.v - (prev.get(r.name) || 0), !!opts.good) : html`<span class="neutral">${total ? (r.v / total * 100).toFixed(0) : 0}%</span>`}</span></div><div class="track"><div class="fill${opts.good ? ' good' : ''}" style="width:${(r.v / max * 100).toFixed(1)}%"></div></div></div>`))
-      : ''}</section>`;
+  const items = rows.map(r => ({ ...r, sub: prev ? html`${money0(r.v)} · ${delta(r.v - (prev.get(r.name) || 0), !!opts.good)}` : money0(r.v) }));
+  const chart = shareChart(items, html`<span class="eyebrow">${opts.good ? 'Earned' : 'Total'}</span><strong class="num">${money0(total)}</strong>`, title, { limit: opts.limit || 12, ring: title !== 'Spending by category', other: 'Others' });
+  return html`<section class="panel"><div class="panel-head"><h2>${title}</h2><span class="num">${money0(total)}</span></div><p class="lead">${opts.lead || ''}</p>${chart}</section>`;
 }
 VIEWS.reports = async (r, paint) => {
   const L = await lists();
