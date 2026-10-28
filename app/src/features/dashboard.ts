@@ -29,7 +29,7 @@ const DASH_ABOUT: Record<string, string> = { safe: 'What you can spend until pay
 // A new Overview starts with these, in this order; the rest are one tap away under Customize → Add cards
 // (rows of tiles about as tall as each other: the numbers, then the two short cards, then the charts with the lists)
 const DASH_DEFAULT = ['networth', 'spent', 'earned', 'safe', 'attention', 'spending', 'budgets', 'bills', 'insights', 'cashflow'];
-// Each card's bento size: s is a quarter of a wide screen (half a phone), m twice that, l the full width
+// Each card's bento size: s is a quarter of a wide screen (a sixth of a big one, half a phone), m twice that, l the full width
 type Size = 's' | 'm' | 'l';
 const DASH_SIZE: Record<string, Size> = { spent: 's', earned: 's', budgets: 's', bills: 's', insights: 'l', cashflow: 'l', heatmap: 'l', flow: 'l', recent: 'l' };
 const SIZES: Size[] = ['s', 'm', 'l'];
@@ -120,9 +120,10 @@ function dashPlace(L: DashLayout, keys: string[], n: number, wide: string[], est
   return blocks.filter(b => !Array.isArray(b) || b.some(c => c.length));
 }
 const viewWidth = () => { const v = el('view'); return (v && v.clientWidth) || innerWidth; };
-// The freeform grid: a wide screen with a column count picked. Otherwise bento rows, four small tiles across (two on a phone).
+// The freeform grid: a wide screen with a column count picked. Otherwise bento rows, four small tiles across (six on a big
+// screen, so the cards don't stretch into wide empty boxes; two on a phone).
 const gridMode = (L: DashLayout) => !!L.cols && viewWidth() >= 700;
-const bentoUnits = () => viewWidth() >= 1000 ? 4 : 2;
+const bentoUnits = () => { const w = viewWidth(); return w >= 1500 ? 6 : w >= 1000 ? 4 : 2; };
 // The cards in your order (the defaults' order for cards you haven't placed)
 const dashOrder = (L: DashLayout, keys: string[]) => {
   const rank = (k: string) => { const i = L.order.indexOf(k), d = DASH_DEFAULT.indexOf(k); return i >= 0 ? i : 1e3 + (d >= 0 ? d : 100 + keys.indexOf(k)); };
@@ -205,7 +206,7 @@ function dashboard(W: [string, unknown][]) {
   const offs = keys.filter(k => map[k] && tileOff(L, k));
   const adds = edit && offs.length ? html`<div class="dash-add"><div class="eyebrow">Add cards</div><div class="add-list">${htmlList(offs.map(k => html`<button type="button" class="add-card" data-onclick="App.dashHide('${k}')"><span class="plus-i" aria-hidden="true">+</span><span><strong>${DASH_NAMES[k] || k}</strong><span class="sub-s">${DASH_ABOUT[k] || ''}</span></span><span class="pv">${tilePreview(k)}</span></button>`))}</div></div>` : '';
   return html`<div class="dash-wrap" data-n="${n}" style="--n:${n}">${edit ? html`<div class="dash-bar"><span>${grid ? 'Drag a tile anywhere and drag its corner to resize; tiles snap to the grid and push others down.' :
-      'Drag a tile to move it (on a touch screen, by its ⠿ handle). ' + (units === 2 ? 'Half and Full set how wide it is.' : 'Size sets how wide it is: a quarter, half or the whole row.')}</span><span class="grow"></span>${grid ? html`<button class="link" data-onclick="App.dashTidy()" title="Close the gaps by moving tiles up">Tidy up</button>` : ''}<button class="link" data-onclick="App.dashReset()">Reset</button><button class="btn small primary" data-onclick="App.dashEdit(false)">Done</button>${wideScreen ? html`<div class="dash-opts"><span>Arrange as</span><div class="seg mini" id="dashCols">${htmlList(DASH_COLS.map(c => html`<button type="button" class="${String(L.cols || '') === String(c) ? 'on' : ''}" data-onclick="App.dashCols('${c}')">${c ? c + ' col' + (c === 1 ? '' : 's') : 'Bento'}</button>`))}</div></div>` : ''}${adds}</div>` : ''}<div class="cards ${grid ? 'grid' : 'bento'}${edit ? ' editing' : ''}" id="dash" data-n="${n}" data-mode="${grid ? 'grid' : 'bento'}" data-units="${units}" style="--units:${units}"${L.cols ? html` data-cols="${String(L.cols)}"` : ''}>${body}</div></div>`;
+      'Drag a tile to move it (on a touch screen, by its ⠿ handle). ' + (units === 2 ? 'Half and Full set how wide it is.' : 'Size sets how wide it is: small, medium or the whole row.')}</span><span class="grow"></span>${grid ? html`<button class="link" data-onclick="App.dashTidy()" title="Close the gaps by moving tiles up">Tidy up</button>` : ''}<button class="link" data-onclick="App.dashReset()">Reset</button><button class="btn small primary" data-onclick="App.dashEdit(false)">Done</button>${wideScreen ? html`<div class="dash-opts"><span>Arrange as</span><div class="seg mini" id="dashCols">${htmlList(DASH_COLS.map(c => html`<button type="button" class="${String(L.cols || '') === String(c) ? 'on' : ''}" data-onclick="App.dashCols('${c}')">${c ? c + ' col' + (c === 1 ? '' : 's') : 'Bento'}</button>`))}</div></div>` : ''}${adds}</div>` : ''}<div class="cards ${grid ? 'grid' : 'bento'}${edit ? ' editing' : ''}" id="dash" data-n="${n}" data-mode="${grid ? 'grid' : 'bento'}" data-units="${units}" style="--units:${units}"${L.cols ? html` data-cols="${String(L.cols)}"` : ''}>${body}</div></div>`;
 }
 // Keep the change `mut` makes, and while customizing on a phone the tile order on the page (hidden tiles are not on it,
 // so they keep their place in the order)
@@ -235,7 +236,7 @@ function dashEdit(on: boolean) {
   S.dashEdit = on; dashRedraw();
 }
 const dashCard = (k: string): any => document.querySelector('#dash [data-w="' + k + '"]');
-// Size: half or full width on a phone; a quarter, half or the whole row on a wide screen
+// Size: half or full width on a phone; small, medium or the whole row on a wide screen
 const sizeLabel = (z: Size, units: number) => units === 2 ? z === 's' ? 'Full' : 'Half' : 'Size ' + z.toUpperCase();
 function dashSize(k: string) {
   const units = bentoUnits(), next = (z: Size): Size => units === 2 ? z === 's' ? 'm' : 's' : SIZES[(SIZES.indexOf(z) + 1) % 3];

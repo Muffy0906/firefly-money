@@ -1526,3 +1526,5 @@
   .cards.bento .bring .ring { width: clamp(54px, 28cqi, 120px); }
   .cards.bento .bring .ring .mid strong { font-size: clamp(13.5px, 4.4cqi, 20px); }
   .cards.bento .share .donut .mid strong { font-size: clamp(17px, 4.6cqi, 26px); }
+  /* a very wide category card: the ring and its list stay together rather than the percentages drifting to the far edge */
+  @container (min-width: 760px) { .cards .share { grid-template-columns: minmax(104px, 280px) minmax(0, 460px); justify-content: center; gap: 40px; } }
