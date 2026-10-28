@@ -11,11 +11,11 @@ It's a small static web app (TypeScript bundled into one script) served by a sma
 
 **[Try the live demo →](https://muffy0906.github.io/firefly-money/)** It runs entirely in your browser with made-up data, so there's nothing to install and no sign-in.
 
-![Overview](docs/screenshots/overview.png)
+![Overview in the Frosted glass theme](docs/screenshots/overview.png)
 
 <p>
+  <img src="docs/screenshots/overview-charts.png" width="49%" alt="Money flow, daily spending calendar and loans on the Overview">
   <img src="docs/screenshots/transactions.png" width="49%" alt="Transactions grouped by day">
-  <img src="docs/screenshots/overview-charts.png" width="49%" alt="Daily spending calendar and money flow chart">
 </p>
 <p>
   <img src="docs/screenshots/quick-add.png" width="49%" alt="Natural-language quick add">
@@ -23,16 +23,21 @@ It's a small static web app (TypeScript bundled into one script) served by a sma
 </p>
 <p>
   <img src="docs/screenshots/phone-overview.png" width="24%" alt="Phone overview">
+  <img src="docs/screenshots/phone-overview-charts.png" width="24%" alt="Phone overview: spending ring, cash and credit cards">
+  <img src="docs/screenshots/phone-transactions.png" width="24%" alt="Phone transactions">
   <img src="docs/screenshots/phone-edit-sheet.png" width="24%" alt="Phone edit sheet">
 </p>
 
-*Screenshots use the built-in demo data (all names and amounts are made up), shown in the Liquid glass neon theme and, bottom right, Calm light.*
+*Screenshots use the built-in demo data (all names and amounts are made up), shown in the Frosted glass theme and, bottom right, Calm light. The [live demo](https://muffy0906.github.io/firefly-money/) opens in the same theme and layout.*
 
 <details>
 <summary><b>Themes:</b> 11 built-in themes, and you can tweak each one's colors in Settings → Appearance</summary>
 
-Liquid glass neon and Calm light are shown above. Calm can also follow your system's light or dark mode.
+Frosted glass and Calm light are shown above. Calm can also follow your system's light or dark mode.
 
+<p>
+  <img src="docs/screenshots/theme-glass.png" width="32%" alt="Overview in the Liquid glass neon theme" title="Liquid glass neon">
+</p>
 <p>
   <img src="docs/screenshots/theme-dark.png" width="32%" alt="Overview in the Calm dark theme" title="Calm dark">
   <img src="docs/screenshots/theme-carbon.png" width="32%" alt="Overview in the Carbon neon theme" title="Carbon neon">
