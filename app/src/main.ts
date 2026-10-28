@@ -21,6 +21,7 @@ import './features/networth';
 import './features/subs';
 import './features/pace';
 import './features/grid';
+import './features/tilepreview';
 import './features/dashboard';
 import './pages/loans';
 import './pages/bills';

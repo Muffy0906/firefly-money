@@ -124,9 +124,13 @@ async def check(pw, width, height, mobile):
         await page.evaluate('App.dashEdit(true)'); await page.wait_for_selector('#dash.bento.editing')
         await page.locator('#dash [data-w="spent"] .wbtn').click(); await page.wait_for_timeout(400)
         if await page.evaluate("JSON.parse(localStorage.getItem('money.dash')).size.spent") != 'm': errors.append('Full on a phone tile was not kept')
-        await page.locator('#dash [data-w="spent"] button[aria-label="Move earlier"]').click(); await page.wait_for_timeout(400)
+        await page.evaluate("el('dash').querySelector('[data-w=spent]').scrollIntoView({block: 'start'})"); await page.wait_for_timeout(200)
+        a = await page.locator('#dash [data-w="safe"] .grip').bounding_box(); b = await page.locator('#dash [data-w="spent"]').bounding_box()
+        await page.mouse.move(a['x'] + 4, a['y'] + 4); await page.mouse.down()     # drag Safe to spend by its handle onto the top of Spent
+        for i in range(1, 13): await page.mouse.move(a['x'] + 4 + (b['x'] + 30 - a['x']) * i / 12, a['y'] + 4 + (b['y'] + 20 - a['y']) * i / 12); await page.wait_for_timeout(30)
+        await page.mouse.up(); await page.wait_for_timeout(500)
         order = await page.evaluate("JSON.parse(localStorage.getItem('money.dash')).order")
-        if order.index('spent') > order.index('safe'): errors.append(f'moving a tile earlier on a phone was not kept: {order}')
+        if order.index('safe') > order.index('spent'): errors.append(f'dragging a tile earlier on a phone was not kept: {order}')
         await page.evaluate('App.dashReset()'); await page.evaluate('App.dashEdit(false)')
     # a background refresh must not drop what you're in the middle of
     if not mobile:
