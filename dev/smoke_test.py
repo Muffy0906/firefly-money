@@ -124,9 +124,13 @@ async def check(pw, width, height, mobile):
         await page.evaluate('App.dashEdit(true)'); await page.wait_for_selector('#dash.bento.editing')
         await page.locator('#dash [data-w="spent"] .wbtn').click(); await page.wait_for_timeout(400)
         if await page.evaluate("JSON.parse(localStorage.getItem('money.dash')).size.spent") != 'm': errors.append('Full on a phone tile was not kept')
-        await page.locator('#dash [data-w="spent"] button[aria-label="Move earlier"]').click(); await page.wait_for_timeout(400)
+        await page.evaluate("el('dash').querySelector('[data-w=spent]').scrollIntoView({block: 'start'})"); await page.wait_for_timeout(200)
+        a = await page.locator('#dash [data-w="safe"] .grip').bounding_box(); b = await page.locator('#dash [data-w="spent"]').bounding_box()
+        await page.mouse.move(a['x'] + 4, a['y'] + 4); await page.mouse.down()     # drag Safe to spend by its handle onto the top of Spent
+        for i in range(1, 13): await page.mouse.move(a['x'] + 4 + (b['x'] + 30 - a['x']) * i / 12, a['y'] + 4 + (b['y'] + 20 - a['y']) * i / 12); await page.wait_for_timeout(30)
+        await page.mouse.up(); await page.wait_for_timeout(500)
         order = await page.evaluate("JSON.parse(localStorage.getItem('money.dash')).order")
-        if order.index('spent') > order.index('safe'): errors.append(f'moving a tile earlier on a phone was not kept: {order}')
+        if order.index('safe') > order.index('spent'): errors.append(f'dragging a tile earlier on a phone was not kept: {order}')
         await page.evaluate('App.dashReset()'); await page.evaluate('App.dashEdit(false)')
     # a background refresh must not drop what you're in the middle of
     if not mobile:
@@ -206,6 +210,12 @@ async def check(pw, width, height, mobile):
         await page.wait_for_selector('#dashCols')
         if await page.locator('#dash [data-w="networth"]').count() or await page.evaluate("el('dash').dataset.cols") != '2':
             errors.append('hiding the net worth tile did not stick')
+        # Adding it back puts it at the end of the page, not in a gap higher up
+        await page.locator('.add-card[data-onclick*="networth"]').click(); await page.wait_for_function(PAINTED, timeout=15000)
+        await page.wait_for_selector('#dash [data-w="networth"]'); await page.wait_for_timeout(300)
+        if not await page.evaluate("""(() => { const ts = [...document.querySelectorAll('#dash > .w, #dash .w')].map(e => [e.dataset.w, e.getBoundingClientRect().top]);
+          const nw = ts.find(t => t[0] === 'networth'); return nw && ts.every(t => t[1] <= nw[1] + 1); })()"""):
+            errors.append('an added card did not go at the end of the Overview: ' + str(await page.evaluate("[...document.querySelectorAll('#dash .w')].map(e => e.dataset.w + ' ' + Math.round(e.getBoundingClientRect().top) + ' ' + Math.round(e.getBoundingClientRect().left) + ' ' + Math.round(e.getBoundingClientRect().width))")))
         # Payees list what was spent at each one in the month picked at the top
         await goto(page, 'accounts?tab=expense'); await page.wait_for_selector('#view .tbl td.amt')
         if '$' not in await page.locator('#view .tbl tbody tr td.amt').first.inner_text() or not await page.locator('#view .month').count():

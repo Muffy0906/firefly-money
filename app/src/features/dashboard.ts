@@ -6,6 +6,7 @@ import { buzz } from '../core/haptics';
 import { LS } from '../core/helpers';
 import { route } from '../core/router';
 import { GRID, ROW, type Tile, gridDrop, gridSettle, snapStep } from './grid';
+import { tilePreview } from './tilepreview';
 
 /* ---------- Customizable dashboard ----------
    Bento tiles: each card is small, medium or large (DASH_SIZE, or what you picked) and they sit in even rows, in
@@ -188,21 +189,23 @@ function dashboard(W: [string, unknown][]) {
       const w = Math.max(4, Math.min(GRID, Math.round(+v[2]) || 8)), x = Math.max(0, Math.min(GRID - w, Math.round(+v[0]) || 0));
       Object.assign(spot[k], { x, y: Math.max(0, Math.round(+v[1]) || 0), w, float: false });
     });
+    // Once you've placed tiles, one without a spot (a card you just added) goes full width under them
+    if (Object.keys(L.free || {}).length) Object.values<any>(spot).forEach(t => { if (t.float) Object.assign(t, { x: 0, w: GRID }); });
     // A first guess at the heights so the first paint is close; the real ones are measured right after
     gridSettle(Object.values<any>(spot).filter(t => on(t.k)).map(t => Object.assign(t, { h: Math.ceil(((DASH_EST[t.k] || 250) + 20) / ROW) })));
   }
   const card = (k: string) => {
     const body = map[k]; if (!body || tileOff(L, k)) return '';     // cards that are off wait in Customize's Add cards list
     const g = spot[k], z = sizeOf(L, k), name = DASH_NAMES[k] || k;
-    if (grid) return html`<div class="w ${z}" data-w="${k}" data-gx="${g.x}" data-gy="${g.y}" data-gw="${g.w}"${g.float ? html` data-float="1"` : ''} style="grid-column:${g.x + 1} / span ${g.w};grid-row:${g.y + 1} / span ${g.h}">${edit ? html`<div class="wctl"><span class="grip" title="Drag to move" aria-hidden="true">⠿</span><strong>${name}</strong><span class="grow"></span><button type="button" data-onclick="App.dashNudge('${k}',-1,0)" aria-label="Move left">←</button><button type="button" data-onclick="App.dashNudge('${k}',1,0)" aria-label="Move right">→</button><button type="button" data-onclick="App.dashNudge('${k}',0,-1)" aria-label="Move up">↑</button><button type="button" data-onclick="App.dashNudge('${k}',0,1)" aria-label="Move down">↓</button>${optsButton(k)}<button type="button" class="wbtn" data-onclick="App.dashWide('${k}')">${g.w === GRID ? 'Narrow' : 'Wide'}</button><button type="button" class="hbtn" data-onclick="App.dashHide('${k}')">Hide</button></div>${tileOptsPanel(k)}<span class="rsz" title="Drag to resize" aria-hidden="true"></span>` : ''}${body}</div>`;
-    return html`<div class="w ${z}" data-w="${k}">${edit ? html`<div class="wctl"><span class="grip" title="Drag to move" aria-hidden="true">⠿</span><strong>${name}</strong><span class="grow"></span><button type="button" data-onclick="App.dashMove('${k}',-1)" aria-label="Move earlier">↑</button><button type="button" data-onclick="App.dashMove('${k}',1)" aria-label="Move later">↓</button>${optsButton(k)}<button type="button" class="wbtn" data-onclick="App.dashSize('${k}')" title="Change its size">${sizeLabel(z, units)}</button><button type="button" class="hbtn" data-onclick="App.dashHide('${k}')">Hide</button></div>${tileOptsPanel(k)}` : ''}${body}</div>`;
+    if (grid) return html`<div class="w ${z}" data-w="${k}" data-gx="${g.x}" data-gy="${g.y}" data-gw="${g.w}"${g.float ? html` data-float="1"` : ''} style="grid-column:${g.x + 1} / span ${g.w};grid-row:${g.y + 1} / span ${g.h}">${edit ? html`<div class="wctl"><span class="grip" title="Drag to move" aria-hidden="true">⠿</span><strong>${name}</strong><span class="grow"></span>${optsButton(k)}<button type="button" class="wbtn" data-onclick="App.dashWide('${k}')">${g.w === GRID ? 'Narrow' : 'Wide'}</button><button type="button" class="hbtn" data-onclick="App.dashHide('${k}')">Hide</button></div>${tileOptsPanel(k)}<span class="rsz" title="Drag to resize" aria-hidden="true"></span>` : ''}${body}</div>`;
+    return html`<div class="w ${z}" data-w="${k}">${edit ? html`<div class="wctl"><span class="grip" title="Drag to move" aria-hidden="true">⠿</span><strong>${name}</strong><span class="grow"></span>${optsButton(k)}<button type="button" class="wbtn" data-onclick="App.dashSize('${k}')" title="Change its size">${sizeLabel(z, units)}</button><button type="button" class="hbtn" data-onclick="App.dashHide('${k}')">Hide</button></div>${tileOptsPanel(k)}` : ''}${body}</div>`;
   };
   const tiles = order.filter(on).map(k => [sizeOf(L, k), card(k)] as [Size, unknown]).filter(t => t[1]);
   const body = grid ? htmlList(keys.map(card)) : edit || wideScreen ? htmlList(tiles.map(t => t[1])) : phoneCards(tiles);
   const offs = keys.filter(k => map[k] && tileOff(L, k));
-  const adds = edit && offs.length ? html`<div class="dash-add"><div class="eyebrow">Add cards</div><div class="add-list">${htmlList(offs.map(k => html`<button type="button" class="add-card" data-onclick="App.dashHide('${k}')"><span class="plus-i" aria-hidden="true">+</span><span><strong>${DASH_NAMES[k] || k}</strong><span class="sub-s">${DASH_ABOUT[k] || ''}</span></span></button>`))}</div></div>` : '';
+  const adds = edit && offs.length ? html`<div class="dash-add"><div class="eyebrow">Add cards</div><div class="add-list">${htmlList(offs.map(k => html`<button type="button" class="add-card" data-onclick="App.dashHide('${k}')"><span class="plus-i" aria-hidden="true">+</span><span><strong>${DASH_NAMES[k] || k}</strong><span class="sub-s">${DASH_ABOUT[k] || ''}</span></span><span class="pv">${tilePreview(k)}</span></button>`))}</div></div>` : '';
   return html`<div class="dash-wrap" data-n="${n}" style="--n:${n}">${edit ? html`<div class="dash-bar"><span>${grid ? 'Drag a tile anywhere and drag its corner to resize; tiles snap to the grid and push others down.' :
-      'Drag a tile (on a touch screen, by its ⠿ handle) or use the arrows. ' + (units === 2 ? 'Half and Full set how wide it is.' : 'Size sets how wide it is: a quarter, half or the whole row.')}</span><span class="grow"></span>${grid ? html`<button class="link" data-onclick="App.dashTidy()" title="Close the gaps by moving tiles up">Tidy up</button>` : ''}<button class="link" data-onclick="App.dashReset()">Reset</button><button class="btn small primary" data-onclick="App.dashEdit(false)">Done</button>${wideScreen ? html`<div class="dash-opts"><span>Arrange as</span><div class="seg mini" id="dashCols">${htmlList(DASH_COLS.map(c => html`<button type="button" class="${String(L.cols || '') === String(c) ? 'on' : ''}" data-onclick="App.dashCols('${c}')">${c ? c + ' col' + (c === 1 ? '' : 's') : 'Bento'}</button>`))}</div></div>` : ''}${adds}</div>` : ''}<div class="cards ${grid ? 'grid' : 'bento'}${edit ? ' editing' : ''}" id="dash" data-n="${n}" data-mode="${grid ? 'grid' : 'bento'}" data-units="${units}" style="--units:${units}"${L.cols ? html` data-cols="${String(L.cols)}"` : ''}>${body}</div></div>`;
+      'Drag a tile to move it (on a touch screen, by its ⠿ handle). ' + (units === 2 ? 'Half and Full set how wide it is.' : 'Size sets how wide it is: a quarter, half or the whole row.')}</span><span class="grow"></span>${grid ? html`<button class="link" data-onclick="App.dashTidy()" title="Close the gaps by moving tiles up">Tidy up</button>` : ''}<button class="link" data-onclick="App.dashReset()">Reset</button><button class="btn small primary" data-onclick="App.dashEdit(false)">Done</button>${wideScreen ? html`<div class="dash-opts"><span>Arrange as</span><div class="seg mini" id="dashCols">${htmlList(DASH_COLS.map(c => html`<button type="button" class="${String(L.cols || '') === String(c) ? 'on' : ''}" data-onclick="App.dashCols('${c}')">${c ? c + ' col' + (c === 1 ? '' : 's') : 'Bento'}</button>`))}</div></div>` : ''}${adds}</div>` : ''}<div class="cards ${grid ? 'grid' : 'bento'}${edit ? ' editing' : ''}" id="dash" data-n="${n}" data-mode="${grid ? 'grid' : 'bento'}" data-units="${units}" style="--units:${units}"${L.cols ? html` data-cols="${String(L.cols)}"` : ''}>${body}</div></div>`;
 }
 // Keep the change `mut` makes, and while customizing on a phone the tile order on the page (hidden tiles are not on it,
 // so they keep their place in the order)
@@ -232,13 +235,6 @@ function dashEdit(on: boolean) {
   S.dashEdit = on; dashRedraw();
 }
 const dashCard = (k: string): any => document.querySelector('#dash [data-w="' + k + '"]');
-// Up and down on a phone: one place earlier or later in the order
-function dashMove(k: string, dir: number) {
-  const w = dashCard(k); if (!w) return;
-  const sib = dir < 0 ? w.previousElementSibling : w.nextElementSibling;
-  if (sib && sib.classList.contains('w')) dashAnimate(() => { dir < 0 ? sib.before(w) : sib.after(w); dashSave(); });
-}
-// Half or full width on a phone
 // Size: half or full width on a phone; a quarter, half or the whole row on a wide screen
 const sizeLabel = (z: Size, units: number) => units === 2 ? z === 's' ? 'Full' : 'Half' : 'Size ' + z.toUpperCase();
 function dashSize(k: string) {
@@ -269,8 +265,22 @@ function dashOpt(k: string, id: string, v: string | number | boolean) {
 }
 // Hide a card, or add it back (from Add cards): it moves between the cards and that list, and comes back where it was
 function dashHide(k: string) {
+  const d = el('dash');
+  let under = -1;      // freeform: pin the tiles where they are and put the new one, full width, under the lowest
+  if (d && d.classList.contains('grid') && tileOff(dashLayout(), k)) {
+    gridKeep(d);
+    d.querySelectorAll<TileEl>(':scope > .w').forEach(w => { if (w._g) under = Math.max(under, w._g.y + w._g.h); });
+  }
   dashSave(x => {
     const add = tileOff(x, k), shown = (x.shown || []).filter(y => y !== k);
+    if (add) {      // a card you add goes at the end, not back where it was or into a gap
+      x.order = [...dashOrder(x, Object.keys(DASH_NAMES)).filter(y => y !== k), k];
+      if (x.free) delete x.free[k];
+      if (under >= 0) x.free = { ...x.free, [k]: [0, under, GRID] };
+      if (x.place) Object.values<any>(x.place).forEach(bs => Array.isArray(bs) && bs.forEach((b, i) => {
+        if (b === k) bs[i] = ''; else if (Array.isArray(b)) b.forEach(c => { if (Array.isArray(c)) c.splice(0, c.length, ...c.filter(y => y !== k)); });
+      }));
+    }
     x.hidden = x.hidden.filter(y => y !== k).concat(add ? [] : [k]);
     x.shown = add && !DASH_DEFAULT.includes(k) ? [...shown, k] : shown;
   });
@@ -290,12 +300,6 @@ function gridMove(d: HTMLElement, over?: Tile) {
     w.style.transition = 'none'; w.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
     void w.offsetWidth; w.style.transition = 'transform .2s ease'; w.style.transform = '';
   });
-}
-// The arrows nudge a tile one column sideways, or a card's worth of rows up or down
-function dashNudge(k: string, dx: number, dy: number) {
-  const w = dashCard(k), d = el('dash'); if (!w || !w._g) return;
-  const t = w._g;
-  gridMove(d, { k, x: Math.max(0, Math.min(GRID - t.w, t.x + dx)), y: Math.max(0, t.y + dy * 6), w: t.w, h: t.h });
 }
 // Close the gaps: every tile rises as far as it can, keeping its column and order
 function dashTidy() {
@@ -500,13 +504,11 @@ const methods = {
   dashEdit,
   dashOpts,
   dashOpt,
-  dashMove,
   dashWide,
   dashHide,
   dashReset,
   dashCols,
   dashSize,
-  dashNudge,
   dashTidy,
 };
 Object.assign(App, methods);

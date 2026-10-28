@@ -1364,7 +1364,7 @@
   }
   /* ---------- Bento Overview (dashboard.ts): tiles small, medium or large; phones two small ones to a row ---------- */
   .cards .w { container-type: inline-size; }
-  .cards.bento { display: grid; grid-template-columns: repeat(var(--units, 2), minmax(0, 1fr)); gap: var(--gap); align-items: stretch; grid-auto-flow: row dense; margin-bottom: var(--gap); }
+  .cards.bento { display: grid; grid-template-columns: repeat(var(--units, 2), minmax(0, 1fr)); gap: var(--gap); align-items: stretch; grid-auto-flow: row; margin-bottom: var(--gap); }
   .cards.bento.editing { grid-auto-flow: row; }
   .cards.bento > .w, .cards.bento .dash-rest > .w { display: flex; flex-direction: column; margin: 0; min-width: 0; }
   .cards.bento > .w > .panel, .cards.bento .dash-rest > .w > .panel { flex: 1; }
@@ -1372,8 +1372,9 @@
   .cards.bento > .w.l, .cards.bento .dash-rest > .w.l { grid-column: 1 / -1; }
   .cards.bento .dash-rest:not([hidden]) { display: contents; }
   .cards.bento .dash-more { grid-column: 1 / -1; }
-  .cards.bento .wctl { flex-wrap: wrap; }
-  .cards.bento .w.s .wctl .grow { flex-basis: 100%; height: 0; }     /* a half-width tile: its name, then its buttons below */
+  .cards.bento .wctl { flex-wrap: nowrap; }
+  .cards.bento .wctl strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cards.bento .wctl button { flex: none; }
   @media (max-width: 900px) {
     .dash-wrap { --gap: 12px; }
     .cards.bento .panel { padding: 18px 16px; }
@@ -1461,3 +1462,19 @@
   @container (max-width: 240px) { .w[data-w="bills"] .lead { display: none; } }
   .cards.bento .w[data-w="budgets"] > .panel { display: flex; flex-direction: column; }
   .cards.bento .w[data-w="budgets"] .brings { margin-block: auto; padding-top: 10px; }
+  /* a half-width tile's controls, small enough to share the row with its name */
+  #dash.bento .w.s .wctl { gap: 4px; }
+  #dash.bento .w.s .wctl button { padding: 3px 7px; font-size: 12px; }
+  #dash.bento .w.s .wctl .grip { padding-right: 0; }
+  @container (max-width: 200px) { #dash.bento .wctl strong { display: none; } }     /* (the tile shows its own title just below) */
+  /* Add cards: a sketch of each card (tilepreview.ts), popping up on hover, or a thumbnail on a touch screen */
+  .add-card { position: relative; }
+  .add-card > span:nth-child(2) { flex: 1; min-width: 0; }
+  .add-card .pv { flex: none; display: block; color: var(--text); }
+  .add-card .tpv { display: block; width: 100%; height: auto; }
+  @media (hover: hover) {
+    .add-card .pv { position: absolute; z-index: 20; left: 50%; bottom: calc(100% + 10px); width: 240px; padding: 10px; border: 1px solid var(--line); border-radius: 16px;
+      background: linear-gradient(var(--panel), var(--panel)), var(--bg); box-shadow: var(--shadow); opacity: 0; visibility: hidden; transform: translate(-50%, 6px); pointer-events: none; transition: opacity .15s ease, transform .15s ease, visibility 0s .15s; }
+    .add-card:is(:hover, :focus-visible) .pv { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition: opacity .15s ease .12s, transform .15s ease .12s, visibility 0s .12s; }
+  }
+  @media (hover: none) { .add-card .pv { width: 72px; padding: 4px; border-radius: 8px; background: color-mix(in srgb, var(--panel) 70%, transparent); border: 1px solid var(--line); } }

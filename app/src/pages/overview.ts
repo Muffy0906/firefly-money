@@ -167,7 +167,7 @@ function spentTile(spend: number, before: number, prevShort: string, trend: Cash
 }
 function earnedTile(income: number, spend: number) {
   const kept = income - spend, pct = income > 0 ? kept / income * 100 : 0;
-  return html`<section class="panel stat"><div class="eyebrow">Earned</div><div class="stat-v num" data-count="${income}">${money0(income)}</div><div class="sub-s">${income ? html`Kept <span class="num">${money0(kept)}</span>` : 'Nothing came in yet'}</div>${income ? ring(Math.max(0, pct), kept >= 0 ? 'good' : '', 'kept') : ''}</section>`;
+  return html`<section class="panel stat"><div class="eyebrow">Earned</div><div class="stat-v num" data-count="${income}">${money0(income)}</div><div class="sub-s">${!income ? 'Nothing came in yet' : kept >= 0 ? html`Kept <span class="num">${money0(kept)}</span>` : html`<span class="up num">${money0(-kept)}</span> more out than in`}</div>${income ? kept >= 0 ? ring(pct, 'good', 'kept') : ring(Math.min(100, -pct), 'over', 'kept', Math.round(pct) + '%') : ''}</section>`;
 }
 function spendingPanel(cats: CatRow[], future: boolean, all: boolean, count = 6, compare = true) {
   const cmp = compare && !all, total = cats.reduce((t, c) => t + c.amt, 0);
