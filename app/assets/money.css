@@ -684,6 +684,70 @@
   @media (max-width: 900px) {
     html[data-theme="glass"] :is(.panel, .kpi, .insight, .extra, .split, .dash-bar) { -webkit-backdrop-filter: blur(calc(var(--glass-blur) * .54)) saturate(160%); backdrop-filter: blur(calc(var(--glass-blur) * .54)) saturate(160%); }
   }
+  /* ---------- Theme: Frosted glass (warm light glass over a soft-focus room) ---------- */
+  html[data-theme="frosted"] { --bg: #d9c7b3; --panel: rgba(255, 250, 244, .5); --line: rgba(255, 255, 255, .55); --text: #1d1915; --muted: #6a5e54; --faint: rgba(255, 255, 255, .35);
+    --good: #2a9163; --spend: #d94f27; --income: #2a9163; --warn: #c98a12; --accent: #e2552c; --on-accent: #ffffff;
+    --shadow: 0 18px 50px rgba(60, 35, 15, .18); --radius: 22px; color-scheme: light;
+    --ink: #17130f; --frost-edge: inset 0 1px 0 rgba(255, 255, 255, .75), inset 0 0 0 1px rgba(255, 255, 255, .35);
+    /* what Settings → Appearance → Customize can change (themevars.ts sets these on <html>): the room's colors and the glass */
+    --glow1: #8a5a3c; --glow2: #f1e4d3; --glow3: #5f6b4a; --glass-base: #fffaf4; --glass-tint: 22%; --glass-blur: 28px;
+    background: var(--bg); }
+  html[data-theme="frosted"] body { background: transparent; }
+  /* the room: wood, a bright window, a dark screen, a plant, a rug */
+  html[data-theme="frosted"] body::after { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(30vmax 40vmax at 12% 18%, color-mix(in srgb, var(--glow1) 70%, transparent), transparent 70%),
+      radial-gradient(40vmax 26vmax at 70% 12%, color-mix(in srgb, var(--glow2) 95%, transparent), transparent 70%),
+      radial-gradient(34vmax 22vmax at 55% 48%, rgba(40, 32, 28, .5), transparent 70%),
+      radial-gradient(28vmax 28vmax at 88% 70%, color-mix(in srgb, var(--glow3) 55%, transparent), transparent 70%),
+      radial-gradient(50vmax 30vmax at 40% 95%, color-mix(in srgb, var(--glow1) 75%, transparent), transparent 70%),
+      linear-gradient(180deg, color-mix(in srgb, var(--bg) 40%, #fff), var(--bg)); }
+  html[data-theme="frosted"] :is(.panel, .kpi, .insight, .extra, .split, .login form, .dash-bar) {
+    background: linear-gradient(160deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, .18)), color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent);
+    border: 1px solid rgba(255, 255, 255, .6); box-shadow: var(--frost-edge), 0 10px 30px rgba(70, 40, 20, .12);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%); backdrop-filter: blur(var(--glass-blur)) saturate(150%); }
+  html[data-theme="frosted"] :is(.drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar) {
+    background: rgba(250, 243, 235, .8); border-color: rgba(255, 255, 255, .7);
+    -webkit-backdrop-filter: blur(36px) saturate(160%); backdrop-filter: blur(36px) saturate(160%); }
+  html[data-theme="frosted"] .drawer footer { background: transparent; border-top-color: rgba(255, 255, 255, .6); }
+  html[data-theme="frosted"] :is(input[type=text], input[type=number], input[type=date], input[type=password], input[type=search], select, textarea, .round, .wctl button) {
+    background: rgba(255, 255, 255, .45); border-color: rgba(255, 255, 255, .7); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6); }
+  html[data-theme="frosted"] select option { background: #f6efe7; }
+  html[data-theme="frosted"] :is(input, select, textarea):focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+  /* pill buttons: ink for the main action, glass for the rest */
+  html[data-theme="frosted"] .btn { border-radius: 999px; background: rgba(255, 255, 255, .45); border-color: rgba(255, 255, 255, .7); }
+  html[data-theme="frosted"] .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); box-shadow: 0 6px 18px rgba(23, 19, 15, .25); }
+  html[data-theme="frosted"] .seg { background: rgba(255, 255, 255, .35); border-radius: 999px; }
+  html[data-theme="frosted"] .seg button { border-radius: 999px; }
+  html[data-theme="frosted"] .seg button.on { background: var(--ink); color: #fff; }
+  html[data-theme="frosted"] .tbl.feed td { background: rgba(255, 250, 244, .42); border-color: rgba(255, 255, 255, .5); }
+  html[data-theme="frosted"] .tbl.feed tr.dayhead div { background: rgba(255, 248, 240, .6); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+  html[data-theme="frosted"] .tbl tr.click:hover td { background: rgba(255, 255, 255, .35); }
+  html[data-theme="frosted"] .tabs { border-bottom-color: rgba(255, 255, 255, .55); }
+  html[data-theme="frosted"] .tabs a.on { color: var(--text); }
+  html[data-theme="frosted"] .track { background: rgba(255, 255, 255, .5); }
+  html[data-theme="frosted"] .big { color: var(--text); }
+  html[data-theme="frosted"] .appbar.scrolled { background: rgba(240, 228, 214, .55); }
+  html[data-theme="frosted"] .scrim { background: rgba(40, 25, 12, .25); }
+  /* floating glass sidebar, a white pill on the current page */
+  html[data-theme="frosted"] .side { margin: 14px 0 14px 14px; height: calc(100vh - 28px); top: 14px; border-radius: 26px;
+    background: rgba(255, 250, 244, .38); border: 1px solid rgba(255, 255, 255, .6); box-shadow: var(--frost-edge), 0 10px 30px rgba(70, 40, 20, .12);
+    -webkit-backdrop-filter: blur(28px) saturate(150%); backdrop-filter: blur(28px) saturate(150%); }
+  html[data-theme="frosted"] .nav a { border-radius: 999px; }
+  html[data-theme="frosted"] .nav a.on { background: #fff; color: var(--text); box-shadow: 0 4px 14px rgba(70, 40, 20, .14); }
+  /* floating glass tab bar on phones, a white pill on the current tab */
+  html[data-theme="frosted"] .tabbar { left: 14px; right: 14px; bottom: calc(10px + env(safe-area-inset-bottom)); padding: 6px; border-radius: 999px; align-items: center;
+    background: rgba(255, 250, 244, .55); border: 1px solid rgba(255, 255, 255, .7); box-shadow: var(--frost-edge), 0 14px 40px rgba(60, 35, 15, .22);
+    -webkit-backdrop-filter: blur(30px) saturate(170%); backdrop-filter: blur(30px) saturate(170%); }
+  html[data-theme="frosted"] .tabbar a { border-radius: 999px; padding: 7px 0; margin: 0 3px; color: #5d5249; transition: background-color .2s, box-shadow .2s; }
+  html[data-theme="frosted"] .tabbar a.on { background: #fff; color: var(--text); box-shadow: 0 3px 12px rgba(70, 40, 20, .16); }
+  html[data-theme="frosted"] .tabbar .plus { margin: 0 auto; width: 48px; height: 48px; }
+  html[data-theme="frosted"] :is(.tabbar .plus, .fab) { background: var(--ink); color: #fff; box-shadow: 0 6px 18px rgba(23, 19, 15, .3); }
+  @media (max-width: 900px) {
+    html[data-theme="frosted"] main { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important; }
+    html[data-theme="frosted"] :is(.undo, .toast) { bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); }
+    html[data-theme="frosted"] :is(.panel, .kpi, .insight, .extra, .split, .dash-bar) { -webkit-backdrop-filter: blur(calc(var(--glass-blur) * .6)) saturate(150%); backdrop-filter: blur(calc(var(--glass-blur) * .6)) saturate(150%); }
+  }
   /* ---------- iPhone: notch / home bar, no accidental zoom, native-app shell ---------- */
   body { touch-action: manipulation; }
   body::before { content: ''; position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top, 0px); z-index: 19; pointer-events: none;

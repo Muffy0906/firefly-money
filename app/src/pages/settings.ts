@@ -115,7 +115,7 @@ function setSpy() {
 }
 addEventListener('scroll', () => { if (!spyQueued && el('setNav')) { spyQueued = true; requestAnimationFrame(setSpy); } }, { passive: true });
 addEventListener('resize', () => { if (el('setNav')) requestAnimationFrame(setSpy); });
-/* ---------- Customize colors: your own background, accent and (for Liquid glass) light, tint and blur ---------- */
+/* ---------- Customize colors: your own background, accent and (for the glass themes) light, tint and blur ---------- */
 const curTheme = () => document.documentElement.getAttribute('data-theme') || 'auto';
 const themeName = () => { const t = THEMES.find(x => x[0] === curTheme()); return t ? t[1] : ''; };
 // The colour the theme shows right now (yours, or its own), as #rrggbb for a colour well
@@ -136,12 +136,12 @@ function customizer() {
     ${row('Background', html`Behind everything<span class="up tc-warn"${lowContrast() ? '' : ' hidden'}>. Text may be hard to read on this color.</span>`,
       html`<input type="color" aria-label="Background color" value="${shown('--bg')}" data-oninput="App.themeVar('bg', this.value)">`)}
     ${row('Accent', 'Buttons, switches and highlights', html`<input type="color" aria-label="Accent color" value="${shown('--accent')}" data-oninput="App.themeVar('accent', this.value)">`)}
-    ${t === 'glass' ? html`
-    ${row('Light', 'The three colors glowing behind the glass', html`<input type="color" aria-label="First light color" value="${shown('--glow1')}" data-oninput="App.themeVar('glow1', this.value)"><input type="color" aria-label="Second light color" value="${shown('--glow2')}" data-oninput="App.themeVar('glow2', this.value)"><input type="color" aria-label="Third light color" value="${shown('--glow3')}" data-oninput="App.themeVar('glow3', this.value)">`)}
+    ${t === 'glass' || t === 'frosted' ? html`
+    ${row(t === 'glass' ? 'Light' : 'Room', t === 'glass' ? 'The three colors glowing behind the glass' : 'The three colors of the room behind the glass', html`<input type="color" aria-label="First light color" value="${shown('--glow1')}" data-oninput="App.themeVar('glow1', this.value)"><input type="color" aria-label="Second light color" value="${shown('--glow2')}" data-oninput="App.themeVar('glow2', this.value)"><input type="color" aria-label="Third light color" value="${shown('--glow3')}" data-oninput="App.themeVar('glow3', this.value)">`)}
     ${row('Glass tint', 'The color of the cards', html`<input type="color" aria-label="Glass tint" value="${shown('--glass-base')}" data-oninput="App.themeVar('tint', this.value)">`)}
     ${row('Frost', 'Clear to solid', html`<input type="range" min="0" max="90" step="1" aria-label="Frost" value="${frost}" data-oninput="App.themeRange('frost', this)"><output>${frost}%</output>`)}
     ${row('Blur', 'How much the light softens behind the cards', html`<input type="range" min="0" max="60" step="1" aria-label="Blur" value="${blur}" data-oninput="App.themeRange('blur', this)"><output>${blur}px</output>`)}
-    ${row('Moving light', 'Let the light drift slowly', html`<input ${SWITCH} aria-label="Moving light"${c.motion === false ? '' : ' checked'} data-onchange="App.themeVar('motion', this.checked)">`)}` : ''}
+    ${t === 'glass' ? row('Moving light', 'Let the light drift slowly', html`<input ${SWITCH} aria-label="Moving light"${c.motion === false ? '' : ' checked'} data-onchange="App.themeVar('motion', this.checked)">`) : ''}` : ''}
     ${Object.keys(c).length ? row('', '', html`<button class="btn small" type="button" data-onclick="App.resetThemeCustom()">Reset ${themeName()}</button>`) : ''}`;
 }
 // Redraw after the theme changes (setTheme) or the colors are reset

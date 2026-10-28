@@ -28,6 +28,13 @@ describe('applyCustom', () => {
     applyCustom('auto');
     expect(v('--bg')).toBe('');
   });
+  it('gives Frosted glass the room colors and glass, but not the moving light', () => {
+    localStorage.setItem('money.themeCustom', JSON.stringify({ frosted: { glow2: '#ffeedd', tint: '#ffffff', frost: 40, motion: false } }));
+    applyCustom('frosted');
+    expect(v('--glow2')).toBe('#ffeedd');
+    expect(v('--glass-base')).toBe('#ffffff');
+    expect(v('--glass-tint')).toBe('40%');
+  });
   it('ignores values that aren’t colors', () => {
     localStorage.setItem('money.themeCustom', JSON.stringify({ dark: { bg: 'red;x:1', accent: 'url(x)' } }));
     applyCustom('dark');

@@ -267,7 +267,7 @@ async def screenshots(pw, out):
     await shot('', 'overview-light', theme='light')
     await shot('', 'phone-overview', 390, 844, True)
     await shot('transactions', 'phone-edit-sheet', 390, 844, True, action=open_tx)
-    for k in ['dark', 'carbon', 'midnight', 'neon', 'ocean', 'sunrise', 'forest', 'nord', 'rose']:   # one per theme, for the theme gallery
+    for k in ['dark', 'carbon', 'midnight', 'neon', 'ocean', 'sunrise', 'forest', 'nord', 'rose', 'frosted']:   # one per theme, for the theme gallery
         await shot('', f'theme-{k}', theme=k)
     await br.close()
 

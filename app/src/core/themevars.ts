@@ -1,5 +1,5 @@
 /* Your own colours on top of a theme (Settings → Appearance → Customize). Kept per theme in money.themeCustom,
-   e.g. { glass: { bg: '#07060f', glow1: '#ff4fd8', blur: 26 } }, and laid on <html> as CSS variables, which beat the
+   e.g. { glass: { bg: '#07060f', glow1: '#ff4fd8', blur: 26 } } (Frosted glass takes the same glass fields, but not motion), and laid on <html> as CSS variables, which beat the
    theme's own. boot.ts runs applyCustom before the first paint. No imports: boot.js bundles this file too. */
 export type Custom = { bg?: string, accent?: string, glow1?: string, glow2?: string, glow3?: string, tint?: string, frost?: number, blur?: number, motion?: boolean };
 export const KEY = 'themeCustom';
@@ -22,7 +22,7 @@ export function applyCustom(theme?: string) {
   if (!c) return;
   if (isHex(c.bg)) d.style.setProperty('--bg', c.bg);
   if (isHex(c.accent)) { d.style.setProperty('--accent', c.accent); d.style.setProperty('--on-accent', onAccent(c.accent)); }
-  if (t !== 'glass') return;
+  if (t !== 'glass' && t !== 'frosted') return;
   (['glow1', 'glow2', 'glow3'] as const).forEach(k => { if (isHex(c[k])) d.style.setProperty('--' + k, c[k]); });
   if (isHex(c.tint)) d.style.setProperty('--glass-base', c.tint);
   if (typeof c.frost === 'number') d.style.setProperty('--glass-tint', Math.max(0, Math.min(95, c.frost)) + '%');
