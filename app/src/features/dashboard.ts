@@ -317,17 +317,22 @@ addEventListener('resize', (() => { let t = 0; return () => { clearTimeout(t); t
 // copy, its slot moves to wherever it would land (the others slide out of the way), and the page scrolls when you hold
 // it near the top or bottom edge.
 let gridRO: ResizeObserver | null = null, gridMO: MutationObserver | null = null;
+// Where a tile sits in the layout, leaving out a slide it's in the middle of
+const box = (e: Element) => {
+  const r = e.getBoundingClientRect(), t = getComputedStyle(e).transform, m = t && t !== 'none' ? new DOMMatrixReadOnly(t) : null, dx = m ? m.m41 : 0, dy = m ? m.m42 : 0;
+  return { left: r.left - dx, right: r.right - dx, top: r.top - dy, bottom: r.bottom - dy, width: r.width, height: r.height };
+};
 export function bindDash() {
   if (gridRO) { gridRO.disconnect(); gridMO!.disconnect(); gridRO = gridMO = null; }
   const d = el('dash'); if (!d) return;
   if (d.classList.contains('grid')) return bindGrid(d);
   if (!d.classList.contains('editing')) return;
-  let drag: { w: HTMLElement, id: number, x0: number, y0: number, x: number, y: number, ghost?: HTMLElement, raf: number } | null = null;
+  let drag: { w: HTMLElement, id: number, x0: number, y0: number, x: number, y: number, ghost?: HTMLElement, raf: number, calm: number } | null = null;
   const dragging = () => drag!;
   const near = (els: Element[], x: number, y: number) => {      // the tile under the pointer, or else the nearest one (so gaps count too)
     let best: Element | null = null, bd = Infinity;
     for (const e of els) {
-      const r = e.getBoundingClientRect(), dx = Math.max(r.left - x, 0, x - r.right), dy = Math.max(r.top - y, 0, y - r.bottom), dist = dx * dx + dy * dy;
+      const r = box(e), dx = Math.max(r.left - x, 0, x - r.right), dy = Math.max(r.top - y, 0, y - r.bottom), dist = dx * dx + dy * dy;
       if (dist < bd) { bd = dist; best = e; }
     }
     return best;
@@ -337,11 +342,12 @@ export function bindDash() {
     fn();
     ws.forEach(w => {
       if (w === drag!.w) return;
-      const a = was.get(w)!, b = w.getBoundingClientRect(), dx = a.left - b.left, dy = a.top - b.top;
-      if (!dx && !dy) return;
+      const a = was.get(w)!, b = box(w), dx = a.left - b.left, dy = a.top - b.top;     // from where it is on screen (maybe mid-slide) to its new home
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
       w.style.transition = 'none'; w.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
-      void w.offsetWidth; w.style.transition = 'transform .2s ease'; w.style.transform = '';
+      void w.offsetWidth; w.style.transition = 'transform .28s cubic-bezier(.2, .8, .2, 1)'; w.style.transform = '';
     });
+    drag!.calm = performance.now() + 160;     // let the tiles start moving before deciding again, so two tiles don't keep trading places
   };
   const put = (parent: Element, ref: Element | null) => {
     const drag = dragging();
@@ -349,10 +355,11 @@ export function bindDash() {
     flip(() => parent.insertBefore(drag.w, ref));
   };
   // The slot goes before or after the tile under the pointer: by which half of it, sideways for a half-width tile
+  // The pointer over the gap the tile left (or its own spot) changes nothing; it decides by where tiles are headed, not where they are mid-slide.
   const place = () => {
-    if (!drag) return;
-    const { x, y, w } = drag, t = near([...d.querySelectorAll(':scope > .w')].filter(c => c !== w), x, y); if (!t) return;
-    const r = t.getBoundingClientRect(), half = r.width < d.clientWidth * .7;
+    if (!drag || performance.now() < drag.calm) return;
+    const { x, y, w } = drag, t = near([...d.querySelectorAll(':scope > .w')], x, y); if (!t || t === w) return;
+    const r = box(t), half = r.width < d.clientWidth * .7;
     const after = half ? x > r.left + r.width / 2 : y > r.top + r.height / 2;
     put(d, after ? t.nextElementSibling : t);
   };
@@ -365,7 +372,7 @@ export function bindDash() {
   const lift = () => {
     const drag = dragging(), r = drag.w.getBoundingClientRect(), g = drag.w.cloneNode(true) as HTMLElement;
     g.classList.add('dash-ghost'); g.removeAttribute('data-w');
-    Object.assign(g.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px' });
+    Object.assign(g.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
     document.body.appendChild(g);
     drag.ghost = g;
     drag.w.classList.add('dragging'); d.classList.add('moving');
@@ -379,14 +386,14 @@ export function bindDash() {
     d.classList.remove('moving');
     if (!ghost) return;
     const r = w.getBoundingClientRect();
-    ghost.style.transition = 'transform .18s ease, opacity .18s'; ghost.style.transform = 'translate(' + (r.left - parseFloat(ghost.style.left)) + 'px,' + (r.top - parseFloat(ghost.style.top)) + 'px)';
-    setTimeout(() => { ghost.remove(); w.classList.remove('dragging'); }, 180);
+    ghost.style.transition = 'transform .22s cubic-bezier(.2, .8, .2, 1)'; ghost.style.transform = 'translate(' + (r.left - parseFloat(ghost.style.left)) + 'px,' + (r.top - parseFloat(ghost.style.top)) + 'px)';
+    setTimeout(() => { ghost.remove(); w.classList.remove('dragging'); }, 220);
     dashSave();
   };
   d.addEventListener('pointerdown', e => {
     const w = (e.target as HTMLElement).closest<HTMLElement>('.w'); if (!w || e.button > 0 || (e.target as HTMLElement).closest('button, a, input, select, label, .wopts')) return;
     if (e.pointerType !== 'mouse' && !(e.target as HTMLElement).closest('.grip')) return;     // touch: only the handle, so scrolling still works
-    drag = { w, id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, raf: 0 };
+    drag = { w, id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, raf: 0, calm: 0 };
     if (e.pointerType !== 'mouse') lift();
     try { d.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
     e.preventDefault();
@@ -395,7 +402,7 @@ export function bindDash() {
     if (!drag || e.pointerId !== drag.id) return;
     drag.x = e.clientX; drag.y = e.clientY;
     if (!drag.ghost) { if (Math.hypot(drag.x - drag.x0, drag.y - drag.y0) < 5) return; lift(); }
-    drag.ghost!.style.transform = 'translate(' + (drag.x - drag.x0) + 'px,' + (drag.y - drag.y0) + 'px)';
+    drag.ghost!.style.transform = 'translate(' + (drag.x - drag.x0) + 'px,' + (drag.y - drag.y0) + 'px) scale(1.03)';
     place();
   });
   d.addEventListener('pointerup', drop);
@@ -425,10 +432,10 @@ function bindGrid(d: HTMLElement) {
     const ws = [...d.querySelectorAll<HTMLElement>(':scope > .w')].filter(w => w !== drag.w), was = new Map(ws.map(w => [w, w.getBoundingClientRect()]));
     gridLayout(d, over);
     ws.forEach(w => {
-      const a = was.get(w)!, b = w.getBoundingClientRect(), dx = a.left - b.left, dy = a.top - b.top;
-      if (!dx && !dy) return;
+      const a = was.get(w)!, b = box(w), dx = a.left - b.left, dy = a.top - b.top;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
       w.style.transition = 'none'; w.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
-      void w.offsetWidth; w.style.transition = 'transform .2s ease'; w.style.transform = '';
+      void w.offsetWidth; w.style.transition = 'transform .28s cubic-bezier(.2, .8, .2, 1)'; w.style.transform = '';
     });
   };
   const place = () => {

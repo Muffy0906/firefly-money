@@ -83,26 +83,28 @@ VIEWS[''] = async (r, paint) => {
   const build = (slow: ApiData[] | null) => {
     const [prog, safe, insights, sparks, dayTx, incomeSrc, payNow, payPrev, piggies, nw, prevTx, monthCats] = slow || [];
     const wait = (k: string) => slow ? null : skeletonPanel(k);
+    // A card with nothing to show for this month says so rather than vanishing, so the cards around it stay put
+    const idle = (k: string, why = future ? 'Fills in once this month starts.' : 'Shows for one month at a time: pick a month at the top.') => quietPanel(k, why);
     const W: [string, unknown][] = [
       ['networth', networthTile(netWorth, slow ? nw : undefined)],
       ['spent', spentTile(last.spend, future && !last.spend ? 0 : before.spend, prev.short, trend, all)],
       ['earned', earnedTile(last.income, last.spend)],
-      ['insights', monthOnly ? '' : wait('insights') ?? insights],
-      ['safe', future ? '' : wait('safe') ?? safe],
+      ['insights', monthOnly ? idle('insights') : wait('insights') ?? (insights || quietPanel('insights', 'Nothing unusual this month.'))],
+      ['safe', future ? idle('safe') : wait('safe') ?? (safe || idle('safe'))],
       ['attention', attentionPanel({ uncat, uncatQ, bills: arr(bills), budgets: arr(budgets), limits, future })],
       ['spending', spendingPanel([...cats.values()], future, all, tileOpt('spending', 'count'), tileOpt('spending', 'compare'))],
       ['budgets', budgetsMini(arr(budgets), limits, all, tileOpt('budgets', 'unset'))],
       ['cash', balancesPanel('Cash & savings', 'Bank account balances', cashShown, a => a.balance, false, tileOpt('cash', 'sparks') ? sparks : {})],
       ['cards', balancesPanel('Credit cards', 'Current balances owed', cardsShown, a => Math.max(0, -a.balance), true, tileOpt('cards', 'sparks') ? sparks : {})],
       ['loans', loansShown.length ? wait('loans') ?? loansPanel(loansShown, prog) : loansPanel(loansShown, {})], ['bills', billsMini(arr(bills), tileOpt('bills', 'days'), 4)],
-      ['heatmap', monthOnly ? '' : wait('heatmap') ?? App.heatmapPanel(cur, dayTx.map(normGroup))],
-      ['flow', future ? '' : wait('flow') ?? App.sankeyPanel(arr(incomeSrc), last.income, [...cats.values()].filter(c => c.amt > 0), cur)],
+      ['heatmap', monthOnly ? idle('heatmap') : wait('heatmap') ?? App.heatmapPanel(cur, dayTx.map(normGroup))],
+      ['flow', future ? idle('flow') : wait('flow') ?? App.sankeyPanel(arr(incomeSrc), last.income, [...cats.values()].filter(c => c.amt > 0), cur)],
       ['payees', wait('payees') ?? payeesPanel(arr(payNow), arr(payPrev), future, all, tileOpt('payees', 'count'), tileOpt('payees', 'compare'))],
-      ['income', future ? '' : wait('income') ?? incomePanel(arr(incomeSrc), all)],
+      ['income', future ? idle('income') : wait('income') ?? incomePanel(arr(incomeSrc), all)],
       ['goals', !tileOn('goals') ? 'off' : wait('goals') ?? goalsPanel(piggies, tileOpt('goals', 'done'))],     // (empty without its data, so offered as is)
       ['cashflow', html`<section class="panel chart">${cashFlow(trend)}</section>`],
       ['recent', html`<section class="panel flush"><div style="padding:24px 26px 6px" class="panel-head"><div><h2>Recent transactions</h2></div><a class="link" href="#/transactions">See all</a></div>${txRows(arr(recent).map(normGroup))}</section>`],
-      ['pace', monthOnly ? '' : wait('pace') ?? pacePanel(cur, prev, arr(dayTx).map(normGroup), arr(prevTx).map(normGroup))],
+      ['pace', monthOnly ? idle('pace') : wait('pace') ?? pacePanel(cur, prev, arr(dayTx).map(normGroup), arr(prevTx).map(normGroup))],
       ['savings', html`<section class="panel chart">${savingsRate(trend)}</section>`],
       ['trends', wait('trends') ?? trendsPanel(months.map(mo => mo.short), monthCats || [])],
     ];
@@ -130,6 +132,9 @@ function fillIn(markup: Html) {
   if (App.fitSankey) App.fitSankey();
   return true;
 }
+function quietPanel(k: string, why: string) {
+  return html`<section class="panel quiet"><h2>${DASH_NAMES[k] || ''}</h2><p class="lead">${why}</p></section>`;
+}
 function skeletonPanel(k: string) {
   const h = ({ insights: 120, safe: 70, loans: 90, heatmap: 230, flow: 240, payees: 200, networth: 230, pace: 230, trends: 220 } as Record<string, number>)[k] || 120;
   return html`<section class="panel" aria-busy="true"><h2>${DASH_NAMES[k] || ''}</h2><p class="lead">&nbsp;</p><div class="sk" style="height:${h}px"></div></section>`;
@@ -152,8 +157,10 @@ function attentionPanel({ uncat, bills, budgets, limits, future }: { uncat: ApiD
     if (lim && lim.amount && spent > lim.amount) items.push(html`<a class="row" href="#/transactions?budget=${b.id}"><span class="name">⚠️ ${b.attributes.name} is over budget</span><span class="num up">${money0(spent - lim.amount)} over</span></a>`);
     else if (lim && lim.amount && spent >= lim.amount * budgetAlert() / 100) items.push(html`<a class="row" href="#/transactions?budget=${b.id}"><span class="name">◔ ${b.attributes.name} is at ${Math.round(spent / lim.amount * 100)}%</span><span class="num">${money0(lim.amount - spent)} left</span></a>`);
   });
-  if (!items.length) return '';
-  return html`<section class="panel attention"><h2>Needs attention</h2><p class="lead">Quick things to tidy up</p><div class="list">${htmlList(items)}</div></section>`;
+  if (!items.length) return html`<section class="panel attention"><h2>Needs attention</h2><p class="lead">Quick things to tidy up</p><p class="all-clear"><span aria-hidden="true">✓</span> All caught up</p></section>`;
+  // Two rows at most, so the card is the same height from month to month; the rest open from the heading
+  const more = items.length - 2;
+  return html`<section class="panel attention"><div class="panel-head"><h2>Needs attention</h2>${more > 0 ? html`<button type="button" class="link" data-onclick="App.attMore(this)">${more} more</button>` : ''}</div><p class="lead">Quick things to tidy up</p><div class="list">${htmlList(items.slice(0, 2))}${more > 0 ? html`<div class="att-more" hidden>${htmlList(items.slice(2))}</div>` : ''}</div></section>`;
 }
 // The bento's number tiles: net worth with its trend, what was spent against last month, what came in and was kept
 function networthTile(netWorth: number, pts: NetWorthPoint[] | null | undefined) {
@@ -165,9 +172,12 @@ function spentTile(spend: number, before: number, prevShort: string, trend: Cash
   const change = before ? (spend - before) / before * 100 : 0, bars = trend.map(t => t.spend);
   return html`<section class="panel stat"><div class="eyebrow">Spent</div><div class="stat-v num" data-count="${spend}">${money0(spend)}</div><div class="sub-s">${all ? 'of all time' : before ? html`<span class="${change > 0 ? 'up' : 'down'}">${change > 0 ? '▲' : '▼'} ${Math.abs(change).toFixed(0)}%</span> vs ${prevShort}` : html`&nbsp;`}</div>${all ? '' : sparkBars(bars, Math.max(1, ...bars))}</section>`;
 }
+// What came in, what went out, and what was kept: two bars on the same scale, so a month that ran over shows it at a glance
 function earnedTile(income: number, spend: number) {
-  const kept = income - spend, pct = income > 0 ? kept / income * 100 : 0;
-  return html`<section class="panel stat"><div class="eyebrow">Earned</div><div class="stat-v num" data-count="${income}">${money0(income)}</div><div class="sub-s">${!income ? 'Nothing came in yet' : kept >= 0 ? html`Kept <span class="num">${money0(kept)}</span>` : html`<span class="up num">${money0(-kept)}</span> more out than in`}</div>${income ? kept >= 0 ? ring(pct, 'good', 'kept') : ring(Math.min(100, -pct), 'over', 'kept', Math.round(pct) + '%') : ''}</section>`;
+  const kept = income - spend, pct = income > 0 ? Math.round(kept / income * 100) : 0, top = Math.max(income, spend, 1);
+  const bar = (label: string, v: number, c: string) => html`<div class="io-r"><span class="io-l">${label}</span><span class="io-t"><i class="${c}" style="width:${(v / top * 100).toFixed(1)}%"></i></span><span class="io-v num">${money0(v)}</span></div>`;
+  const sub = !income && !spend ? 'Nothing came in yet' : kept >= 0 ? html`Kept <span class="down num">${money0(kept)}</span>${income ? html` · ${pct}%` : ''}` : html`<span class="up num">${money0(-kept)}</span> more out than in`;
+  return html`<section class="panel stat earned"><div class="eyebrow">Earned</div><div class="stat-v num" data-count="${income}">${money0(income)}</div><div class="sub-s">${sub}</div><div class="io">${bar('In', income, 'in')}${bar('Out', spend, kept < 0 ? 'over' : 'out')}</div></section>`;
 }
 function spendingPanel(cats: CatRow[], future: boolean, all: boolean, count = 6, compare = true) {
   const cmp = compare && !all, total = cats.reduce((t, c) => t + c.amt, 0);
@@ -288,3 +298,12 @@ function billsMini(bills: ApiData[], days = 45, max = 0) {
   const rows = htmlList(up.slice(0, more ? max - 1 : undefined).map(({ b, next }) => html`<div class="row"><span class="name">${b.attributes.name}<br><span class="sub-s">Due ${fmtDate(next)}</span></span><span class="num">${money(billAmount(b.attributes))}</span></div>`));
   return html`<section class="panel"><div class="panel-head"><h2>Coming up</h2><a class="link" href="#/bills">All bills</a></div><p class="lead">Bills due in the next ${Math.min(45, days)} days</p>${rows ? html`<div class="list">${rows}${more ? html`<a class="row more" href="#/bills"><span class="name">${more + 1} more</span><span class="neutral">→</span></a>` : ''}</div>` : html`<p class="empty">Nothing due soon.</p>`}</section>`;
 }
+
+function attMore(b: HTMLElement) {
+  const m = b.closest('.attention')!.querySelector<HTMLElement>('.att-more'); if (!m) return;
+  m.hidden = !m.hidden; b.textContent = m.hidden ? m.children.length + ' more' : 'Fewer';
+}
+const methods = { attMore };
+Object.assign(App, methods);
+type Methods = typeof methods;
+declare module '../core/base' { interface AppApi extends Methods {} }
