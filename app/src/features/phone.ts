@@ -36,15 +36,15 @@ function movePill() {
   if (on && on.offsetWidth) { pill.style.width = on.offsetWidth + 'px'; pill.style.transform = 'translateX(' + on.offsetLeft + 'px)'; }
 }
 addEventListener('resize', movePill);
-/* Scrolling down the page folds the tab bar away into the + button at the bottom right (#fab); scrolling back up,
-   or reaching the top, opens it again */
+/* Scrolling down the page folds the tab bar away into the + button at the bottom right (#fab) and slides the title bar
+   and search button up out of sight (html.scroll-down, phones only in CSS); scrolling back up, or reaching the top, brings them back */
 (function foldOnScroll() {
   let last = scrollY, folded = false;
   const fold = (on: boolean) => {
-    const tb = el('tabbar');
-    if (on && (tb.hidden || !tb.offsetWidth)) on = false;     // desktop, or the native app's own tabs
     if (on === folded) return;
-    folded = on; tb.classList.toggle('mini', on); el('fab').classList.toggle('on', on);
+    folded = on; document.documentElement.classList.toggle('scroll-down', on);
+    const tb = el('tabbar'), mini = on && !tb.hidden && !!tb.offsetWidth;     // not on desktop, or with the native app's own tabs
+    tb.classList.toggle('mini', mini); el('fab').classList.toggle('on', mini);
   };
   addEventListener('scroll', () => {
     const y = scrollY, dy = y - last;
