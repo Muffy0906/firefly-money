@@ -4,19 +4,23 @@
    When built with GOATCOUNTER set, it also counts visits to each page for GoatCounter (no cookies, no personal data). */
 import { NotFound, createMockApi } from './mockapi';
 
-// A first visit opens in Frosted glass, with the Overview arranged like the README's screenshots (this runs before
-// boot.js reads the theme): four small tiles a row even on a big screen, net worth over three years. A phone puts
-// Where it went first in its row so Cash and Credit cards pair up. Anything the visitor changes is kept, and
-// Customize → Reset gives the usual defaults.
+// The demo opens in Frosted glass, with the Overview arranged like the README's screenshots (this runs before boot.js
+// reads the theme): four small tiles a row even on a big screen, net worth over three years. A phone puts Where it
+// went first in its row so Cash and Credit cards pair up. It's set up once per LOOK version, so a visitor who was here
+// before gets a new look once too; after that, anything they change is kept (Customize → Reset gives the usual defaults).
+const LOOK = '2';
 try {
-  const phone = innerWidth < 1000;
-  if (!localStorage.getItem('moneyTheme')) localStorage.setItem('moneyTheme', 'frosted');
-  if (!localStorage.getItem('money.nwYears')) localStorage.setItem('money.nwYears', '3');
-  if (!localStorage.getItem('money.dash')) localStorage.setItem('money.dash', JSON.stringify({
-    v: 3, units: 4, order: ['insights', 'networth', 'earned', 'spent', 'attention', ...(phone ? ['spending', 'cash'] : ['cash', 'spending']), 'cards', 'flow', 'heatmap', 'loans'],
-    shown: ['cash', 'cards', 'flow', 'heatmap', 'loans'], hidden: ['safe', 'budgets', 'bills', 'cashflow'],
-    size: { networth: 's', attention: 's', cash: 's', cards: 's', heatmap: 's', loans: 's', spending: 'm', flow: 'm' },
-  }));
+  if (localStorage.getItem('money.demoLook') !== LOOK) {
+    const phone = innerWidth < 1000;
+    localStorage.setItem('moneyTheme', 'frosted');
+    localStorage.setItem('money.nwYears', '3');
+    localStorage.setItem('money.dash', JSON.stringify({
+      v: 3, units: 4, order: ['insights', 'networth', 'earned', 'spent', 'attention', ...(phone ? ['spending', 'cash'] : ['cash', 'spending']), 'cards', 'flow', 'heatmap', 'loans'],
+      shown: ['cash', 'cards', 'flow', 'heatmap', 'loans'], hidden: ['safe', 'budgets', 'bills', 'cashflow'],
+      size: { networth: 's', attention: 's', cash: 's', cards: 's', heatmap: 's', loans: 's', spending: 'm', flow: 'm' },
+    }));
+    localStorage.setItem('money.demoLook', LOOK);
+  }
 } catch (e) { /* storage blocked */ }
 
 const handle = createMockApi();
