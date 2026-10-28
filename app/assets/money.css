@@ -650,6 +650,10 @@
   .sankey .lk:hover { fill-opacity: .55; }
   .sankey .sk-name { fill: var(--text); font-size: 12.5px; font-weight: 500; }
   .sankey .sk-amt { fill: var(--muted); font-size: 11.5px; }
+  /* Labels inside the chart (narrow cards) sit over the bands: a halo in the card's colour keeps them readable, and
+     taps go through them to the band underneath */
+  .sankey .sk-in text { paint-order: stroke; stroke: var(--panel); stroke-width: 4px; stroke-linejoin: round; pointer-events: none; }
+  .sankey .sk-in .sk-name { font-weight: 600; }
   .tbl.feed .inl { cursor: pointer; border-radius: 6px; transition: background .12s, box-shadow .12s; }
   .tbl.feed .catcol .inl { padding: 3px 7px; margin-left: -7px; }
   .tbl.feed .inl:hover { background: var(--faint); box-shadow: 0 0 0 1px var(--line); color: var(--text); }

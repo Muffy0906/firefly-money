@@ -162,7 +162,8 @@ function heatmapPanel(cur: Period, groups: Group[]) {
 
 /* ---------- Money flow (income → spending categories + kept) ---------- */
 // The chart is laid out at the width it is shown at (one SVG unit = one pixel), so the labels keep their real
-// font size and spacing instead of being scaled up on a wide screen or down on a phone.
+// font size and spacing instead of being scaled up on a wide screen or down on a phone. On a narrow card (a phone)
+// the bars sit at the edges and the labels go inside, over the bands, so the chart gets the card's whole width.
 type FlowNode = { name: string, v: number, id?: string, kind?: string };
 type LaidNode = FlowNode & { h: number, slot: number, x: number, y: number, ly: number };
 type Flow = { left: FlowNode[], right: FlowNode[], inc: number, spend: number };
@@ -179,12 +180,13 @@ function sankeyPanel(sources: ApiData[], income: number, cats: { name: string, a
   if (spend > inc) left.push({ name: 'From savings', v: spend - inc, kind: 'save' });
   if (inc > spend) right.push({ name: 'Kept', v: inc - spend, kind: 'kept' });
   const d: Flow = { left, right, inc, spend };
-  return html`<section class="panel chart sankey" data-sk="${JSON.stringify(d)}"><h2>Money flow</h2><p class="lead">Where ${cur.all ? 'all your' : cur.label + '’s'} income went · hover a band for details</p>${sankeySvg(d, innerWidth < 900 ? innerWidth - 72 : 900)}</section>`;
+  return html`<section class="panel chart sankey" data-sk="${JSON.stringify(d)}"><h2>Money flow</h2><p class="lead">Where ${cur.all ? 'all your' : cur.label + '’s'} income went · ${matchMedia?.('(hover: none)').matches ? 'tap a category to see its transactions' : 'hover a band for details'}</p>${sankeySvg(d, innerWidth < 900 ? innerWidth - 72 : 900)}</section>`;
 }
 // Shorten a label with … until it fits in px at the chart's label font
 let skCtx: CanvasRenderingContext2D | null = null;
-function fitText(t: string, px: number) {
-  if (!skCtx) { skCtx = document.createElement('canvas').getContext('2d')!; skCtx.font = '500 12.5px ' + getComputedStyle(document.body).fontFamily; }
+function fitText(t: string, px: number, weight = 500) {
+  if (!skCtx) skCtx = document.createElement('canvas').getContext('2d')!;
+  skCtx.font = weight + ' 12.5px ' + getComputedStyle(document.body).fontFamily;
   if (skCtx.measureText(t).width <= px) return t;
   let n = t.length;
   while (n > 1 && skCtx.measureText(t.slice(0, n).trimEnd() + '…').width > px) n--;
@@ -198,7 +200,7 @@ function sankeySvg(d: Flow, W: number) {
   // On a very wide card the bands would stretch thin, so the chart keeps to 1100px in the middle of it
   const CW = Math.min(W, 1100), ox = (W - CW) / 2;
   const total = Math.max(inc, spend), narrow = CW < 560, rows = Math.max(left.length, right.length);
-  const LW = narrow ? Math.round(CW * .35) : Math.min(230, Math.max(160, Math.round(CW * .2))), NW = 12, GAP = 10, LINE = 34;
+  const NW = 12, GAP = 10, LINE = 34, PAD = 7, LW = narrow ? 0 : Math.min(230, Math.max(160, Math.round(CW * .2)));
   const H0 = Math.max(220, (LINE + 8) * rows + 24);
   const k = (H0 - 20 - GAP * (rows - 1)) / total;
   // Each side node gets at least a label's height of room, so its label can sit right beside it
@@ -215,7 +217,9 @@ function sankeySvg(d: Flow, W: number) {
   const share = (n: LaidNode, of: number) => of ? ' (' + Math.round(n.v / of * 100) + '%)' : '';
   left.forEach(n => { links = html`${links}<path class="lk" d="${band(xl + NW, n.y, xm, my1, n.h)}" fill="${col(n)}" data-tip="${n.name + ' → ' + money0(n.v) + share(n, total)}"/>`; my1 += n.h; });
   right.forEach(n => { links = html`${links}<path class="lk" d="${band(xm + NW, my2, xr, n.y, n.h)}" fill="${col(n)}" data-tip="${n.name + ' · ' + money0(n.v) + share(n, n.kind === 'kept' ? inc : spend) + (n.kind === 'kept' ? ' of income' : n.kind === 'out' ? ' of spending' : '')}"${n.id ? html` style="cursor:pointer" data-onclick="App.go('#/transactions?category=${n.id}')"` : ''}/>`; my2 += n.h; });
-  const label = (n: LaidNode, anchor: string, x: number, nm = fitText(n.name, LW - 14)) => html`<text x="${x}" y="${n.ly - 2}" text-anchor="${anchor}" class="sk-name">${nm !== n.name ? html`<title>${n.name}</title>` : ''}${nm}</text><text x="${x}" y="${n.ly + 12}" text-anchor="${anchor}" class="sk-amt amtx">${money0(n.v)}</text>`;
+  // Room for a label: beside the chart on a wide card; inside, between its bar and the middle one, on a narrow one
+  const room = narrow ? xm - (xl + NW) - 2 * PAD : LW - 14;
+  const label = (n: LaidNode, anchor: string, x: number, nm = fitText(n.name, room, narrow ? 600 : 500)) => html`<text x="${x}" y="${n.ly - 2}" text-anchor="${anchor}" class="sk-name">${nm !== n.name ? html`<title>${n.name}</title>` : ''}${nm}</text><text x="${x}" y="${n.ly + 12}" text-anchor="${anchor}" class="sk-amt amtx">${money0(n.v)}</text>`;
   // Keep two-line labels apart and inside the chart: centre each on its node, push it below the one above,
   // pull any that run off the bottom back up, then make sure the first one still clears the top edge
   const TOP = 14, BOT = H - 18;
@@ -225,10 +229,11 @@ function sankeySvg(d: Flow, W: number) {
     prev = -Infinity; col2.forEach(n => { n.ly = Math.max(n.ly, prev + LINE, TOP); prev = n.ly; });
   };
   spread(left); spread(right);
-  left.forEach(n => { nodes = html`${nodes}<rect x="${n.x}" y="${n.y}" width="${NW}" height="${n.h}" rx="3" fill="${col(n)}"/>${label(n, 'end', xl - 8)}`; });
-  right.forEach(n => { nodes = html`${nodes}<rect x="${n.x}" y="${n.y}" width="${NW}" height="${n.h}" rx="3" fill="${col(n)}"/>${label(n, 'start', xr + NW + 8)}`; });
+  let labels: Html | string = '';
+  left.forEach(n => { nodes = html`${nodes}<rect x="${n.x}" y="${n.y}" width="${NW}" height="${n.h}" rx="3" fill="${col(n)}"/>`; labels = html`${labels}${narrow ? label(n, 'start', xl + NW + PAD) : label(n, 'end', xl - 8)}`; });
+  right.forEach(n => { nodes = html`${nodes}<rect x="${n.x}" y="${n.y}" width="${NW}" height="${n.h}" rx="3" fill="${col(n)}"/>`; labels = html`${labels}${narrow ? label(n, 'end', xr - PAD) : label(n, 'start', xr + NW + 8)}`; });
   nodes = html`${nodes}<rect x="${xm}" y="${my}" width="${NW}" height="${mh}" rx="3" fill="var(--text)" opacity=".75"/>`;
-  return html`<svg viewBox="0 0 ${W} ${H}" data-w="${W}" role="img" aria-label="Income flowing into spending categories">${links}${nodes}</svg>`;
+  return html`<svg viewBox="0 0 ${W} ${H}" data-w="${W}"${narrow ? ' class="sk-in"' : ''} role="img" aria-label="Income flowing into spending categories">${links}${nodes}${labels}</svg>`;
 }
 // Redraw each money-flow chart at the width its card actually has, now and whenever the card changes size
 const skSeen = new WeakSet();
