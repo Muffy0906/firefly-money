@@ -279,10 +279,13 @@ async def check(pw, width, height, mobile):
     return errors
 
 
-# The Overview as the README and the online demo show it (app/src/demo/demo.ts sets up the same layout)
-SHOT_DASH = ('{"v":3,"order":["insights","networth","earned","spent","attention","spending","cash","cards","flow","heatmap","loans"],'
-             '"shown":["cash","cards","flow","heatmap","loans"],"hidden":["safe","budgets","bills","cashflow"],'
-             '"size":{"networth":"s","attention":"s","cash":"s","cards":"s","heatmap":"s","loans":"s","spending":"m","flow":"m"}}')
+# The Overview as the README and the online demo show it (app/src/demo/demo.ts sets up the same layout; a phone
+# puts Where it went before Cash so Cash and Credit cards pair up)
+def shot_dash(phone):
+    mid = '"spending","cash"' if phone else '"cash","spending"'
+    return ('{"v":3,"units":4,"order":["insights","networth","earned","spent","attention",' + mid + ',"cards","flow","heatmap","loans"],'
+            '"shown":["cash","cards","flow","heatmap","loans"],"hidden":["safe","budgets","bills","cashflow"],'
+            '"size":{"networth":"s","attention":"s","cash":"s","cards":"s","heatmap":"s","loans":"s","spending":"m","flow":"m"}}')
 
 
 async def screenshots(pw, out):
@@ -290,7 +293,7 @@ async def screenshots(pw, out):
     async def shot(route, name, w=1440, h=900, mobile=False, theme='frosted', action=None, full=False, scale=None):
         ctx = await br.new_context(viewport={'width': w, 'height': h}, is_mobile=mobile, has_touch=mobile, device_scale_factor=scale or (2 if mobile else 1))
         await ctx.add_cookies([{'name': 'money_session', 'value': 'demo', 'url': BASE.split('#')[0].rstrip('/') + '/api/'}])
-        await ctx.add_init_script(f"localStorage.setItem('money.dash', '{SHOT_DASH}'); localStorage.setItem('money.syncOff', 'true')")
+        await ctx.add_init_script(f"localStorage.setItem('money.dash', '{shot_dash(mobile)}'); localStorage.setItem('money.nwYears', '3'); localStorage.setItem('money.syncOff', 'true')")
         if theme: await ctx.add_init_script(f"localStorage.setItem('moneyTheme','{theme}')")
         pg = await ctx.new_page(); await pg.goto(BASE + '#/' + route)
         await pg.wait_for_function(PAINTED); await pg.wait_for_function("() => !document.querySelector('#view .sk, #view [aria-busy]')"); await pg.wait_for_timeout(2800)

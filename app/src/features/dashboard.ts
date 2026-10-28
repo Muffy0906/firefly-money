@@ -73,10 +73,11 @@ const optsButton = (k: string) => TILE_OPTS[k] ? html`<button type="button" clas
 const DASH_COLS: (number | '')[] = ['', 1, 2, 3, 4, 6];      // '' = as many ~340px columns as fit (max 6)
 // order is the card order (a phone's, and how a wide screen deals them); hidden the cards taken off; shown the cards added
 // that aren't on by default; size the bento sizes picked; cols the chosen column count ('' = bento); place[n] the column
-// arrangement; free the freeform spots {tile: [x, y, w]}; opts each tile's settings
+// arrangement; free the freeform spots {tile: [x, y, w]}; opts each tile's settings; units the most bento units across
+// (4 keeps a big screen at four small tiles a row, for a layout arranged that way)
 type Block = string | string[][];
 type DashLayout = { order: string[], hidden: string[], wide: string[] | null, cols: number | '', place: Record<string, unknown>,
-  free?: Record<string, unknown>, opts?: Record<string, Record<string, unknown>>, shown?: string[], size?: Record<string, string>, v?: number };
+  free?: Record<string, unknown>, opts?: Record<string, Record<string, unknown>>, shown?: string[], size?: Record<string, string>, v?: number, units?: number };
 // v 3 is the bento Overview. A layout arranged before it starts over with the bento defaults, keeping each tile's settings.
 function dashLayout(): DashLayout {
   const saved = LS.get('dash', {}) || {}, fresh = { order: [], hidden: [], wide: null, cols: '' as const, place: {} };
@@ -123,7 +124,7 @@ const viewWidth = () => { const v = el('view'); return (v && v.clientWidth) || i
 // The freeform grid: a wide screen with a column count picked. Otherwise bento rows, four small tiles across (six on a big
 // screen, so the cards don't stretch into wide empty boxes; two on a phone).
 const gridMode = (L: DashLayout) => !!L.cols && viewWidth() >= 700;
-const bentoUnits = () => { const w = viewWidth(); return w >= 1500 ? 6 : w >= 1000 ? 4 : 2; };
+const bentoUnits = () => { const w = viewWidth(), most = dashLayout().units === 4 ? 4 : 6; return w >= 1500 ? most : w >= 1000 ? 4 : 2; };
 // The cards in your order (the defaults' order for cards you haven't placed)
 const dashOrder = (L: DashLayout, keys: string[]) => {
   const rank = (k: string) => { const i = L.order.indexOf(k), d = DASH_DEFAULT.indexOf(k); return i >= 0 ? i : 1e3 + (d >= 0 ? d : 100 + keys.indexOf(k)); };
