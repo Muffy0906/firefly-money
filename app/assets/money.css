@@ -345,7 +345,7 @@
   .attention .row .name { white-space: normal; }
   /* in a narrow tile the action drops under the text instead of squeezing it to a word per line */
   .attention .row { flex-wrap: wrap; row-gap: 4px; } .attention .row .name { flex: 1 1 9em; }
-  .offline { padding-top: calc(6px + env(safe-area-inset-top, 0px)) !important; position: fixed; top: 0; left: 0; right: 0; z-index: 70; background: var(--warn); color: #111; text-align: center; font-size: 13px; padding: 6px 12px; }
+  .offline { padding-top: calc(6px + env(safe-area-inset-top, 0px) + var(--edge)) !important; position: fixed; top: 0; left: 0; right: 0; z-index: 70; background: var(--warn); color: #111; text-align: center; font-size: 13px; padding: 6px 12px; }
   /* ---------- Floating add button ---------- */
   .fab { position: fixed; right: 28px; bottom: 28px; width: 56px; height: 56px; border-radius: 50%; border: 0; background: var(--accent); color: var(--on-accent);
     font-size: 28px; line-height: 1; cursor: pointer; box-shadow: var(--shadow); z-index: 15; }
@@ -970,6 +970,10 @@
   }
   /* ---------- iPhone: notch / home bar, no accidental zoom, native-app shell ---------- */
   body { touch-action: manipulation; }
+  /* iOS 26 draws its own blur under the status bar in a Home Screen app, reaching about 30pt below the safe area. Nothing in the page can turn it off,
+     so the title bar, search field and other top controls sit --edge lower than the safe area. Landscape phones hide the status bar. */
+  :root { --edge: 0px; }
+  @media (orientation: portrait) { html.ios-web { --edge: 28px; } }
   body::before { content: ''; position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top, 0px); z-index: 19; pointer-events: none;
     background: color-mix(in srgb, var(--bg) 88%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
   html.native { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
@@ -979,13 +983,13 @@
     main#view { padding-top: calc(22px + env(safe-area-inset-top, 0px)) !important;
       padding-left: calc(16px + env(safe-area-inset-left, 0px)) !important; padding-right: calc(16px + env(safe-area-inset-right, 0px)) !important; }
     input[type=text], input[type=number], input[type=date], input[type=password], input[type=search], select, textarea { font-size: 16px; }
-    .drawer { max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 12px); }
+    .drawer { max-height: calc(100dvh - env(safe-area-inset-top, 0px) - var(--edge) - 12px); }
   }
   /* ---------- App shell (iPhone app / Home Screen): iOS title bar, sheets, touch feel ---------- */
   .appbar { display: none; }
   @media (max-width: 900px) {
-    html.shell .appbar { display: flex; position: fixed; top: 0; left: 0; right: 0; z-index: 18; height: calc(env(safe-area-inset-top, 0px) + 44px);
-      padding: env(safe-area-inset-top, 0px) 70px 0; align-items: center; justify-content: center; pointer-events: none; transition: background-color .2s, box-shadow .2s; }
+    html.shell .appbar { display: flex; position: fixed; top: 0; left: 0; right: 0; z-index: 18; height: calc(env(safe-area-inset-top, 0px) + var(--edge) + 44px);
+      padding: calc(env(safe-area-inset-top, 0px) + var(--edge)) 70px 0; align-items: center; justify-content: center; pointer-events: none; transition: background-color .2s, box-shadow .2s; }
     html.shell .appbar.scrolled { background: color-mix(in srgb, var(--bg) 80%, transparent); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
       box-shadow: 0 .5px 0 color-mix(in srgb, var(--text) 18%, transparent); }
     html.shell .ab-title { font-weight: 600; font-size: 17px; opacity: 0; transform: translateY(6px); transition: opacity .18s, transform .18s; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -996,13 +1000,13 @@
     html.shell .ab-back svg { width: 12px; height: 21px; flex: none; }
     html.shell .ab-back:active { opacity: .35; }
     html.shell body::before { display: none; }
-    html.shell main#view { padding-top: calc(env(safe-area-inset-top, 0px) + 44px) !important; }
+    html.shell main#view { padding-top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 44px) !important; }
     html.shell #view > .shell-hide { display: none; }
     html.shell .head { margin-bottom: 18px; }
     html.shell .head h1 { font-size: 32px; font-weight: 700; letter-spacing: .003em; line-height: 1.12; }
-    html.shell .tbl.feed tr.dayhead { top: calc(env(safe-area-inset-top, 0px) + 44px); }
-    html.shell .bulkbar { top: calc(env(safe-area-inset-top, 0px) + 52px); }
-    html.shell .ptr { top: calc(env(safe-area-inset-top, 0px) + 44px); }
+    html.shell .tbl.feed tr.dayhead { top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 44px); }
+    html.shell .bulkbar { top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 52px); }
+    html.shell .ptr { top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 44px); }
     /* Native tab bar in the iPhone app replaces the web one */
     html.native-tabs .tabbar { display: none !important; }
     html.native-tabs main#view { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 49px + 28px) !important; }
@@ -1143,13 +1147,13 @@
       width: 36px; height: 36px; padding: 0; border-radius: 50%; border: 1px solid var(--line); background: color-mix(in srgb, var(--panel) 85%, transparent);
       -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); color: var(--text); cursor: pointer; }
     .search-btn svg { width: 18px; height: 18px; }
-    html.shell .search-btn { top: calc(env(safe-area-inset-top, 0px) + 4px); border-color: transparent; background: none; -webkit-backdrop-filter: none; backdrop-filter: none; color: var(--accent); }
+    html.shell .search-btn { top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 4px); border-color: transparent; background: none; -webkit-backdrop-filter: none; backdrop-filter: none; color: var(--accent); }
     html.shell .search-btn svg { width: 22px; height: 22px; }
     html:not(.shell) #view > .head:first-child { padding-right: 44px; }
     html.pal-open .search-btn, #app[hidden] ~ .search-btn { display: none; }
     .palette { padding: 0; align-items: stretch; background: var(--bg); }
     .palette-box { width: 100%; height: 100vh; height: 100dvh; border: 0; border-radius: 0; box-shadow: none; display: flex; flex-direction: column; background: var(--bg); animation: none; }
-    .pal-top { padding: calc(env(safe-area-inset-top, 0px) + 8px) calc(14px + env(safe-area-inset-right, 0px)) 8px calc(16px + env(safe-area-inset-left, 0px)); border-bottom: 0; gap: 12px; }
+    .pal-top { padding: calc(env(safe-area-inset-top, 0px) + max(8px, var(--edge) + 4px)) calc(14px + env(safe-area-inset-right, 0px)) 8px calc(16px + env(safe-area-inset-left, 0px)); border-bottom: 0; gap: 12px; }
     .palette-box .pal-top input { padding: 10px 12px 10px 36px; margin-left: -34px; border-radius: 10px; background: var(--faint); font-size: 17px; }
     .pal-top > svg { position: relative; z-index: 1; margin-left: 10px; }
     .pal-cancel { display: block; color: var(--accent); }
@@ -1314,7 +1318,7 @@
   .story { --st-pad: max(28px, calc(50% - 240px)); position: fixed; inset: 0; z-index: 60; background: var(--bg); color: var(--text); overflow: hidden; touch-action: none;
     -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   /* The bars, the × and every card's text share one column (--st-pad), so their edges line up */
-  .st-prog { position: absolute; z-index: 3; top: calc(10px + env(safe-area-inset-top)); left: var(--st-pad); right: var(--st-pad); display: flex; gap: 4px; }
+  .st-prog { position: absolute; z-index: 3; top: calc(10px + env(safe-area-inset-top) + var(--edge)); left: var(--st-pad); right: var(--st-pad); display: flex; gap: 4px; }
   .st-prog i { flex: 1; height: 3px; border-radius: 2px; background: color-mix(in srgb, var(--text) 16%, transparent); overflow: hidden; }
   .st-prog b { display: block; height: 100%; width: 0; background: var(--text); }
   .st-prog i.done b { width: 100%; }
@@ -1322,12 +1326,12 @@
   .story.paused .st-prog i.run b { animation-play-state: paused; }
   @keyframes stFill { to { width: 100%; } }
   /* An icon, not the × character: a font's × sits on its baseline, so it lands low and differs by system font */
-  .st-x { position: absolute; z-index: 4; top: calc(22px + env(safe-area-inset-top)); right: var(--st-pad); width: 40px; height: 40px; min-width: 0; min-height: 0; padding: 0; margin: 0;
+  .st-x { position: absolute; z-index: 4; top: calc(22px + env(safe-area-inset-top) + var(--edge)); right: var(--st-pad); width: 40px; height: 40px; min-width: 0; min-height: 0; padding: 0; margin: 0;
     display: grid; place-items: center; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--text) 9%, transparent); color: var(--text); line-height: 0; cursor: pointer; }
   .st-x svg { display: block; width: 16px; height: 16px; }
   .st-deck { position: absolute; inset: 0; }
   .st-card { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px;
-    padding: calc(80px + env(safe-area-inset-top)) var(--st-pad) calc(60px + env(safe-area-inset-bottom));
+    padding: calc(80px + env(safe-area-inset-top) + var(--edge)) var(--st-pad) calc(60px + env(safe-area-inset-bottom));
     background: radial-gradient(90% 45% at 50% 0%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 70%);
     opacity: 0; visibility: hidden; transform: scale(1.04); transition: opacity .35s ease, transform .5s cubic-bezier(.2, .8, .2, 1), visibility 0s .35s; }
   .st-card.on { opacity: 1; visibility: visible; transform: none; transition: opacity .35s ease, transform .5s cubic-bezier(.2, .8, .2, 1); }
