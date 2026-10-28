@@ -180,7 +180,7 @@ function sankeyPanel(sources: ApiData[], income: number, cats: { name: string, a
   if (spend > inc) left.push({ name: 'From savings', v: spend - inc, kind: 'save' });
   if (inc > spend) right.push({ name: 'Kept', v: inc - spend, kind: 'kept' });
   const d: Flow = { left, right, inc, spend };
-  return html`<section class="panel chart sankey" data-sk="${JSON.stringify(d)}"><h2>Money flow</h2><p class="lead">Where ${cur.all ? 'all your' : cur.label + '’s'} income went · ${matchMedia?.('(hover: none)').matches ? 'tap a category to see its transactions' : 'hover a band for details'}</p>${sankeySvg(d, innerWidth < 900 ? innerWidth - 72 : 900)}</section>`;
+  return html`<section class="panel chart sankey" data-sk="${JSON.stringify(d)}"><h2>Money flow</h2><p class="lead">Where ${cur.all ? 'all your' : cur.label + '’s'} income went · ${matchMedia?.('(hover: none)').matches ? 'tap a category to see its transactions' : 'hover a band for details'}</p><div class="sk-box">${sankeySvg(d, innerWidth < 900 ? innerWidth - 72 : 900)}</div></section>`;
 }
 // Shorten a label with … until it fits in px at the chart's label font
 let skCtx: CanvasRenderingContext2D | null = null;
@@ -192,7 +192,7 @@ function fitText(t: string, px: number, weight = 500) {
   while (n > 1 && skCtx.measureText(t.slice(0, n).trimEnd() + '…').width > px) n--;
   return t.slice(0, n).trimEnd() + '…';
 }
-function sankeySvg(d: Flow, W: number) {
+function sankeySvg(d: Flow, W: number, fill = 0) {
   const { inc, spend } = d;
   // Copies, so laying the nodes out leaves the chart's data as it was
   const left = d.left.map(n => ({ ...n }) as LaidNode), right = d.right.map(n => ({ ...n }) as LaidNode);
@@ -201,7 +201,7 @@ function sankeySvg(d: Flow, W: number) {
   const CW = Math.min(W, 1100), ox = (W - CW) / 2;
   const total = Math.max(inc, spend), narrow = CW < 560, rows = Math.max(left.length, right.length);
   const NW = 12, GAP = 10, LINE = 34, PAD = 7, LW = narrow ? 0 : Math.min(230, Math.max(160, Math.round(CW * .2)));
-  const H0 = Math.max(220, (LINE + 8) * rows + 24);
+  const H0 = Math.max(220, (LINE + 8) * rows + 24, Math.round(fill));     // fill: the height a bento card has for it
   const k = (H0 - 20 - GAP * (rows - 1)) / total;
   // Each side node gets at least a label's height of room, so its label can sit right beside it
   left.concat(right).forEach(n => { n.h = Math.max(2, n.v * k); n.slot = Math.max(n.h + GAP, LINE); });
@@ -233,15 +233,24 @@ function sankeySvg(d: Flow, W: number) {
   left.forEach(n => { nodes = html`${nodes}<rect x="${n.x}" y="${n.y}" width="${NW}" height="${n.h}" rx="3" fill="${col(n)}"/>`; labels = html`${labels}${narrow ? label(n, 'start', xl + NW + PAD) : label(n, 'end', xl - 8)}`; });
   right.forEach(n => { nodes = html`${nodes}<rect x="${n.x}" y="${n.y}" width="${NW}" height="${n.h}" rx="3" fill="${col(n)}"/>`; labels = html`${labels}${narrow ? label(n, 'end', xr - PAD) : label(n, 'start', xr + NW + 8)}`; });
   nodes = html`${nodes}<rect x="${xm}" y="${my}" width="${NW}" height="${mh}" rx="3" fill="var(--text)" opacity=".75"/>`;
-  return html`<svg viewBox="0 0 ${W} ${H}" data-w="${W}" class="${narrow ? 'sk-in' : ''}" role="img" aria-label="Income flowing into spending categories">${links}${nodes}${labels}</svg>`;
+  return html`<svg viewBox="0 0 ${W} ${H}" data-w="${W}" data-h="${Math.round(fill)}" class="${narrow ? 'sk-in' : ''}" role="img" aria-label="Income flowing into spending categories">${links}${nodes}${labels}</svg>`;
 }
 // Redraw each money-flow chart at the width its card actually has, now and whenever the card changes size
 const skSeen = new WeakSet();
 const skObs = 'ResizeObserver' in window ? new ResizeObserver(es => es.forEach(e => fitSankey1(e.target as HTMLElement))) : null;
+// In a bento card the chart also grows to the card's height: its box keeps the chart's own height as a minimum (so the
+// chart never makes its row taller than it needs) and the chart is redrawn to fill whatever the row gives it.
 function fitSankey1(sec: HTMLElement) {
-  const svg = sec.querySelector('svg'), w = Math.round(sec.clientWidth - parseFloat(getComputedStyle(sec).paddingLeft) - parseFloat(getComputedStyle(sec).paddingRight));
-  if (!svg || !sec.isConnected || w <= 0 || Math.abs(w - Number(svg.dataset.w)) < 2) return;
-  try { svg.outerHTML = String(sankeySvg(JSON.parse(sec.dataset.sk!), w)); } catch (e) { /* keep the chart as drawn */ }
+  const svg = sec.querySelector('svg'), box = sec.querySelector<HTMLElement>('.sk-box'), w = Math.round(sec.clientWidth - parseFloat(getComputedStyle(sec).paddingLeft) - parseFloat(getComputedStyle(sec).paddingRight));
+  if (!svg || !box || !sec.isConnected || w <= 0) return;
+  try {
+    const d = JSON.parse(sec.dataset.sk!), own = sankeySvg(d, w), ownH = Number(/viewBox="0 0 \d+ (\d+)"/.exec(String(own))![1]);
+    const tall = !!sec.closest('.cards.bento');
+    if (tall) box.style.setProperty('--sk-h', ownH + 'px');
+    const h = tall ? Math.round(box.clientHeight) : 0, fill = h > ownH + 4 ? h : 0;
+    if (Math.abs(w - Number(svg.dataset.w)) < 2 && Math.abs(fill - Number(svg.dataset.h || 0)) < 2) return;
+    svg.outerHTML = String(fill ? sankeySvg(d, w, fill) : own);
+  } catch (e) { /* keep the chart as drawn */ }
 }
 export function fitSankey() {
   document.querySelectorAll<HTMLElement>('#view .sankey[data-sk]').forEach(sec => {
