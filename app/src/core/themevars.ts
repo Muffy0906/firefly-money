@@ -1,5 +1,5 @@
 /* Your own colours on top of a theme (Settings → Appearance → Customize). Kept per theme in money.themeCustom,
-   e.g. { glass: { bg: '#07060f', glow1: '#ff4fd8', blur: 26 } } (Frosted glass takes the same glass fields, but not motion), and laid on <html> as CSS variables, which beat the
+   e.g. { glass: { bg: '#07060f', glow1: '#ff4fd8', blur: 26 } } (Frosted glass takes the same glass fields, but not motion, which is off unless true), and laid on <html> as CSS variables, which beat the
    theme's own. boot.ts runs applyCustom before the first paint. No imports: boot.js bundles this file too. */
 export type Custom = { bg?: string, accent?: string, glow1?: string, glow2?: string, glow3?: string, tint?: string, frost?: number, blur?: number, motion?: boolean, scene?: string };
 // What's behind Frosted glass: a soft-focus scene drawn in CSS, or a photo of yours (kept on this device only, in
@@ -35,5 +35,5 @@ export function applyCustom(theme?: string) {
   if (isHex(c.tint)) d.style.setProperty('--glass-base', c.tint);
   if (typeof c.frost === 'number') d.style.setProperty('--glass-tint', Math.max(0, Math.min(95, c.frost)) + '%');
   if (typeof c.blur === 'number') d.style.setProperty('--glass-blur', Math.max(0, Math.min(60, c.blur)) + 'px');
-  if (c.motion === false) d.style.setProperty('--glass-motion', 'paused');
+  if (t === 'glass' && c.motion === true) d.style.setProperty('--glass-motion', 'running');     // the light stays still unless you turn it on
 }

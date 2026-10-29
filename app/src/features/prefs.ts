@@ -37,8 +37,8 @@ applyPrefs();
 /* ---------- While scrolling: lets CSS pause expensive effects (the glass theme's moving light) ---------- */
 (function scrollFlag() {
   const root = document.documentElement; let t = 0;
-  // only the Glass theme uses it: a class change on <html> restyles the whole page, which stutters at the start of a scroll
-  addEventListener('scroll', () => { if (root.dataset.theme !== 'glass' && !t) return; if (!t) root.classList.add('scrolling'); clearTimeout(t); t = setTimeout(() => { root.classList.remove('scrolling'); t = 0; }, 160); }, { passive: true, capture: true });
+  // only Glass with Moving light on uses it: a class change on <html> restyles the whole page, which stutters at the start of a scroll
+  addEventListener('scroll', () => { if ((root.dataset.theme !== 'glass' || root.style.getPropertyValue('--glass-motion') !== 'running') && !t) return; if (!t) root.classList.add('scrolling'); clearTimeout(t); t = setTimeout(() => { root.classList.remove('scrolling'); t = 0; }, 160); }, { passive: true, capture: true });
 })();
 
 // The methods markup handlers call (see events.ts), added to App and to its type

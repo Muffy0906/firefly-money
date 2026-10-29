@@ -21,7 +21,7 @@ describe('applyCustom', () => {
     expect(v('--glow1')).toBe('#ff0000');
     expect(v('--glass-tint')).toBe('95%');
     expect(v('--glass-blur')).toBe('10px');
-    expect(v('--glass-motion')).toBe('paused');
+    expect(v('--glass-motion')).toBe('');      // off unless turned on
     applyCustom('nord');
     expect(v('--bg')).toBe('#000000');
     expect(v('--glow1')).toBe('');
@@ -34,6 +34,13 @@ describe('applyCustom', () => {
     expect(v('--glow2')).toBe('#ffeedd');
     expect(v('--glass-base')).toBe('#ffffff');
     expect(v('--glass-tint')).toBe('40%');
+  });
+  it('lets the light drift only when Moving light is turned on', () => {
+    localStorage.setItem('money.themeCustom', JSON.stringify({ glass: { motion: true }, frosted: { motion: true } }));
+    applyCustom('glass');
+    expect(v('--glass-motion')).toBe('running');
+    applyCustom('frosted');
+    expect(v('--glass-motion')).toBe('');
   });
   it('ignores values that aren’t colors', () => {
     localStorage.setItem('money.themeCustom', JSON.stringify({ dark: { bg: 'red;x:1', accent: 'url(x)' } }));
