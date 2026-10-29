@@ -51,15 +51,16 @@ async def check(pw, width, height, mobile):
         await page.evaluate("localStorage.setItem('moneyKey', 'demo')"); await page.reload()
     await page.wait_for_function(PAINTED, timeout=15000)
     if await page.evaluate("localStorage.getItem('moneyKey')"): errors.append('the password saved by an older version was not deleted')
-    # What's new: someone updating from an older version (the saved password above) sees it once; a new install (the phone) doesn't
-    if not mobile:
+    # What's new: someone updating from an older version (the saved password above) sees it once; a new install (the phone)
+    # and the online demo don't
+    if not mobile and '/demo/' not in BASE:
         try:
             await page.wait_for_selector('#whatsNew[open]', timeout=5000)
             await page.click('#whatsNew .btn.primary'); await page.wait_for_selector('#whatsNew:not([open])', state='attached')
         except Exception: errors.append('What\'s new did not open and close after an update')
     else:
         await page.wait_for_timeout(1500)
-        if await page.locator('#whatsNew[open]').count(): errors.append('What\'s new opened on a new install')
+        if await page.locator('#whatsNew[open]').count(): errors.append('What\'s new opened on a new install or the demo')
     # every data-on* handler in the source parses and calls an App method that exists
     if not mobile:
         await goto(page, '')
