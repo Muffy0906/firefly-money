@@ -11,9 +11,13 @@ import { bindSwipe } from './phone';
   if (!('ontouchstart' in window)) return;
   const ind = el('ptr'); let y0: number | null = null, d = 0, busyNow = false;
   const blocked = () => scrollY > 0 || el('app').hidden || el('drawer').classList.contains('open') || !el('palette').hidden || busyNow;
-  addEventListener('touchstart', e => { y0 = blocked() || (e.target as HTMLElement).closest('#dash .grip') ? null : e.touches[0].clientY; d = 0; }, { passive: true });
+  // Drags that belong to something else: panning or pinching the map, moving or resizing a tile, Year in Money.
+  const own = '.leaflet-container, #dash .grip, .rsz, .story';
+  const reset = () => { y0 = null; ind.classList.remove('armed'); ind.style.transform = ''; ind.style.opacity = ''; };
+  addEventListener('touchstart', e => { y0 = blocked() || e.touches.length > 1 || (e.target as HTMLElement).closest(own) ? null : e.touches[0].clientY; d = 0; }, { passive: true });
   addEventListener('touchmove', e => {
     if (y0 === null) return;
+    if (e.touches.length > 1) { reset(); return; }
     d = Math.max(0, Math.min(120, (e.touches[0].clientY - y0) * .5));
     if (scrollY > 0) d = 0;
     ind.style.transform = 'translate(-50%, ' + (d - 50) + 'px) rotate(' + d * 3 + 'deg)';
