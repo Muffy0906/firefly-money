@@ -59,21 +59,39 @@ async function monthStrip(cur: Period) {
     days <= 45 ? getAll('/transactions', { ...p, type: 'withdrawal' }).catch(() => []) : []]);
   rankCats([...arr(cats).map(x => ({ name: String(x.name), v: absDiff(x) })), { name: 'Uncategorized', v: sumDiff(noCat) }]);
   const earned = sumDiff(inc), spent = sumDiff(exp), net = earned - spent;
-  const byDay: Record<string, number> = {};
-  arr(spends).map(normGroup).forEach(g => { const d = String(g.date).slice(0, 10); byDay[d] = (byDay[d] || 0) + g.total; });
+  const byDay: Record<string, number> = {}, nDay: Record<string, number> = {};
+  arr(spends).map(normGroup).forEach(g => { const d = String(g.date).slice(0, 10); byDay[d] = (byDay[d] || 0) + g.total; nDay[d] = (nDay[d] || 0) + 1; });
   const today = todayIso(), list = days <= 45 ? Array.from({ length: days }, (_, i) => addDays(cur.start, i)) : [];
   const most = Math.max(1, ...list.map(d => byDay[d] || 0));
-  const fmt = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const fmt = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   const bars = htmlList(list.map(d => {
-    const v = byDay[d] || 0, label = fmt(d) + ': ' + (v ? money(v) + ' spent' : 'nothing spent');
-    return html`<button type="button" class="db${d === today ? ' now' : d > today ? ' fut' : ''}" data-day="${d}" data-onclick="App.txDay(this.dataset.day)" style="--v:${(v / most).toFixed(3)}" title="${label}" aria-label="${label}"${d > today ? ' disabled' : ''}><i></i></button>`;
+    const v = byDay[d] || 0, n = nDay[d] || 0, label = fmt(d) + ': ' + (v ? money(v) + ' spent' : 'nothing spent');
+    const tip = fmt(d) + (d === today ? ' (today)' : '') + '\n' + (v ? money(v) + ' spent · ' + n + (n === 1 ? ' purchase' : ' purchases') : 'Nothing spent');
+    return d > today
+      ? html`<button type="button" class="db fut" style="--v:0" aria-label="${fmt(d)}" disabled><i></i></button>`
+      : html`<button type="button" class="db${d === today ? ' now' : ''}" data-day="${d}" data-onclick="App.txDay(this.dataset.day)" style="--v:${(v / most).toFixed(3)}" data-tip="${tip}" aria-label="${label}"><i></i></button>`;
   }));
   return html`<section class="panel txsum" id="txsum"><div class="ts-k"><div><span class="eyebrow">Spent</span><strong class="num">${money0(spent)}</strong></div><div><span class="eyebrow">Earned</span><strong class="num pos">${money0(earned)}</strong></div><div><span class="eyebrow">Net</span><strong class="num${net < 0 ? ' neg' : ''}">${net > 0 ? '+' : ''}${money0(net)}</strong></div></div>${list.length ? html`<div class="dbars" role="group" aria-label="Spending each day">${bars}</div>` : ''}</section>`;
 }
 
+// On a phone the first tap on a day's bar shows its tip (see polish.ts) and a second tap on it goes to the day, since
+// scrolling away straight off would leave the tip floating over the feed. A mouse or keyboard goes there at once.
+let tapType = '', armed = '', armedAt = 0;
+document.addEventListener('pointerdown', e => { tapType = e.pointerType; }, true);
+
 // Scrolls the feed to a day (from the bars above), loading older pages until it's there. A day with nothing on it
 // goes to the closest day before it.
 async function txDay(day: string) {
+  const touch = tapType && tapType !== 'mouse', tip = el('tip');
+  tapType = '';
+  if (touch && (armed !== day || Date.now() - armedAt > 2500)) {
+    armed = day; armedAt = Date.now();
+    tip.textContent += '\nTap again to see this day';
+    const r = document.querySelector<HTMLElement>(`.dbars .db[data-day="${day}"]`)?.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    if (r) { tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px'; tip.style.top = Math.max(8, r.top - h - 10) + 'px'; }
+    return;
+  }
+  armed = ''; tip.hidden = true;
   const find = () => [...document.querySelectorAll<HTMLElement>('#view tr.dayhead')].find(h => h.dataset.day! <= day);
   let more = true;
   while (!find() && more) more = await App.feedMore();
