@@ -32,6 +32,7 @@ const SETTINGS: [string, string, string][] = [
   ['Payee and bank logos', 'logos icons images duckduckgo merchant', '#set-look'],
   ['About logos', 'logos duckduckgo privacy', 'logos'],
   ['Hours of work', 'hours work wage hourly salary time cost lens worked', '#set-look'],
+  ['Cursor light', 'cursor light glow mouse pointer spotlight hover', '#set-look'],
   ['Haptics', 'haptic feedback vibration vibrate buzz tap feel iphone android', '#set-look'],
   ['Sync between devices', 'sync iphone ipad devices cloud preferences sync now', '#set-sync'],
   ['Apple Pay', 'shortcut iphone wallet automation ingest key', '#set-applepay'],
@@ -46,6 +47,9 @@ const SETTINGS: [string, string, string][] = [
   ['About and versions', 'version firefly api about', '#set-about'],
   ['What’s new', 'whats new release notes changelog update version highlights', '#set-about'],
 ];
+// The Settings category each folded section lives in (a #set-… target names its own), since Settings shows one at a time
+const FOLDED_IN: Record<string, string> = { 'theme-custom': 'look', logos: 'look', cards: 'applepay', 'applepay-how': 'applepay', 'cur-add': 'currencies', rates: 'currencies', export: 'data', hooks: 'data' };
+const settingsCat = (focus: string) => focus.startsWith('#set-') ? focus.slice(5) : FOLDED_IN[focus];
 // Piggy banks and recurring transactions aren't in lists(), so fetch them once in a while
 let extra: { at: number, items: PalItem[] } | null = null;
 async function extras() {
@@ -64,7 +68,7 @@ function baseItems(): PalItem[] {
     { label: 'Reconcile an account', kind: 'Action', go: '#/accounts' },
     { label: 'Clean up unused payees, categories and tags', kind: 'Action', keys: 'delete remove tidy unused empty zero transactions budgets income sources', go: '#/cleanup' },
     { label: 'Recalculate everything (fetch all numbers fresh)', kind: 'Action', run: () => App.recalcAll() });
-  SETTINGS.forEach(([label, keys, focus]) => items.push({ label, kind: 'Setting', keys: 'settings ' + keys, go: '#/settings', focus }));
+  SETTINGS.forEach(([label, keys, focus]) => items.push({ label, kind: 'Setting', keys: 'settings ' + keys, go: '#/settings?s=' + settingsCat(focus), focus }));
   items.push({ label: 'Hide amounts (privacy)', kind: 'Setting', keys: 'settings privacy blur hide numbers', run: () => App.togglePrivacy() },
     { label: 'Hours of work: show what purchases cost in hours', kind: 'Setting', keys: 'settings lens wage hourly time', run: () => App.toggleWorkLens(!LS.get('workLens', false)) },
     { label: 'Compact view', kind: 'Setting', keys: 'settings density compact spacing', run: () => App.toggleDensity() },

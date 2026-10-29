@@ -167,20 +167,27 @@
   .cards > .panel { break-inside: avoid; display: inline-block; width: 100%; margin-bottom: 20px; }
   /* Settings: named groups of rows in one column, with rarely used forms folded away */
   .settings { max-width: 720px; }
-  /* Wide screens: the sections flow into columns, with the title and a list of them on the left that
-     stays in place. It sticks at main's top padding, where it starts, so it never moves. */
+  /* One category at a time (settings.ts). Wide screens: the title and the list of categories on the left, staying in
+     place (it sticks at main's top padding, where it starts, so it never moves). Phones: the list is the first screen. */
   .set-nav { display: none; }
   @media (min-width: 1100px) {
-    .set-layout { display: grid; grid-template-columns: 184px minmax(0, 1fr); gap: 36px; align-items: start; }
+    .set-layout { display: grid; grid-template-columns: 184px minmax(0, 720px); gap: 36px; align-items: start; }
     .set-side { position: sticky; top: 34px; }
     html.compact .set-side { top: 24px; }
     .set-side .head { margin-bottom: 20px; padding-left: 12px; }
     .set-nav { display: flex; flex-direction: column; gap: 2px; }
-    .set-nav button { text-align: left; padding: 8px 12px; border: 0; border-radius: 9px; background: none; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
-    .set-nav button:hover { background: var(--faint); }
-    .settings { max-width: none; columns: 3 440px; column-gap: 24px; }
-    .settings .set-group { break-inside: avoid; display: inline-block; width: 100%; }
+    .set-nav a { padding: 8px 12px; border-radius: 9px; color: var(--muted); font-size: 14px; font-weight: 500; text-decoration: none; transition: background .12s, color .12s; }
+    .set-nav a:hover { background: var(--faint); color: var(--text); }
+    .set-nav a.on { background: var(--panel); color: var(--text); box-shadow: 0 0 0 1px var(--line); }
   }
+  @media (max-width: 1099px) {
+    .settings > .set-group > .set-h { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }   /* the page title already names it */
+  }
+  .set-menu a.set-row { color: var(--text); text-decoration: none; }
+  .set-menu .set-label { display: flex; flex-direction: column; gap: 1px; }
+  .set-menu .chev { width: 16px; height: 16px; flex: none; color: var(--muted); }
+  .set-back { display: inline-flex; align-items: center; gap: 2px; margin: 0 0 6px -10px; padding: 4px 8px 4px 2px; border-radius: 8px; color: var(--accent); font-size: 15px; font-weight: 500; text-decoration: none; }
+  .set-back svg { width: 20px; height: 20px; flex: none; }
   .set-group { margin-bottom: 28px; }
   .set-h { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px 4px; }
   .set-panel { padding: 0 20px; }
@@ -1677,3 +1684,33 @@
   .nw-tl { display: inline-flex; align-items: center; gap: 1px; color: var(--muted); text-decoration: none; }
   .nw-tl svg { width: 13px; height: 13px; }
   @media (hover: hover) { .nw-tl:hover { color: var(--text); } }
+  /* ---------- Hover: things lean toward the mouse (mouse and trackpad only, never with Reduce motion) ---------- */
+  /* The sidebar swells like the macOS Dock: dock.ts sets --dock (0 to 1) on each link by how near the pointer is.
+     Only the icon scales and the label nudges, both as transforms, so the rows and the hover pill stay where they are. */
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .side .nav a svg { scale: calc(1 + var(--dock, 0) * .3); transition: scale .2s cubic-bezier(.2, .8, .2, 1); }
+    .side .nav a span { translate: calc(var(--dock, 0) * 3px) 0; transition: translate .2s cubic-bezier(.2, .8, .2, 1); }
+    html.side-mini .side .nav a svg { scale: calc(1 + var(--dock, 0) * .42); }
+    .side-search svg, .side-tg svg { transition: scale .2s cubic-bezier(.2, .8, .2, 1), transform .25s ease; }
+    .side-search:hover svg, .side-tg:hover svg { scale: 1.14; }
+    /* Buttons rise a hair (presses still shrink them: :active scales the transform, this is the separate translate) */
+    .btn, .round { transition: background .12s, border-color .12s, transform .08s, opacity .12s, translate .18s ease, scale .18s ease; }
+    .btn:not(:disabled):hover { translate: 0 -1px; }
+    .round:not(:disabled):hover { scale: 1.07; }
+    .add-card .plus-i { transition: scale .2s cubic-bezier(.3, 1.5, .5, 1); }
+    .add-card:hover .plus-i { scale: 1.12; }
+    /* Overview tiles lift a little, except while you're arranging them */
+    .cards .w > .panel { transition: translate .25s cubic-bezier(.2, .8, .2, 1), box-shadow .25s ease; }
+    #dash:not(.editing) .w > .panel:hover { translate: 0 -2px; }
+  }
+  /* (the phone-width + button has its own fold-away transition, so only the desktop one grows) */
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (min-width: 901px) {
+    .fab { transition: filter .15s, scale .2s cubic-bezier(.3, 1.5, .5, 1); }
+    .fab:hover { scale: 1.06; }
+  }
+  /* Cursor light (glow.ts): a soft accent glow under the mouse, above everything but never in the way */
+  .cursor-light { position: fixed; z-index: 9999; left: -170px; top: -170px; width: 340px; height: 340px; border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity .35s ease;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--glow, var(--accent)) 14%, transparent), color-mix(in srgb, var(--glow, var(--accent)) 5%, transparent) 55%, transparent); will-change: transform; }
+  .cursor-light.on { opacity: 1; }
+  @media (prefers-reduced-motion: reduce), (hover: none) { .cursor-light { display: none; } }
+  @media print { .cursor-light { display: none; } }
