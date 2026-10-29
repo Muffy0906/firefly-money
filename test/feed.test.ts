@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { type Group, dayLabel, monogram, payeeOf } from '../app/src/core/feed';
+import { type Group, dayLabel, groupUpdate, monogram, payeeOf } from '../app/src/core/feed';
 
 describe('payeeOf', () => {
   const g = (type: string, splits: unknown[], title = '') => ({ type, title, splits }) as unknown as Group;
@@ -37,5 +37,23 @@ describe('dayLabel', () => {
     expect(dayLabel('2026-10-16')).toBe('Friday');
     expect(dayLabel('2026-10-01')).toBe('Thu, Oct 1');
     expect(dayLabel('2025-10-01')).toBe('Wed, Oct 1, 2025');
+  });
+});
+
+describe('groupUpdate', () => {
+  const g = (splits: unknown[], title = '') => ({ id: '9', title, splits }) as unknown as Group;
+  const split = { jid: '1', description: 'Groceries', category: '' }, other = { jid: '2', description: 'Household', category: 'Home' };
+  it('sends every part, so Firefly keeps the ones not being changed', () => {
+    const body = groupUpdate(g([split, other], 'Costco'), s => s.category ? null : { category_name: 'Food' });
+    expect(body.transactions).toEqual([{ category_name: 'Food', transaction_journal_id: '1' }, { transaction_journal_id: '2' }]);
+    expect(body.group_title).toBe('Costco');
+    expect(body.apply_rules).toBe(false);
+  });
+  it('names an untitled split group after its first part', () => {
+    expect(groupUpdate(g([split, other]), () => null).group_title).toBe('Groceries');
+  });
+  it('leaves the title off a single part and keeps extra fields', () => {
+    const body = groupUpdate(g([split]), () => ({ reconciled: true }), { fire_webhooks: true });
+    expect(body).toEqual({ apply_rules: false, fire_webhooks: true, transactions: [{ reconciled: true, transaction_journal_id: '1' }] });
   });
 });

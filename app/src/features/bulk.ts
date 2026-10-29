@@ -3,6 +3,7 @@ import { AuthError, api, eachLimited } from '../core/api';
 import { showLogin } from '../core/auth';
 import { App, S, el } from '../core/base';
 import { opt, toast } from '../core/dom';
+import { groupUpdate } from '../core/feed';
 import { invalidate } from '../core/lists';
 import { route } from '../core/router';
 
@@ -33,16 +34,17 @@ async function bulk(kind: string) {
   renderBulk('Working… 0 of ' + groups.length);
   await eachLimited(groups, 4, async g => {
     if (authErr) return;
-    const tx = g.splits.map(s => {
-      const o: any = { transaction_journal_id: s.jid };
-      if (kind === 'category') o.category_name = val;
-      if (kind === 'budget') { if (s.type !== 'withdrawal') return null; o.budget_id = val; }
-      if (kind === 'tag') o.tags = [...new Set([...s.tags, val])];
-      return o;
-    }).filter(Boolean);
-    if (!tx.length) skipped++;
+    let changed = 0;
+    const body = groupUpdate(g, s => {
+      if (kind === 'budget' && s.type !== 'withdrawal') return null;
+      changed++;
+      if (kind === 'category') return { category_name: val };
+      if (kind === 'budget') return { budget_id: val };
+      return { tags: [...new Set([...s.tags, val])] };
+    }, { fire_webhooks: true });
+    if (!changed) skipped++;
     else {
-      try { await api('/transactions/' + g.id, { method: 'PUT', body: { apply_rules: false, fire_webhooks: true, transactions: tx } }); }
+      try { await api('/transactions/' + g.id, { method: 'PUT', body }); }
       catch (e) { if (e instanceof AuthError) authErr = e; else failed++; }
     }
     renderBulk('Working… ' + (++done) + ' of ' + groups.length);
