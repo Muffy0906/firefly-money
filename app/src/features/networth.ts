@@ -14,7 +14,11 @@ const POINTS = 13;
 export type NetWorthPoint = { date: string, assets: number, debts: number, net: number, by?: Record<string, number> };
 export const nwYears = () => LS.get('nwYears', 1) === 3 ? 3 : 1;
 async function netWorthHistory(): Promise<NetWorthPoint[]> {
-  const L = await lists(), years = nwYears();
+  return netWorthOn(monthEnds(todayIso(), POINTS, nwYears() * 12 / (POINTS - 1)));
+}
+// Net worth on each of these days, in the same order (a day from today on uses today's balances)
+export async function netWorthOn(days: string[]): Promise<NetWorthPoint[]> {
+  const L = await lists(), t = todayIso();
   const own = L.accounts.filter(a => a.active && a.netWorth && (isAsset(a) || isLiab(a))), ids = new Set(own.map(a => a.id));
   // A liability's debt is Firefly's current_debt, which isn't reported for past days; the dated balance is, so past
   // debts are the dated balance shifted by however much the two differ today.
@@ -26,10 +30,9 @@ async function netWorthHistory(): Promise<NetWorthPoint[]> {
     });
     return { assets, debts, net: assets - debts, by };
   };
-  const days = monthEnds(todayIso(), POINTS, years * 12 / (POINTS - 1));
-  const past = await Promise.all(days.slice(0, -1).map(date => Promise.all([getAll('/accounts', { type: 'asset', date }), getAll('/accounts', { type: 'liabilities', date })])
-    .then(([as, ls]) => ({ date, ...total([...as, ...ls].map(normAccount)) }))));
-  return [...past, { date: days[days.length - 1], ...total(own) }];
+  return Promise.all(days.map(date => date >= t ? { date, ...total(own) }
+    : Promise.all([getAll('/accounts', { type: 'asset', date }), getAll('/accounts', { type: 'liabilities', date })])
+      .then(([as, ls]) => ({ date, ...total([...as, ...ls].map(normAccount)) }))));
 }
 // One year or three, for the Overview's net worth tile
 export const nwSeg = () => { const years = nwYears(); return html`<div class="seg mini">${htmlList([1, 3].map(y => html`<button type="button" class="${years === y ? 'on' : ''}" data-onclick="App.nwRange(${y})">${y === 1 ? '1Y' : '3Y'}</button>`))}</div>`; };

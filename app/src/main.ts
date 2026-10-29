@@ -39,6 +39,7 @@ import './pages/recurring';
 import './pages/reports';
 import './pages/recap';
 import './pages/year';
+import './pages/timeline';
 import './pages/map';
 import './pages/settings';
 import './pages/cleanup';
