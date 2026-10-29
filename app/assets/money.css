@@ -299,8 +299,9 @@
   .pager { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
 
   /* ---------- Drawer, dialog, toast ---------- */
-  .scrim { position: fixed; inset: 0; background: rgba(20, 20, 18, .28); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 20; }
-  .scrim.open { opacity: 1; pointer-events: auto; }
+  .scrim { position: fixed; inset: 0; background: rgba(20, 20, 18, .28); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .2s, visibility 0s .2s; z-index: 20; }
+  /* hidden, not just see-through, while closed: Safari 26 tints the status bar with any fixed element's colour, even an invisible one */
+  .scrim.open { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .2s; }
   .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(520px, 100vw); background: var(--bg); box-shadow: var(--shadow); transform: translateX(105%); transition: transform .24s ease; z-index: 21; display: flex; flex-direction: column; }
   .drawer.open { transform: none; }
   .drawer header { display: flex; justify-content: space-between; align-items: center; padding: 22px 26px 8px; }
@@ -974,8 +975,8 @@
      so the title bar, search field and other top controls sit --edge lower than the safe area. Landscape phones hide the status bar. */
   :root { --edge: 0px; }
   @media (orientation: portrait) { html.ios-web { --edge: 28px; } }
-  body::before { content: ''; position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top, 0px); z-index: 19; pointer-events: none;
-    background: color-mix(in srgb, var(--bg) 88%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  /* No fixed strip behind the status bar: Safari 26 paints the colour of a fixed element at the top edge as a solid band there,
+     which hid the page (see .scrim too). Without one, Safari and the Home Screen app show the page through their own blur. */
   html.native { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
   html.native body { -webkit-user-select: none; user-select: none; }
   html.native input, html.native textarea, html.native [contenteditable] { -webkit-user-select: text; user-select: text; }
@@ -999,7 +1000,6 @@
     html.shell .ab-back span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     html.shell .ab-back svg { width: 12px; height: 21px; flex: none; }
     html.shell .ab-back:active { opacity: .35; }
-    html.shell body::before { display: none; }
     html.shell main#view { padding-top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 44px) !important; }
     html.shell #view > .shell-hide { display: none; }
     html.shell .head { margin-bottom: 18px; }
