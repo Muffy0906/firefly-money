@@ -5,6 +5,7 @@ import { App, S, cycleDay, el, fmtDate, isoDate, money, monthRange, nowMonth, nu
 import { confirmBox, head, opt, toast } from '../core/dom';
 import { LS, budgetAlert, saveBlob } from '../core/helpers';
 import { buzz, hapticsOn } from '../core/haptics';
+import { canGlow, glowOn } from '../features/glow';
 import { logosOn } from '../core/logo';
 import { hourlyRate, learnRate, lensOn, workHours } from '../core/worklens';
 import { THEMES, themeButtons } from '../core/login';
@@ -57,11 +58,12 @@ VIEWS.settings = async (r, paint) => {
     ${row('Compact view', 'Tighter spacing to fit more in', html`<input ${SWITCH} aria-label="Compact view" data-pref="compact"${compact ? ' checked' : ''} data-onchange="App.toggleDensity()">`)}
     ${row('Logos', 'Payees’ and banks’ logos instead of initials', html`<input ${SWITCH} aria-label="Show logos"${logosOn() ? ' checked' : ''} data-onchange="App.toggleLogos(this.checked)">`)}
     ${row('Haptics', 'A light tap when you save, delete or flip a switch. iPhone needs iOS 18 or later.', html`<input ${SWITCH} aria-label="Haptics"${hapticsOn() ? ' checked' : ''} data-onchange="App.toggleHaptics(this.checked)">`)}
+    ${canGlow() ? row('Cursor light', 'A soft glow that follows your mouse', html`<input ${SWITCH} aria-label="Cursor light"${glowOn() ? ' checked' : ''} data-onchange="App.toggleCursorLight(this.checked)">`) : ''}
     ${row('Hours of work', 'Under each purchase, the hours you worked to pay for it', html`<input ${SWITCH} aria-label="Hours of work"${lensOn() ? ' checked' : ''} data-onchange="App.toggleWorkLens(this.checked)">`)}
     ${lensOn() ? html`${row('Hours a week', 'How long you work', html`<select aria-label="Hours a week" data-onchange="App.setWorkHours(this.value)">${htmlList([10, 15, 20, 25, 30, 32, 35, 37.5, 40, 45, 50, 55, 60].map(h => opt(h, h + ' hours', workHours())))}</select>`)}
     ${row('Hourly take-home', +LS.get('workRate', 0) > 0 ? 'Yours. Clear it to work it out from your income.' : hourlyRate() ? 'Worked out from what came in over the last six months: ' + money(hourlyRate()) + ' an hour' : 'Working it out from your income…', html`<input type="number" inputmode="decimal" min="0" step="0.01" class="set-num" aria-label="Hourly take-home" placeholder="${hourlyRate() ? hourlyRate().toFixed(2) : 'Auto'}" value="${+LS.get('workRate', 0) > 0 ? String(LS.get('workRate', 0)) : ''}" data-onchange="App.setWorkRate(this.value)">`)}` : ''}
     ${more('logos', 'About logos', '', html`<p class="sub-s">Your Money server fetches each logo from DuckDuckGo’s icon service by the payee’s website (guessed from its name; change it in the account’s settings) and keeps it, so your browser never contacts another site.</p>`)}`,
-    'Theme, hide amounts, compact view and haptics are saved on this device only. Hours of work and your colors for each theme sync like your other settings.');
+    'Theme, hide amounts, compact view, haptics and the cursor light are saved on this device only. Hours of work and your colors for each theme sync like your other settings.');
 
   const syncOff = !!LS.get('syncOff', false), syncAt = LS.get('syncAt', 0);
   const syncStatus = syncOff ? 'Off: this device keeps its own settings.' : S.syncError ? html`<span class="up">Couldn’t sync: ${S.syncError}</span>`
@@ -72,7 +74,7 @@ VIEWS.settings = async (r, paint) => {
     'Your Overview layout, month start, drafts, saved reports, dismissed insights, forecast, loan plan and subscription choices and theme colors are kept in Firefly III, so they follow you to every device.');
 
   const showAll = r.q.rates === 'all';
-  const rateBody = html`${rates && rates.length ? html`<div class="list">${htmlList(rates.slice(0, showAll ? 500 : 6).map(x => { const a = x.attributes; return html`<div class="row"><span class="name">1 ${a.from_currency_code || a.from} = ${num(a.rate)} ${a.to_currency_code || a.to} <span class="sub-s">on ${fmtDate(a.date)}</span></span><button class="link" data-onclick="App.deleteRate('${x.id}')">Remove</button></div>`; }))}</div>${rates.length > 6 ? html`<p style="margin:10px 0 0"><a class="link" href="#/settings${showAll ? '' : '?rates=all'}">${showAll ? 'Show fewer' : 'Show all ' + rates.length + ' rates'}</a></p>` : ''}` : html`<p class="sub-s" style="margin:0">Used to convert foreign amounts in reports. No rates yet.</p>`}<form style="margin-top:14px" data-onsubmit="event.preventDefault();App.addRate(this)"><div class="grid2"><label>From<select name="f">${htmlList(enabled.map(c => opt(c.code, c.code, S.currency)))}</select></label><label>To<select name="t">${htmlList(enabled.map(c => opt(c.code, c.code, (enabled.find(x => x.code !== S.currency) || {}).code)))}</select></label><label>Rate<input type="number" step="any" min="0" name="r" required></label><label>Date<input type="date" name="d" value="${todayIso()}" required></label></div><button class="btn small">Add rate</button></form>`;
+  const rateBody = html`${rates && rates.length ? html`<div class="list">${htmlList(rates.slice(0, showAll ? 500 : 6).map(x => { const a = x.attributes; return html`<div class="row"><span class="name">1 ${a.from_currency_code || a.from} = ${num(a.rate)} ${a.to_currency_code || a.to} <span class="sub-s">on ${fmtDate(a.date)}</span></span><button class="link" data-onclick="App.deleteRate('${x.id}')">Remove</button></div>`; }))}</div>${rates.length > 6 ? html`<p style="margin:10px 0 0"><a class="link" href="#/settings?s=currencies${showAll ? '' : '&rates=all'}">${showAll ? 'Show fewer' : 'Show all ' + rates.length + ' rates'}</a></p>` : ''}` : html`<p class="sub-s" style="margin:0">Used to convert foreign amounts in reports. No rates yet.</p>`}<form style="margin-top:14px" data-onsubmit="event.preventDefault();App.addRate(this)"><div class="grid2"><label>From<select name="f">${htmlList(enabled.map(c => opt(c.code, c.code, S.currency)))}</select></label><label>To<select name="t">${htmlList(enabled.map(c => opt(c.code, c.code, (enabled.find(x => x.code !== S.currency) || {}).code)))}</select></label><label>Rate<input type="number" step="any" min="0" name="r" required></label><label>Date<input type="date" name="d" value="${todayIso()}" required></label></div><button class="btn small">Add rate</button></form>`;
   const cur = group('currencies', 'Currencies', html`
     ${htmlList(enabled.map(c => row(html`${c.code} · ${c.name}${c.code === S.currency ? html` <span class="chip good">Main</span>` : ''}`, '',
       c.code !== S.currency ? html`<button class="link" data-onclick="App.currency('${c.code}','primary')">Make main</button><button class="link" data-onclick="App.currency('${c.code}','disable')">Disable</button>` : '')))}
@@ -98,17 +100,22 @@ VIEWS.settings = async (r, paint) => {
     ${row('API', '', ab.api_version || '—')}`,
     'Your Firefly profile, password, two-factor login, API tokens and user administration aren’t available through Firefly’s API, so change those in Firefly III itself.');
 
-  const body = html`${months}${look}${sync}${applePayHtml(ingest, cards, L.own.filter(a => isAsset(a) || isLiab(a)))}${cur}${data}${aboutHtml}`, has = String(body);
-  const nav = htmlList(SET_SECTIONS.filter(([id]) => has.includes('id="set-' + id + '"')).map(([id, t]) => html`<button type="button" data-onclick="App.setJump('${id}')">${t}</button>`));
-  paint(html`<div class="set-layout"><div class="set-side">${head('Settings', '', '')}<nav class="set-nav" id="setNav" aria-label="Settings sections">${nav}</nav></div><div class="settings">${body}</div></div>`);
+  // One category at a time: the list of them sits on the left on wide screens, and on phones it's the first screen,
+  // where tapping one slides it in. The groups that have nothing to show (Apple Pay without the server key) drop out.
+  const groups: Record<string, unknown> = { months, look, sync, applepay: applePayHtml(ingest, cards, L.own.filter(a => isAsset(a) || isLiab(a))), currencies: cur, data, about: aboutHtml };
+  const cats = SET_SECTIONS.filter(([id]) => groups[id] && String(groups[id]));
+  const wide = innerWidth >= SET_WIDE, at = cats.find(c => c[0] === r.q.s) || (wide ? cats[0] : null);
+  const nav = htmlList(cats.map(([id, t]) => html`<a href="#/settings?s=${id}" class="${at && at[0] === id ? 'on' : ''}"${at && at[0] === id ? raw(' aria-current="page"') : ''}>${t}</a>`));
+  const menu = html`<div class="panel set-panel set-menu">${htmlList(cats.map(([id, t, hint]) => html`<a class="set-row" href="#/settings?s=${id}"><span class="set-label"><span>${t}</span><span class="sub-s">${hint}</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>`))}</div>`;
+  const back = html`<a class="set-back" href="#/settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Settings</a>`;
+  const title = at && !wide ? html`${back}${head(at[1], '', '')}` : head('Settings', '', '');
+  paint(html`<div class="set-layout"><div class="set-side">${title}<nav class="set-nav" id="setNav" aria-label="Settings categories">${nav}</nav></div><div class="settings">${at ? groups[at[0]] : menu}</div></div>`);
 };
-/* ---------- Wide screens: a list of the sections beside them ---------- */
-const SET_SECTIONS: [string, string][] = [['months', 'Months & budgets'], ['look', 'Appearance'], ['sync', 'Sync'], ['applepay', 'Apple Pay'], ['currencies', 'Currencies'], ['data', 'Data'], ['about', 'About']];
-function setJump(id: string) {
-  const g = el('set-' + id); if (!g) return;
-  g.classList.remove('pal-flash'); void g.offsetWidth; g.classList.add('pal-flash');
-  g.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-}
+/* ---------- The categories, with what's in each (the phone's list shows it under the name) ---------- */
+const SET_WIDE = 1100;          // the width at which the category list sits beside the settings (money.css matches it)
+export const SET_SECTIONS: [string, string, string][] = [['months', 'Months & budgets', 'Month start, budget warning'], ['look', 'Appearance', 'Theme, colors, logos, haptics'],
+  ['sync', 'Sync', 'Settings on all your devices'], ['applepay', 'Apple Pay', 'Add expenses as you pay'], ['currencies', 'Currencies', 'Main currency, exchange rates'],
+  ['data', 'Data', 'Export, webhooks, clean up'], ['about', 'About', 'Versions and what’s new']];
 /* ---------- Customize colors: your own background, accent and (for the glass themes) light, tint and blur ---------- */
 const curTheme = () => document.documentElement.getAttribute('data-theme') || 'auto';
 const themeName = () => { const t = THEMES.find(x => x[0] === curTheme()); return t ? t[1] : ''; };
@@ -403,7 +410,6 @@ const methods = {
   themeScene,
   themePhoto,
   drawThemeCustom,
-  setJump,
 };
 Object.assign(App, methods);
 type Methods = typeof methods;

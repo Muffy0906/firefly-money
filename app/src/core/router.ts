@@ -63,7 +63,8 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
   if (hn == null) { S.navN = (S.navN || 0) + 1; try { history.replaceState({ n: S.navN }, ''); } catch (e) { /* ignore */ } }
   else { traversal = hn !== S.curNav; S.navN = Math.max(S.navN || 0, hn); }
   S.curNav = (history.state && history.state.n) || S.navN;
-  const depth = ({ account: 1, reconcile: 2 })[r.name] || 0;
+  // (a Settings category is a level deeper on phones, where it opens from the list of them)
+  const depth = ({ account: 1, reconcile: 2 })[r.name] || (r.name === 'settings' && r.q.s && innerWidth < 1100 ? 1 : 0);
   if (opts.nav && S.pageDepth != null && !S.vtDir && depth !== S.pageDepth) S.vtDir = depth > S.pageDepth ? 'push' : 'pop';
   S.pageDepth = depth;
   const instant = opts.instant || (traversal && !!window.MONEY_NATIVE);
