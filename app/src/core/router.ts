@@ -108,6 +108,8 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
   const paint: Paint = markup => {
     if (tok !== S.tok) return;
     clearTimeout(S.skelT);
+    // rows ticked for bulk edit while a quiet redraw of this page was loading: keep them, the next refresh catches up
+    if (opts.quiet && key === S.pageKey && S.sel && S.sel.size) return;
     if (S.vtRun && S.vtRun.kind !== 'page') { S.vtRun.finished.catch(() => {}).then(() => paint(markup)); return; }   // let a drawer animation finish first
     const fresh = key !== S.pageKey;
     const from = S.vtFrom && S.vtFrom.node.isConnected && Date.now() - S.vtFrom.t < 4000 ? S.vtFrom.node : null; S.vtFrom = null;
@@ -116,6 +118,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
       const keep = fresh ? 0 : scrollY;
       if (fresh) stashPage(prevFeed);
       v.innerHTML = String(markup);
+      S.sel = new Set();          // the new rows start unticked
       S.pageKey = key; S.pageHtml = markup; S.pageCacheable = cacheable && !v.querySelector(':scope > .error'); S.pageLive = true;
       if (from) vtName(v.querySelector('.head h1'), 'ptitle');
       if (!fresh || !VT_OK || opts.quiet || instant || !dir) { v.classList.remove('enter'); if (fresh && !opts.quiet && !instant) { void v.offsetWidth; v.classList.add('enter'); } }
@@ -169,10 +172,13 @@ async function revalidate() {
   try { await (VIEWS[r.name] || VIEWS[''])(r, h => { markup = h; }); }
   catch (e) { if (e instanceof AuthError) showLogin(e.message); return; }
   finally { S.swrOff--; }
-  // also when something has been typed into the page itself (a what-if, a budget amount): a redraw would wipe it
+  if (tok === S.tok && key === S.pageKey && markup !== null && markup !== S.pageHtml && !busyHere()) route({ quiet: true });
+}
+// Something on the page is in use (an open drawer or picker, ticked rows, or something typed into the page itself,
+// like a what-if or a budget amount), so a quiet redraw would wipe it
+function busyHere() {
   const typed = [...el('view').querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input:not([type=checkbox]):not([type=radio]), textarea')].some(i => i.value !== i.defaultValue);
-  const busyHere = el('drawer').classList.contains('open') || (S.sel && S.sel.size) || !el('pickpop').hidden || typed;
-  if (tok === S.tok && key === S.pageKey && markup !== null && markup !== S.pageHtml && !busyHere) route({ quiet: true });
+  return el('drawer').classList.contains('open') || !!(S.sel && S.sel.size) || !el('pickpop').hidden || typed;
 }
 /* Fetch everything again. visible: show it right away (pull to refresh).
    Otherwise quietly re-fetch the current page and only redraw if something actually changed. */
@@ -186,10 +192,7 @@ export async function refreshAll(opts: { visible?: boolean } = {}) {
       let markup: Html | string | null = null;
       try { await (VIEWS[r.name] || VIEWS[''])(r, h => { markup = h; }); }
       catch (e) { if (e instanceof AuthError) showLogin(e.message); return; }
-      // also when something has been typed into the page itself (a what-if, a budget amount): a redraw would wipe it
-  const typed = [...el('view').querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input:not([type=checkbox]):not([type=radio]), textarea')].some(i => i.value !== i.defaultValue);
-  const busyHere = el('drawer').classList.contains('open') || (S.sel && S.sel.size) || !el('pickpop').hidden || typed;
-      if (tok === S.tok && key === S.pageKey && markup !== null && markup !== S.pageHtml && !busyHere) await route({ quiet: true });
+      if (tok === S.tok && key === S.pageKey && markup !== null && markup !== S.pageHtml && !busyHere()) await route({ quiet: true });
     } finally {
       S.refreshing = null;
       warmTabs();
