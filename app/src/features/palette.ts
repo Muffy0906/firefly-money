@@ -44,6 +44,7 @@ const SETTINGS: [string, string, string][] = [
   ['Webhooks', 'home assistant n8n automation url', 'hooks'],
   ['Recalculate everything', 'refresh reload cache wrong totals', '#set-data'],
   ['About and versions', 'version firefly api about', '#set-about'],
+  ['What’s new', 'whats new release notes changelog update version highlights', '#set-about'],
 ];
 // Piggy banks and recurring transactions aren't in lists(), so fetch them once in a while
 let extra: { at: number, items: PalItem[] } | null = null;

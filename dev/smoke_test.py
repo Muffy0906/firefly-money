@@ -51,6 +51,15 @@ async def check(pw, width, height, mobile):
         await page.evaluate("localStorage.setItem('moneyKey', 'demo')"); await page.reload()
     await page.wait_for_function(PAINTED, timeout=15000)
     if await page.evaluate("localStorage.getItem('moneyKey')"): errors.append('the password saved by an older version was not deleted')
+    # What's new: someone updating from an older version (the saved password above) sees it once; a new install (the phone) doesn't
+    if not mobile:
+        try:
+            await page.wait_for_selector('#whatsNew[open]', timeout=5000)
+            await page.click('#whatsNew .btn.primary'); await page.wait_for_selector('#whatsNew:not([open])', state='attached')
+        except Exception: errors.append('What\'s new did not open and close after an update')
+    else:
+        await page.wait_for_timeout(1500)
+        if await page.locator('#whatsNew[open]').count(): errors.append('What\'s new opened on a new install')
     # every data-on* handler in the source parses and calls an App method that exists
     if not mobile:
         await goto(page, '')
@@ -300,7 +309,7 @@ async def screenshots(pw, out):
     async def shot(route, name, w=1440, h=900, mobile=False, theme='frosted', action=None, full=False, scale=None):
         ctx = await br.new_context(viewport={'width': w, 'height': h}, is_mobile=mobile, has_touch=mobile, device_scale_factor=scale or (2 if mobile else 1))
         await ctx.add_cookies([{'name': 'money_session', 'value': 'demo', 'url': BASE.split('#')[0].rstrip('/') + '/api/'}])
-        await ctx.add_init_script(f"localStorage.setItem('money.dash', '{shot_dash(mobile)}'); localStorage.setItem('money.nwYears', '3'); localStorage.setItem('money.syncOff', 'true')")
+        await ctx.add_init_script(f"localStorage.setItem('money.dash', '{shot_dash(mobile)}'); localStorage.setItem('money.nwYears', '3'); localStorage.setItem('money.syncOff', 'true'); window.MONEY_NO_WHATSNEW = true")
         if theme: await ctx.add_init_script(f"localStorage.setItem('moneyTheme','{theme}')")
         pg = await ctx.new_page(); await pg.goto(BASE + '#/' + route)
         await pg.wait_for_function(PAINTED); await pg.wait_for_function("() => !document.querySelector('#view .sk, #view [aria-busy]')"); await pg.wait_for_timeout(2800)

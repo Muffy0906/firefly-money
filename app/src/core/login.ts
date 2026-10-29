@@ -9,7 +9,7 @@ import { applyCustom } from './themevars';
 import { blankSplit, collectTx, newTx, renderTxForm } from '../features/txform';
 
 /* ================= Login / boot ================= */
-function showApp() { S.lastRefresh = S.lastRefresh || Date.now(); el('login').hidden = true; el('app').hidden = false; el('fab').hidden = false; route(); if (App.syncPrefs) App.syncPrefs(); }
+function showApp() { S.lastRefresh = S.lastRefresh || Date.now(); el('login').hidden = true; el('app').hidden = false; el('fab').hidden = false; route(); if (App.syncPrefs) App.syncPrefs(); if (App.whatsNew) App.whatsNew(); }
 el('loginForm').onsubmit = async ev => {
   ev.preventDefault();
   const btn = (ev.target as HTMLElement).querySelector<HTMLButtonElement>('button[type=submit]')!;

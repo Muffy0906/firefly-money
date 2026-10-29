@@ -11,6 +11,8 @@ import { applyCustom } from './core/themevars';
   if (native) { d.classList.add('native'); if (window.MONEY_NATIVE_TABS) d.classList.add('native-tabs');
     var m = document.querySelector<HTMLMetaElement>('meta[name=viewport]'); if (m) m.content += ', maximum-scale=1, user-scalable=no'; }
 })();
+// Used Money on this device before? Checked before anything writes, so What's new can tell an update from a new install
+(function () { try { window.MONEY_RETURNING = Object.keys(localStorage).some(function (k) { return k.indexOf('money') === 0; }); } catch (e) {} })();
 // The sidebar folded down to its icons (Collapse sidebar), before the first paint so the page doesn't jump
 (function () { try { if (localStorage.getItem('money.sideMini') === 'true') document.documentElement.classList.add('side-mini'); } catch (e) {} })();
 (function () { try { var t = localStorage.getItem('moneyTheme'); if (t && t !== 'auto') document.documentElement.setAttribute('data-theme', t); applyCustom(); } catch (e) {} })();

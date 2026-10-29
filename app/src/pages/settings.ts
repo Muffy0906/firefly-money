@@ -93,6 +93,7 @@ VIEWS.settings = async (r, paint) => {
   const ab = (about && about.data) || {};
   const aboutHtml = group('about', 'About', html`
     ${row('Money', '', moneyVersion() || 'Local build')}
+    ${row('What’s new', 'The highlights of this version', html`<button class="btn small" type="button" data-onclick="App.whatsNew(true)">Show</button>`)}
     ${row('Firefly III', '', ab.version || '—')}
     ${row('API', '', ab.api_version || '—')}`,
     'Your Firefly profile, password, two-factor login, API tokens and user administration aren’t available through Firefly’s API, so change those in Firefly III itself.');

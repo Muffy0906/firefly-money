@@ -59,6 +59,7 @@ import './features/keyboard';
 import './features/nldate';
 import './features/nlparse';
 import './features/shell';
+import './features/whatsnew';
 
 // For the smoke test (dev/smoke_test.py) and the browser console
 Object.assign(window, { S, el, parseHash, refreshAll });
