@@ -14,7 +14,11 @@ const POINTS = 13;
 export type NetWorthPoint = { date: string, assets: number, debts: number, net: number, by?: Record<string, number> };
 export const nwYears = () => LS.get('nwYears', 1) === 3 ? 3 : 1;
 async function netWorthHistory(): Promise<NetWorthPoint[]> {
-  const L = await lists(), years = nwYears();
+  return netWorthOn(monthEnds(todayIso(), POINTS, nwYears() * 12 / (POINTS - 1)));
+}
+// Net worth on each of these days, in the same order (a day from today on uses today's balances)
+export async function netWorthOn(days: string[]): Promise<NetWorthPoint[]> {
+  const L = await lists(), t = todayIso();
   const own = L.accounts.filter(a => a.active && a.netWorth && (isAsset(a) || isLiab(a))), ids = new Set(own.map(a => a.id));
   // A liability's debt is Firefly's current_debt, which isn't reported for past days; the dated balance is, so past
   // debts are the dated balance shifted by however much the two differ today.
@@ -26,10 +30,9 @@ async function netWorthHistory(): Promise<NetWorthPoint[]> {
     });
     return { assets, debts, net: assets - debts, by };
   };
-  const days = monthEnds(todayIso(), POINTS, years * 12 / (POINTS - 1));
-  const past = await Promise.all(days.slice(0, -1).map(date => Promise.all([getAll('/accounts', { type: 'asset', date }), getAll('/accounts', { type: 'liabilities', date })])
-    .then(([as, ls]) => ({ date, ...total([...as, ...ls].map(normAccount)) }))));
-  return [...past, { date: days[days.length - 1], ...total(own) }];
+  return Promise.all(days.map(date => date >= t ? { date, ...total(own) }
+    : Promise.all([getAll('/accounts', { type: 'asset', date }), getAll('/accounts', { type: 'liabilities', date })])
+      .then(([as, ls]) => ({ date, ...total([...as, ...ls].map(normAccount)) }))));
 }
 // One year or three, for the Overview's net worth tile
 export const nwSeg = () => { const years = nwYears(); return html`<div class="seg mini">${htmlList([1, 3].map(y => html`<button type="button" class="${years === y ? 'on' : ''}" data-onclick="App.nwRange(${y})">${y === 1 ? '1Y' : '3Y'}</button>`))}</div>`; };
@@ -51,7 +54,7 @@ export function movers(then: Record<string, number>, now: Record<string, number>
   return Object.keys({ ...then, ...now }).map(id => [names[id] || '?', (now[id] || 0) - (then[id] || 0)] as [string, number])
     .filter(([, d]) => Math.abs(d) >= 1).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, n);
 }
-let cur = -1, dragging = false, resetT: ReturnType<typeof setTimeout> | undefined;
+let cur = -1, dragging = false, held = false, resetT: ReturnType<typeof setTimeout> | undefined;
 const FIELDS = ['big', 'sub'], ORIG = new WeakMap<HTMLElement, Record<string, string>>();
 const part = (card: HTMLElement, k: string) => card.querySelector<HTMLElement>(':scope > .' + (k === 'big' ? 'big' : 'sub-s'));
 function show(box: HTMLElement, i: number) {
@@ -85,11 +88,13 @@ function settle(box: HTMLElement) {
   if (!p || cur === SCRUB.length - 1) return reset(card);
   const [y, m] = monthOf(new Date(p.date + 'T12:00:00')), sub = part(card, 'sub');
   if (sub) sub.insertAdjacentHTML('beforeend', String(html` <button type="button" class="link nw-open" data-onclick="App.nwOpen(${y},${m})">See ${monthRange(y, m).short} →</button>`));
+  // Hold that month while a mouse heads for the link, rather than scrubbing on the way there
+  held = true;
   resetT = setTimeout(() => reset(card), 8000);
 }
 // Back to today: the tile as it was drawn
 function reset(card: HTMLElement) {
-  cur = -1; clearTimeout(resetT); card.classList.remove('scrubbing');
+  cur = -1; held = false; clearTimeout(resetT); card.classList.remove('scrubbing');
   const tip = el('tip'); if (tip && tip.dataset.src === 'nw') { tip.hidden = true; tip.dataset.src = ''; }
   const o = ORIG.get(card); if (!o) return;
   FIELDS.forEach(f => { const n = part(card, f); if (n) n.innerHTML = o[f]; });
@@ -103,17 +108,18 @@ function at(box: HTMLElement, e: PointerEvent) {
 }
 document.addEventListener('pointerdown', e => {
   const box = boxAt(e.target); if (!box || S.dashEdit || SCRUB.length < 2) return;
-  dragging = true; cur = -1; buzz(6); try { box.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ }
+  dragging = true; held = false; cur = -1; buzz(6); try { box.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ }
   at(box, e);
 });
 document.addEventListener('pointermove', e => {
   const box = boxAt(e.target); if (!box || S.dashEdit || SCRUB.length < 2) return;
-  if (dragging || e.pointerType === 'mouse') at(box, e);
+  if (dragging || (e.pointerType === 'mouse' && !held)) at(box, e);
 });
 document.addEventListener('pointerup', e => { const box = boxAt(e.target); if (!dragging || !box) return; dragging = false; settle(box); });
 document.addEventListener('pointercancel', e => { const box = boxAt(e.target); dragging = false; if (box) reset(box.closest<HTMLElement>('.nw')!); });
 document.addEventListener('pointerout', e => {
   const box = boxAt(e.target); if (!box || e.pointerType !== 'mouse' || dragging || box.contains(e.relatedTarget as Node)) return;
+  held = false;
   const card = box.closest<HTMLElement>('.nw')!; if (!card.querySelector('.nw-open')) reset(card);
 });
 addEventListener('scroll', () => { const c = document.querySelector<HTMLElement>('.nw.scrubbing'); if (c && !dragging) reset(c); }, { passive: true });

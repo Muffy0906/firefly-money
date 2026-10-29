@@ -9,7 +9,7 @@ from playwright.async_api import async_playwright
 
 BASE = os.environ.get('BASE', 'http://127.0.0.1:8765/')   # e.g. a flaky demo server: BASE=http://127.0.0.1:8766/
 PAGES = ['', 'forecast', 'transactions', 'inbox', 'review', 'accounts', 'account/1', 'account/3?range=all', 'account/102', 'loans', 'budgets', 'categories',
-         'bills', 'recurring', 'piggy', 'rules', 'reports', 'reports?preset=last-3&cmp=year', 'recap', 'year', 'year?y=2025', 'map', 'settings', 'cleanup',
+         'bills', 'recurring', 'piggy', 'rules', 'reports', 'reports?preset=last-3&cmp=year', 'recap', 'year', 'year?y=2025', 'timeline', 'map', 'settings', 'cleanup',
          'forecast?days=365', 'ask', 'ask?q=why%20did%20I%20spend%20more%20this%20month', 'ask?q=which%20bills%20are%20due%20before%20payday', 'ask?q=biggest%20expense%20last%20month']
 # The markup's event handlers (data-onclick="App.x(…)") in the page and the TypeScript sources (not the minified
 # bundle), with the JS concatenations ' + … + ' and template values ${…} filled in with 1
@@ -51,6 +51,16 @@ async def check(pw, width, height, mobile):
         await page.evaluate("localStorage.setItem('moneyKey', 'demo')"); await page.reload()
     await page.wait_for_function(PAINTED, timeout=15000)
     if await page.evaluate("localStorage.getItem('moneyKey')"): errors.append('the password saved by an older version was not deleted')
+    # What's new: someone updating from an older version (the saved password above) sees it once; a new install (the phone)
+    # and the online demo don't
+    if not mobile and '/demo/' not in BASE:
+        try:
+            await page.wait_for_selector('#whatsNew[open]', timeout=5000)
+            await page.click('#whatsNew .btn.primary'); await page.wait_for_selector('#whatsNew:not([open])', state='attached')
+        except Exception: errors.append('What\'s new did not open and close after an update')
+    else:
+        await page.wait_for_timeout(1500)
+        if await page.locator('#whatsNew[open]').count(): errors.append('What\'s new opened on a new install or the demo')
     # every data-on* handler in the source parses and calls an App method that exists
     if not mobile:
         await goto(page, '')
@@ -300,7 +310,7 @@ async def screenshots(pw, out):
     async def shot(route, name, w=1440, h=900, mobile=False, theme='frosted', action=None, full=False, scale=None):
         ctx = await br.new_context(viewport={'width': w, 'height': h}, is_mobile=mobile, has_touch=mobile, device_scale_factor=scale or (2 if mobile else 1))
         await ctx.add_cookies([{'name': 'money_session', 'value': 'demo', 'url': BASE.split('#')[0].rstrip('/') + '/api/'}])
-        await ctx.add_init_script(f"localStorage.setItem('money.dash', '{shot_dash(mobile)}'); localStorage.setItem('money.nwYears', '3'); localStorage.setItem('money.syncOff', 'true')")
+        await ctx.add_init_script(f"localStorage.setItem('money.dash', '{shot_dash(mobile)}'); localStorage.setItem('money.nwYears', '3'); localStorage.setItem('money.syncOff', 'true'); window.MONEY_NO_WHATSNEW = true")
         if theme: await ctx.add_init_script(f"localStorage.setItem('moneyTheme','{theme}')")
         pg = await ctx.new_page(); await pg.goto(BASE + '#/' + route)
         await pg.wait_for_function(PAINTED); await pg.wait_for_function("() => !document.querySelector('#view .sk, #view [aria-busy]')"); await pg.wait_for_timeout(2800)

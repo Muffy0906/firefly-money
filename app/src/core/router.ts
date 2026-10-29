@@ -30,7 +30,7 @@ export type View = (r: RouteInfo, paint: Paint) => Promise<unknown> | void;
 export const VIEWS: Record<string, View> = {};
 
 /* ---------- Page cache: tabs you've opened come back exactly as you left them ---------- */
-const CACHEABLE = new Set(['', 'transactions', 'budgets', 'accounts', 'account', 'categories', 'bills', 'piggy', 'forecast', 'reports', 'recurring', 'loans', 'recap']);
+const CACHEABLE = new Set(['', 'transactions', 'budgets', 'accounts', 'account', 'categories', 'bills', 'piggy', 'forecast', 'reports', 'recurring', 'loans', 'recap', 'timeline']);
 function stashPage(feed: State['feed']) {
   const v = el('view');
   if (!S.pageLive || !S.pageKey || !S.pageCacheable || !v.firstChild) return;

@@ -9,6 +9,7 @@ import { NotFound, createMockApi } from './mockapi';
 // went first in its row so Cash and Credit cards pair up. It's set up once per LOOK version, so a visitor who was here
 // before gets a new look once too; after that, anything they change is kept (Customize → Reset gives the usual defaults).
 const LOOK = '2';
+window.MONEY_DEMO = true;
 try {
   if (localStorage.getItem('money.demoLook') !== LOOK) {
     const phone = innerWidth < 1000;
