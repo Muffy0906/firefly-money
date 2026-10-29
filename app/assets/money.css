@@ -1708,9 +1708,18 @@
     .fab { transition: filter .15s, scale .2s cubic-bezier(.3, 1.5, .5, 1); }
     .fab:hover { scale: 1.06; }
   }
-  /* Cursor light (glow.ts): a soft accent glow under the mouse, above everything but never in the way */
-  .cursor-light { position: fixed; z-index: 9999; left: -170px; top: -170px; width: 340px; height: 340px; border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity .35s ease;
-    background: radial-gradient(closest-side, color-mix(in srgb, var(--glow, var(--accent)) 14%, transparent), color-mix(in srgb, var(--glow, var(--accent)) 5%, transparent) 55%, transparent); will-change: transform; }
-  .cursor-light.on { opacity: 1; }
-  @media (prefers-reduced-motion: reduce), (hover: none) { .cursor-light { display: none; } }
-  @media print { .cursor-light { display: none; } }
+  /* Magnetic hover (magnet.ts): what's under the mouse leans toward it. magnet.ts adds .mag with --mx/--my; the
+     translate only exists while it does, since any translate makes a stacking context. Easing back is the transition. */
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .btn, .round, .seg button { transition: background .12s, border-color .12s, transform .08s, opacity .12s, translate .25s cubic-bezier(.2, .8, .2, 1), scale .18s ease; }
+    .tabs a, .link, .side-search, .side-tg, .add-card, .kpi, .panel:not(.set-panel), .big, .head h1,
+    svg:is(.lines, .spark, .sbars, .mini-line, .barchart, .flowchart, .donut, .ring) { transition: translate .3s cubic-bezier(.2, .8, .2, 1); }
+    .set-nav a { transition: background .12s, color .12s, translate .25s cubic-bezier(.2, .8, .2, 1); }
+    .insight { transition: border-color .15s, transform .15s, translate .3s cubic-bezier(.2, .8, .2, 1); }
+    .mag { translate: var(--mx, 0px) var(--my, 0px); }
+    .btn.mag:not(:disabled):hover { translate: var(--mx, 0px) calc(var(--my, 0px) - 1px); }
+    #dash:not(.editing) .w > .panel.mag:hover { translate: var(--mx, 0px) calc(var(--my, 0px) - 2px); }
+  }
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (min-width: 901px) {
+    .fab { transition: filter .15s, scale .2s cubic-bezier(.3, 1.5, .5, 1), translate .25s cubic-bezier(.2, .8, .2, 1); }
+  }

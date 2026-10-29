@@ -32,7 +32,7 @@ const SETTINGS: [string, string, string][] = [
   ['Payee and bank logos', 'logos icons images duckduckgo merchant', '#set-look'],
   ['About logos', 'logos duckduckgo privacy', 'logos'],
   ['Hours of work', 'hours work wage hourly salary time cost lens worked', '#set-look'],
-  ['Cursor light', 'cursor light glow mouse pointer spotlight hover', '#set-look'],
+  ['Magnetic hover', 'magnet magnetic cursor mouse pointer hover pull attract motion animation', '#set-look'],
   ['Haptics', 'haptic feedback vibration vibrate buzz tap feel iphone android', '#set-look'],
   ['Sync between devices', 'sync iphone ipad devices cloud preferences sync now', '#set-sync'],
   ['Apple Pay', 'shortcut iphone wallet automation ingest key', '#set-applepay'],
