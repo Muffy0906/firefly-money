@@ -5,7 +5,7 @@ import { App, S, cycleDay, el, fmtDate, isoDate, money, monthRange, nowMonth, nu
 import { confirmBox, head, opt, toast } from '../core/dom';
 import { LS, budgetAlert, saveBlob } from '../core/helpers';
 import { buzz, hapticsOn } from '../core/haptics';
-import { canGlow, glowOn } from '../features/glow';
+import { canMagnet, magnetOn } from '../features/magnet';
 import { logosOn } from '../core/logo';
 import { hourlyRate, learnRate, lensOn, workHours } from '../core/worklens';
 import { THEMES, themeButtons } from '../core/login';
@@ -58,12 +58,12 @@ VIEWS.settings = async (r, paint) => {
     ${row('Compact view', 'Tighter spacing to fit more in', html`<input ${SWITCH} aria-label="Compact view" data-pref="compact"${compact ? ' checked' : ''} data-onchange="App.toggleDensity()">`)}
     ${row('Logos', 'Payees’ and banks’ logos instead of initials', html`<input ${SWITCH} aria-label="Show logos"${logosOn() ? ' checked' : ''} data-onchange="App.toggleLogos(this.checked)">`)}
     ${row('Haptics', 'A light tap when you save, delete or flip a switch. iPhone needs iOS 18 or later.', html`<input ${SWITCH} aria-label="Haptics"${hapticsOn() ? ' checked' : ''} data-onchange="App.toggleHaptics(this.checked)">`)}
-    ${canGlow() ? row('Cursor light', 'A soft glow that follows your mouse', html`<input ${SWITCH} aria-label="Cursor light"${glowOn() ? ' checked' : ''} data-onchange="App.toggleCursorLight(this.checked)">`) : ''}
+    ${canMagnet() ? row('Magnetic hover', 'Buttons, cards and charts lean a little toward your mouse', html`<input ${SWITCH} aria-label="Magnetic hover"${magnetOn() ? ' checked' : ''} data-onchange="App.toggleMagnet(this.checked)">`) : ''}
     ${row('Hours of work', 'Under each purchase, the hours you worked to pay for it', html`<input ${SWITCH} aria-label="Hours of work"${lensOn() ? ' checked' : ''} data-onchange="App.toggleWorkLens(this.checked)">`)}
     ${lensOn() ? html`${row('Hours a week', 'How long you work', html`<select aria-label="Hours a week" data-onchange="App.setWorkHours(this.value)">${htmlList([10, 15, 20, 25, 30, 32, 35, 37.5, 40, 45, 50, 55, 60].map(h => opt(h, h + ' hours', workHours())))}</select>`)}
     ${row('Hourly take-home', +LS.get('workRate', 0) > 0 ? 'Yours. Clear it to work it out from your income.' : hourlyRate() ? 'Worked out from what came in over the last six months: ' + money(hourlyRate()) + ' an hour' : 'Working it out from your income…', html`<input type="number" inputmode="decimal" min="0" step="0.01" class="set-num" aria-label="Hourly take-home" placeholder="${hourlyRate() ? hourlyRate().toFixed(2) : 'Auto'}" value="${+LS.get('workRate', 0) > 0 ? String(LS.get('workRate', 0)) : ''}" data-onchange="App.setWorkRate(this.value)">`)}` : ''}
     ${more('logos', 'About logos', '', html`<p class="sub-s">Your Money server fetches each logo from DuckDuckGo’s icon service by the payee’s website (guessed from its name; change it in the account’s settings) and keeps it, so your browser never contacts another site.</p>`)}`,
-    'Theme, hide amounts, compact view, haptics and the cursor light are saved on this device only. Hours of work and your colors for each theme sync like your other settings.');
+    'Theme, hide amounts, compact view, haptics and magnetic hover are saved on this device only. Hours of work and your colors for each theme sync like your other settings.');
 
   const syncOff = !!LS.get('syncOff', false), syncAt = LS.get('syncAt', 0);
   const syncStatus = syncOff ? 'Off: this device keeps its own settings.' : S.syncError ? html`<span class="up">Couldn’t sync: ${S.syncError}</span>`
