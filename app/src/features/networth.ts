@@ -51,7 +51,7 @@ export function movers(then: Record<string, number>, now: Record<string, number>
   return Object.keys({ ...then, ...now }).map(id => [names[id] || '?', (now[id] || 0) - (then[id] || 0)] as [string, number])
     .filter(([, d]) => Math.abs(d) >= 1).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, n);
 }
-let cur = -1, dragging = false, resetT: ReturnType<typeof setTimeout> | undefined;
+let cur = -1, dragging = false, held = false, resetT: ReturnType<typeof setTimeout> | undefined;
 const FIELDS = ['big', 'sub'], ORIG = new WeakMap<HTMLElement, Record<string, string>>();
 const part = (card: HTMLElement, k: string) => card.querySelector<HTMLElement>(':scope > .' + (k === 'big' ? 'big' : 'sub-s'));
 function show(box: HTMLElement, i: number) {
@@ -85,11 +85,13 @@ function settle(box: HTMLElement) {
   if (!p || cur === SCRUB.length - 1) return reset(card);
   const [y, m] = monthOf(new Date(p.date + 'T12:00:00')), sub = part(card, 'sub');
   if (sub) sub.insertAdjacentHTML('beforeend', String(html` <button type="button" class="link nw-open" data-onclick="App.nwOpen(${y},${m})">See ${monthRange(y, m).short} →</button>`));
+  // Hold that month while a mouse heads for the link, rather than scrubbing on the way there
+  held = true;
   resetT = setTimeout(() => reset(card), 8000);
 }
 // Back to today: the tile as it was drawn
 function reset(card: HTMLElement) {
-  cur = -1; clearTimeout(resetT); card.classList.remove('scrubbing');
+  cur = -1; held = false; clearTimeout(resetT); card.classList.remove('scrubbing');
   const tip = el('tip'); if (tip && tip.dataset.src === 'nw') { tip.hidden = true; tip.dataset.src = ''; }
   const o = ORIG.get(card); if (!o) return;
   FIELDS.forEach(f => { const n = part(card, f); if (n) n.innerHTML = o[f]; });
@@ -103,17 +105,18 @@ function at(box: HTMLElement, e: PointerEvent) {
 }
 document.addEventListener('pointerdown', e => {
   const box = boxAt(e.target); if (!box || S.dashEdit || SCRUB.length < 2) return;
-  dragging = true; cur = -1; buzz(6); try { box.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ }
+  dragging = true; held = false; cur = -1; buzz(6); try { box.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ }
   at(box, e);
 });
 document.addEventListener('pointermove', e => {
   const box = boxAt(e.target); if (!box || S.dashEdit || SCRUB.length < 2) return;
-  if (dragging || e.pointerType === 'mouse') at(box, e);
+  if (dragging || (e.pointerType === 'mouse' && !held)) at(box, e);
 });
 document.addEventListener('pointerup', e => { const box = boxAt(e.target); if (!dragging || !box) return; dragging = false; settle(box); });
 document.addEventListener('pointercancel', e => { const box = boxAt(e.target); dragging = false; if (box) reset(box.closest<HTMLElement>('.nw')!); });
 document.addEventListener('pointerout', e => {
   const box = boxAt(e.target); if (!box || e.pointerType !== 'mouse' || dragging || box.contains(e.relatedTarget as Node)) return;
+  held = false;
   const card = box.closest<HTMLElement>('.nw')!; if (!card.querySelector('.nw-open')) reset(card);
 });
 addEventListener('scroll', () => { const c = document.querySelector<HTMLElement>('.nw.scrubbing'); if (c && !dragging) reset(c); }, { passive: true });
