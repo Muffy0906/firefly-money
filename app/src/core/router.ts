@@ -95,9 +95,11 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
   // Opening a deeper page (an account) keeps the list on screen a little longer, so a quick answer slides straight
   // in; a slow one slides in its placeholder right away and fills it when the data comes.
   const pushing = S.vtDir === 'push' && !instant;
+  let painted = false;
   if (!opts.quiet) S.skelT = setTimeout(() => {
     if (tok !== S.tok) return;
-    const show = () => { stashPage(prevFeed); v.innerHTML = String(skeleton()); };
+    // a skipped slide still runs its update later, so the placeholder must not land on top of a page that already painted
+    const show = () => { if (painted || tok !== S.tok) return; stashPage(prevFeed); v.innerHTML = String(skeleton()); };
     if (!pushing || S.vtDir !== 'push') return show();
     S.vtDir = '';
     const t = vt('page', show, () => { document.documentElement.dataset.vtdir = 'push'; });
@@ -110,6 +112,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
     const fresh = key !== S.pageKey;
     const from = S.vtFrom && S.vtFrom.node.isConnected && Date.now() - S.vtFrom.t < 4000 ? S.vtFrom.node : null; S.vtFrom = null;
     const swap = () => {
+      painted = true;
       const keep = fresh ? 0 : scrollY;
       if (fresh) stashPage(prevFeed);
       v.innerHTML = String(markup);
