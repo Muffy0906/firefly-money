@@ -288,6 +288,13 @@ def shot_dash(phone):
             '"size":{"networth":"s","attention":"s","cash":"s","cards":"s","heatmap":"s","loans":"s","spending":"m","flow":"m"}}')
 
 
+# The README's theme gallery and the TrueNAS catalog: (route, page, theme, action)
+GALLERY = [('transactions', 'transactions', 'glass', None), ('reports', 'reports', 'light', None), ('forecast', 'forecast', 'dark', None),
+           ('budgets', 'budgets', 'carbon', None), ('bills', 'bills', 'midnight', None), ('ask?q=why%20did%20I%20spend%20more%20this%20month', 'ask', 'neon', None),
+           ('piggy', 'piggy', 'ocean', None), ('recap', 'recap', 'sunrise', None), ('year', 'year', 'forest', None), ('inbox', 'todo', 'nord', None),
+           ('categories', 'categories', 'rose', None)]
+
+
 async def screenshots(pw, out):
     br = await pw.chromium.launch()
     async def shot(route, name, w=1440, h=900, mobile=False, theme='frosted', action=None, full=False, scale=None):
@@ -311,15 +318,16 @@ async def screenshots(pw, out):
     # Frosted glass first: it's the theme the README leads with
     await shot('', 'overview', 1600, 1000, scale=2)
     await shot('', 'overview-charts', 1600, 1000, action=to_flow)
-    await shot('transactions', 'transactions')
     await shot('transactions', 'quick-add', action=quick_add)
     await shot('', 'phone-overview', 402, 874, True)
     await shot('', 'phone-overview-charts', 402, 874, True, action=phone_scroll)
     await shot('transactions', 'phone-transactions', 402, 874, True)
     await shot('transactions', 'phone-edit-sheet', 402, 874, True, action=open_tx)
-    await shot('', 'overview-light', theme='light')
-    for k in ['glass', 'dark', 'carbon', 'midnight', 'neon', 'ocean', 'sunrise', 'forest', 'nord', 'rose']:   # one per theme, for the theme gallery
-        await shot('', f'theme-{k}', theme=k)
+    # The gallery: one page in each of the other themes
+    async def year_places(pg):     # Year in Money opens on a title card; step on to the places slide
+        for _ in range(4): await pg.mouse.click(1100, 450); await pg.wait_for_timeout(1800)
+    for route, page, theme, action in GALLERY:
+        await shot(route, f'theme-{theme}-{page}', theme=theme, action=year_places if page == 'year' else action)
     await br.close()
 
 

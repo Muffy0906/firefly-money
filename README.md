@@ -15,11 +15,7 @@ It's a small static web app (TypeScript bundled into one script) served by a sma
 
 <p>
   <img src="docs/screenshots/overview-charts.png" width="49%" alt="Money flow, daily spending calendar and loans on the Overview">
-  <img src="docs/screenshots/transactions.png" width="49%" alt="Transactions grouped by day">
-</p>
-<p>
   <img src="docs/screenshots/quick-add.png" width="49%" alt="Natural-language quick add">
-  <img src="docs/screenshots/overview-light.png" width="49%" alt="Overview in the Calm light theme">
 </p>
 <p>
   <img src="docs/screenshots/phone-overview.png" width="24%" alt="Phone overview">
@@ -28,32 +24,18 @@ It's a small static web app (TypeScript bundled into one script) served by a sma
   <img src="docs/screenshots/phone-edit-sheet.png" width="24%" alt="Phone edit sheet">
 </p>
 
-*Screenshots use the built-in demo data (all names and amounts are made up), shown in the Frosted glass theme and, bottom right, Calm light. The [live demo](https://muffy0906.github.io/firefly-money/) opens in the same theme and layout.*
+*Screenshots use the built-in demo data (all names and amounts are made up), in the Frosted glass theme. The [live demo](https://muffy0906.github.io/firefly-money/) opens in the same theme and layout.*
 
-<details>
-<summary><b>Themes:</b> 11 built-in themes, and you can tweak each one's colors in Settings → Appearance</summary>
+### One page in each theme
 
-Frosted glass and Calm light are shown above. Calm can also follow your system's light or dark mode.
+12 built-in themes, and you can tweak each one's colors in Settings → Appearance. Calm can also follow your system's light or dark mode.
 
-<p>
-  <img src="docs/screenshots/theme-glass.png" width="32%" alt="Overview in the Liquid glass neon theme" title="Liquid glass neon">
-</p>
-<p>
-  <img src="docs/screenshots/theme-dark.png" width="32%" alt="Overview in the Calm dark theme" title="Calm dark">
-  <img src="docs/screenshots/theme-carbon.png" width="32%" alt="Overview in the Carbon neon theme" title="Carbon neon">
-  <img src="docs/screenshots/theme-midnight.png" width="32%" alt="Overview in the Midnight theme" title="Midnight">
-</p>
-<p>
-  <img src="docs/screenshots/theme-neon.png" width="32%" alt="Overview in the Neon theme" title="Neon">
-  <img src="docs/screenshots/theme-ocean.png" width="32%" alt="Overview in the Ocean theme" title="Ocean">
-  <img src="docs/screenshots/theme-sunrise.png" width="32%" alt="Overview in the Sunrise theme" title="Sunrise">
-</p>
-<p>
-  <img src="docs/screenshots/theme-forest.png" width="32%" alt="Overview in the Forest theme" title="Forest">
-  <img src="docs/screenshots/theme-nord.png" width="32%" alt="Overview in the Nord theme" title="Nord">
-  <img src="docs/screenshots/theme-rose.png" width="32%" alt="Overview in the Rosé theme" title="Rosé">
-</p>
-</details>
+| | | |
+|:-:|:-:|:-:|
+| <img src="docs/screenshots/theme-glass-transactions.png" alt="Transactions in the Liquid glass neon theme"><br>Transactions · Liquid glass neon | <img src="docs/screenshots/theme-light-reports.png" alt="Reports in the Calm light theme"><br>Reports · Calm light | <img src="docs/screenshots/theme-dark-forecast.png" alt="Forecast in the Calm dark theme"><br>Forecast · Calm dark |
+| <img src="docs/screenshots/theme-carbon-budgets.png" alt="Budgets in the Carbon neon theme"><br>Budgets · Carbon neon | <img src="docs/screenshots/theme-midnight-bills.png" alt="Bills in the Midnight theme"><br>Bills · Midnight | <img src="docs/screenshots/theme-neon-ask.png" alt="Ask in the Neon theme"><br>Ask · Neon |
+| <img src="docs/screenshots/theme-ocean-piggy.png" alt="Piggy banks in the Ocean theme"><br>Piggy banks · Ocean | <img src="docs/screenshots/theme-sunrise-recap.png" alt="Monthly recap in the Sunrise theme"><br>Monthly recap · Sunrise | <img src="docs/screenshots/theme-forest-year.png" alt="Year in Money in the Forest theme"><br>Year in Money · Forest |
+| <img src="docs/screenshots/theme-nord-todo.png" alt="To do in the Nord theme"><br>To do · Nord | <img src="docs/screenshots/theme-rose-categories.png" alt="Categories & tags in the Rosé theme"><br>Categories & tags · Rosé |  |
 
 ## Why Money?
 
