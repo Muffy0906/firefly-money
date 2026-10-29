@@ -1109,10 +1109,26 @@
   @keyframes vtOutDrawer { to { transform: translateX(100%); } }
   @keyframes vtInSheet { from { transform: translateY(100%); } }
   @keyframes vtOutSheet { to { transform: translateY(100%); } }
+  /* Printing (or saving as PDF): ink on white whatever the theme, no floating controls, and the coloured dots, bars and fills kept.
+     Browsers drop background colours when printing unless told otherwise, and that's what the bars and legend dots are made of;
+     Safari also prints a fading SVG gradient as a solid block, so chart fills become a flat tint of their colour (set on the path). */
   @media print {
-    .side, .head .actions, .toolbar, .drawer, .scrim, .toast { display: none !important; }
-    .app { display: block; } main { padding: 0; max-width: none; }
-    .panel, .kpi { break-inside: avoid; box-shadow: none; }
+    :root, html[data-theme] { --bg: #fff !important; --panel: #fff !important; --line: #e9e7e0 !important; --text: #22221f !important; --muted: #75726a !important;
+      --faint: #efede7 !important; --good: #3f7a5a !important; --spend: #c0603a !important; --income: #6f9a82 !important; --warn: #b8893a !important;
+      --shadow: none !important; --edge: 0px !important; color-scheme: light; }
+    html, body { background: #fff !important; color: var(--text); }
+    *, *::before, *::after { -webkit-print-color-adjust: exact; print-color-adjust: exact; text-shadow: none !important; }
+    body::before, body::after { display: none !important; }
+    .side, .head .actions, .toolbar, .drawer, .scrim, .toast, .undo, .tabbar, .fab, .search-btn, .demo-badge, .tip, .ptr, .offline, .saved-reports, .save-report { display: none !important; }
+    .app { display: block; } main, main#view { padding: 0 !important; max-width: none; }
+    :is(.panel, .kpi, .insight, .extra, .split, .dash-bar, .daycards tbody.day) { background: #fff !important; border: 1px solid var(--line) !important; box-shadow: none !important;
+      -webkit-backdrop-filter: none !important; backdrop-filter: none !important; animation: none !important; }
+    .panel, .kpi, .part, .tbl tr { break-inside: avoid; }
+    .report-cols .panel { break-inside: auto; }
+    .panel-head, .panel .lead, .panel h2 { break-after: avoid; } .donut { break-inside: avoid; }
+    .track { background: var(--faint) !important; }
+    :is(.area, .soft) { fill: currentColor; fill-opacity: .16; animation: none !important; }
+    :is(.draw, .fill, .seg, .bar) { animation: none !important; } .fill { box-shadow: none !important; }
   }
   @media (max-width: 900px) {
     .tabbar:not([hidden]) { display: grid; }
