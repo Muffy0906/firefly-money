@@ -45,6 +45,7 @@ import './pages/settings';
 import './pages/cleanup';
 import './features/palette';
 import './features/polish';
+import './features/dock';
 import './features/datepicker';
 import './pages/forecast';
 import './pages/ask';

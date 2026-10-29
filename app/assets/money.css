@@ -1677,3 +1677,27 @@
   .nw-tl { display: inline-flex; align-items: center; gap: 1px; color: var(--muted); text-decoration: none; }
   .nw-tl svg { width: 13px; height: 13px; }
   @media (hover: hover) { .nw-tl:hover { color: var(--text); } }
+  /* ---------- Hover: things lean toward the mouse (mouse and trackpad only, never with Reduce motion) ---------- */
+  /* The sidebar swells like the macOS Dock: dock.ts sets --dock (0 to 1) on each link by how near the pointer is.
+     Only the icon scales and the label nudges, both as transforms, so the rows and the hover pill stay where they are. */
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .side .nav a svg { scale: calc(1 + var(--dock, 0) * .3); transition: scale .2s cubic-bezier(.2, .8, .2, 1); }
+    .side .nav a span { translate: calc(var(--dock, 0) * 3px) 0; transition: translate .2s cubic-bezier(.2, .8, .2, 1); }
+    html.side-mini .side .nav a svg { scale: calc(1 + var(--dock, 0) * .42); }
+    .side-search svg, .side-tg svg { transition: scale .2s cubic-bezier(.2, .8, .2, 1), transform .25s ease; }
+    .side-search:hover svg, .side-tg:hover svg { scale: 1.14; }
+    /* Buttons rise a hair (presses still shrink them: :active scales the transform, this is the separate translate) */
+    .btn, .round { transition: background .12s, border-color .12s, transform .08s, opacity .12s, translate .18s ease, scale .18s ease; }
+    .btn:not(:disabled):hover { translate: 0 -1px; }
+    .round:not(:disabled):hover { scale: 1.07; }
+    .add-card .plus-i { transition: scale .2s cubic-bezier(.3, 1.5, .5, 1); }
+    .add-card:hover .plus-i { scale: 1.12; }
+    /* Overview tiles lift a little, except while you're arranging them */
+    .cards .w > .panel { transition: translate .25s cubic-bezier(.2, .8, .2, 1), box-shadow .25s ease; }
+    #dash:not(.editing) .w > .panel:hover { translate: 0 -2px; }
+  }
+  /* (the phone-width + button has its own fold-away transition, so only the desktop one grows) */
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (min-width: 901px) {
+    .fab { transition: filter .15s, scale .2s cubic-bezier(.3, 1.5, .5, 1); }
+    .fab:hover { scale: 1.06; }
+  }
