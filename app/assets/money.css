@@ -1223,7 +1223,8 @@
   @media (max-width: 600px) { .review-row { flex-wrap: wrap; } .review-row > .btn { margin-left: auto; } }
 
   /* Map page (pages/map.ts): a Leaflet map of OpenStreetMap pictures with pins on top */
-  .map { height: min(62vh, 560px); min-height: 320px; background: var(--faint, #eee); touch-action: none; overscroll-behavior: contain; }
+  /* isolate keeps Leaflet's z-index 400–1000 panes and controls under the tab bar and other fixed chrome */
+  .map { height: min(62vh, 560px); min-height: 320px; background: var(--faint, #eee); touch-action: none; overscroll-behavior: contain; isolation: isolate; }
   .map.leaflet-container { background: var(--faint, #eee); font: inherit; font-size: 12px; }
   .leaflet-marker-icon.map-pin { border-radius: 50%; border: 2px solid #fff; background: var(--spend, #e5484d); color: #fff; font-size: 12px; font-weight: 600; line-height: 1;
     display: grid; place-items: center; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.3); box-sizing: border-box; }
