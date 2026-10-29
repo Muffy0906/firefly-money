@@ -16,9 +16,19 @@ const ICONS: Record<string, Html> = {
   lens: html`<path d="M3 17l5-5 4 3 7-8"/><circle cx="12" cy="15" r="1.6"/><path d="M12 3.5v2M12 18.5V21"/>`,
   list: html`<rect x="3.5" y="4" width="17" height="7" rx="2"/><rect x="3.5" y="13" width="17" height="7" rx="2"/><path d="M7 7.5h6M7 16.5h4"/>`,
   phone: html`<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/>`,
+  split: html`<path d="M4 12h6l4-6h6M14 18h6M10 12l4 6"/><path d="M17.5 3.5L20 6l-2.5 2.5M17.5 15.5L20 18l-2.5 2.5"/>`,
+  hover: html`<path d="M6 4l11 6.5-4.8 1.2-2 4.6z"/><path d="M15 15l3.5 3.5"/>`,
+  sliders: html`<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>`,
+  print: html`<path d="M7 9V3.5h10V9"/><rect x="3.5" y="9" width="17" height="8" rx="2"/><path d="M7 14.5h10v6H7z"/>`,
 };
 type Notes = { lead: string, items: [string, string, string][] };
 const NOTES: Record<string, Notes> = {
+  '2.1.0': { lead: 'Split transactions stay whole, the desktop comes alive under your mouse, and Settings is easier to find your way around.', items: [
+    ['split', 'Split transactions stay whole', 'Categorizing, reconciling or bulk editing one part of a split no longer deletes the other parts. Thanks to GeorgeBark for the report.'],
+    ['hover', 'Hover that feels alive', 'Sidebar icons swell like the Dock, buttons and cards lean toward your mouse, and text stays sharp while they move.'],
+    ['sliders', 'Settings, one topic at a time', 'Pick a category from the list, and search takes you straight to the right one.'],
+    ['print', 'Better printing', 'Print or Save as PDF keeps chart colours and leaves out the tab bar and buttons.'],
+  ] },
   '2.0.0': { lead: 'A new look, a bento Overview you build yourself, and animations that stay smooth on a phone.', items: [
     ['glass', 'Frosted glass', 'A new theme with real backgrounds, or a photo of your own, and pill shapes in every theme.'],
     ['bento', 'A bento Overview', 'Tiles in even rows, new Net worth, Spent and Earned tiles, and Add cards with a preview of each. Drag them where you like.'],
