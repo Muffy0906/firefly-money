@@ -1,6 +1,6 @@
 /* Dock: the sidebar's icons swell under the mouse like the macOS Dock, the nearest most and its neighbours a little.
-   Each link gets --dock (0 to 1, by how close the pointer is); money.css turns that into the icon's scale and the
-   label's nudge, so the rows themselves never move. Only with a mouse or trackpad, and not with Reduce motion on. */
+   Each link gets --dock (0 to 1, by how close the pointer is), which money.css turns into the icon's scale, and
+   --dock-x, the label's nudge, so the rows themselves never move. Only with a mouse or trackpad, and not with Reduce motion on. */
 const REACH = 84;           // px from the pointer at which an icon stops growing
 let links: { a: HTMLElement; y: number }[] | null = null, stale = false, py = 0, frame = 0;
 
@@ -18,11 +18,13 @@ function paint() {
     // A cosine bump: 1 right under the pointer, easing to 0 at REACH, so the swell rolls smoothly from icon to icon
     const f = d >= REACH ? 0 : (1 + Math.cos(Math.PI * d / REACH)) / 2;
     l.a.style.setProperty('--dock', f < .01 ? '0' : f.toFixed(3));
+    // The label moves in whole device pixels: text between pixels is drawn blurred (Chrome on Windows)
+    l.a.style.setProperty('--dock-x', Math.round(f * 3 * devicePixelRatio) / devicePixelRatio + 'px');
   }
 }
 function settle() {
   cancelAnimationFrame(frame); frame = 0;
-  document.querySelectorAll<HTMLElement>('.side .nav a').forEach(a => a.style.removeProperty('--dock'));
+  document.querySelectorAll<HTMLElement>('.side .nav a').forEach(a => { a.style.removeProperty('--dock'); a.style.removeProperty('--dock-x'); });
   links = null;
 }
 
