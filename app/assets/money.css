@@ -1701,3 +1701,8 @@
        Buttons and Overview tiles also rise (1px, 2px), counted into the same lean. */
     .mag { translate: var(--mx, 0px) var(--my, 0px); }
   }
+  /* Collapsed sidebar: the name of the icon under the mouse (dock.ts), in the chart tooltip's style, pointing at it */
+  .side-tip { z-index: 60; padding: 6px 11px; font-size: 13px; font-weight: 500; line-height: 1.35; white-space: nowrap; opacity: 0; visibility: hidden; }
+  .side-tip::before { content: ""; position: absolute; left: -4px; top: 50%; width: 8px; height: 8px; margin-top: -4px; background: inherit; border-radius: 2px; transform: rotate(45deg); }
+  .side-tip.on { opacity: 1; visibility: visible; }
+  @media (prefers-reduced-motion: no-preference) { .side-tip.on { transition: opacity .12s ease .06s; } }
