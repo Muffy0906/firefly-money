@@ -83,7 +83,9 @@ function bindChart() {
 }
 
 /* ---------- Hover tooltips for chart points ---------- */
+let touchAt = 0;   // a tap also sends a mousemove; the tap already placed the tip above the finger
 document.addEventListener('mousemove', e => {
+  if (Date.now() - touchAt < 800) return;
   const t = e.target && (e.target as HTMLElement).closest ? (e.target as HTMLElement).closest('[data-tip]') : null, tip = el('tip');
   if (!t) { if (tip.dataset.src === 'pt') { tip.hidden = true; tip.dataset.src = ''; } return; }
   tip.textContent = t.getAttribute('data-tip'); tip.dataset.src = 'pt'; tip.hidden = false;
@@ -92,7 +94,7 @@ document.addEventListener('mousemove', e => {
   tip.style.top = (e.clientY + hgt + 20 > innerHeight ? e.clientY - hgt - 12 : e.clientY + 14) + 'px';
 });
 document.addEventListener('scroll', () => { const tip = el('tip'); if (tip.dataset.src === 'pt') tip.hidden = true; }, true);
-// Ring charts: the slice under the pointer stands out, with its row in the list beside it; on a phone a tap shows its tip
+// Ring charts: the slice under the pointer stands out, with its row in the list beside it; on a phone a tap on any chart point shows its tip above the finger
 let ringT: ReturnType<typeof setTimeout> | undefined;
 function ringHot(seg: Element | null) {
   document.querySelectorAll('.donut.hot').forEach(d => { if (!seg || !d.contains(seg)) { d.classList.remove('hot'); d.closest('.share')?.querySelectorAll('.part.hot').forEach(p => p.classList.remove('hot')); } });
@@ -104,9 +106,10 @@ function ringHot(seg: Element | null) {
 document.addEventListener('pointerover', e => { if (e.pointerType === 'mouse') ringHot(e.target instanceof Element ? e.target.closest('.donut .seg[data-tip]') : null); });
 document.addEventListener('pointerup', e => {
   if (e.pointerType === 'mouse') return;
-  const seg = e.target instanceof Element ? e.target.closest<HTMLElement>('.donut .seg[data-tip]') : null, tip = el('tip');
-  ringHot(seg); clearTimeout(ringT);
-  if (!seg) { if (tip.dataset.src === 'ring') tip.hidden = true; return; }
+  touchAt = Date.now();
+  const seg = e.target instanceof Element ? e.target.closest<HTMLElement>('[data-tip]') : null, tip = el('tip');
+  ringHot(seg && seg.matches('.donut .seg') ? seg : null); clearTimeout(ringT);
+  if (!seg) { if (tip.dataset.src === 'ring' || tip.dataset.src === 'pt') tip.hidden = true; return; }
   tip.textContent = seg.getAttribute('data-tip'); tip.dataset.src = 'ring'; tip.hidden = false;
   const w = tip.offsetWidth, hgt = tip.offsetHeight;
   tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, e.clientX - w / 2)) + 'px';

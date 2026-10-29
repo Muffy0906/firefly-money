@@ -445,6 +445,10 @@
   .sbars { display: block; }
   .sbars .bar { fill: color-mix(in srgb, var(--muted) 40%, transparent); }
   .sbars .bar.now { fill: var(--accent); }
+  @media (hover: hover) {
+    .sbars g[data-tip]:hover .bar { fill: color-mix(in srgb, var(--muted) 70%, transparent); }
+    .sbars g[data-tip]:hover .bar.now { fill: color-mix(in srgb, var(--accent) 80%, var(--text)); }
+  }
   @keyframes riseIn { from { opacity: 0; transform: translateY(14px); } }
   @keyframes drawIn { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
   @keyframes fadeIn { from { opacity: 0; } }
