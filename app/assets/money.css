@@ -732,14 +732,15 @@
     --glow1: #ff4fd8; --glow2: #37f5ff; --glow3: #8c5cff; --glass-base: #14102a; --glass-tint: 38%; --glass-blur: 26px;
     background: var(--bg); }
   html[data-theme="glass"] body { background: transparent; }
-  /* drifting neon light behind the glass */
+  /* drifting neon light behind the glass. The drift keeps the browser drawing every frame even when nothing else moves,
+     so it stays still unless you turn Moving light on (Settings → Appearance → Customize; themevars.ts sets --glass-motion: running) */
   html[data-theme="glass"] body::after { content: ''; position: fixed; inset: -20vmax; z-index: -1; pointer-events: none;
     background:
       radial-gradient(38vmax 38vmax at 18% 22%, color-mix(in srgb, var(--glow1) 42%, transparent), transparent 62%),
       radial-gradient(42vmax 42vmax at 82% 30%, color-mix(in srgb, var(--glow2) 30%, transparent), transparent 60%),
       radial-gradient(46vmax 46vmax at 55% 88%, color-mix(in srgb, var(--glow3) 40%, transparent), transparent 62%),
       radial-gradient(30vmax 30vmax at 90% 85%, color-mix(in srgb, var(--good) 16%, transparent), transparent 60%);
-    filter: saturate(130%); animation: glassDrift 38s ease-in-out infinite alternate; animation-play-state: var(--glass-motion, running); will-change: transform; }
+    filter: saturate(130%); animation: glassDrift 38s ease-in-out infinite alternate; animation-play-state: var(--glass-motion, paused); }
   @keyframes glassDrift { 0% { transform: translate3d(0, 0, 0) rotate(0deg); } 50% { transform: translate3d(4vmax, -3vmax, 0) rotate(8deg); } 100% { transform: translate3d(-3vmax, 3vmax, 0) rotate(-6deg); } }
   /* frosted surfaces */
   html[data-theme="glass"] :is(.panel, .daycards tbody.day, .daycards > .center-empty, .kpi, .insight, .extra, .split, .login form, .dash-bar) {
@@ -782,12 +783,9 @@
   html[data-theme="glass"] .appbar.scrolled { background: rgba(10, 8, 24, .45); }
   html[data-theme="glass"] .scrim { background: rgba(4, 3, 12, .45); }
   @media (prefers-reduced-motion: reduce) { html[data-theme="glass"] body::after { animation: none; } }
-  /* Moving light under blurred glass makes the browser re-blur every card on every frame. Pause it while scrolling,
-     and use a lighter blur on phones, so scrolling stays smooth. */
+  /* Moving light under blurred glass makes the browser re-blur every blurred surface on every frame. Pause it while scrolling
+     (the cards and sidebar lose their live blur below, with the Frosted ones). */
   html.scrolling[data-theme="glass"] body::after { animation-play-state: paused; }
-  @media (max-width: 900px) {
-    html[data-theme="glass"] :is(.panel, .kpi, .insight, .extra, .split, .dash-bar) { -webkit-backdrop-filter: none; backdrop-filter: none; }
-  }
   /* ---------- Alignment: centered labels, even controls, room to breathe ---------- */
   .btn { justify-content: center; text-align: center; }
   .round { display: inline-grid; place-items: center; padding: 0; flex: none; }
@@ -964,9 +962,12 @@
   html[data-theme="frosted"][data-scene="night"] :is(.tabbar a.on, .nav a.on) { color: var(--text); }
   html[data-theme="frosted"][data-scene="night"] .track { background: rgba(255, 255, 255, .1); }
   html[data-theme="frosted"][data-scene="night"] .appbar.scrolled { background: rgba(18, 15, 28, .55); }
-  /* The scenes are still and already soft, so a live blur under every card looks the same but makes the phone
-     re-blur each card on every scroll frame and during the entrance animations. Only floating things keep it. */
-  html[data-theme="frosted"] :is(.panel, .kpi, .insight, .extra, .split, .dash-bar) { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  /* Both glass themes: what's behind a card is only soft light (no card overlaps another), so a live blur under every card
+     looks the same but makes the browser re-blur each card on every scroll frame, every entrance animation and, in
+     Liquid glass, every frame of the moving light. Only floating things keep it (tab bar, sheets, menus).
+     Same selector list as the rules that add the blur: :is() takes its most specific entry, so a shorter list loses. */
+  html:is([data-theme="glass"], [data-theme="frosted"]) :is(.panel, .daycards tbody.day, .daycards > .center-empty, .kpi, .insight, .extra, .split, .dash-bar) { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  html[data-theme="glass"] .side { -webkit-backdrop-filter: none; backdrop-filter: none; }
   @media (max-width: 900px) {
     .tbl.feed tr.dayhead div { -webkit-backdrop-filter: none; backdrop-filter: none; }     /* one blur per day header adds up on a long feed */
     html[data-theme="glass"] .tbl.feed tr.dayhead div { background: rgba(20, 16, 42, .9); }
