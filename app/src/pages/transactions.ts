@@ -28,7 +28,7 @@ VIEWS.transactions = async (r, paint) => {
   const strip = !stripOn ? '' : lastStrip && lastStrip.key === stripKey ? lastStrip.html : html`<section class="panel txsum" id="txsum"></section>`;
   const res = await load(page);
   const groups = arr(res).map(normGroup), pg = (res && res.meta && res.meta.pagination) || {};
-  if (paint.live) { S.txPage = groups; S.sel = new Set(); }
+  if (paint.live) S.txPage = groups;
   const pages = pg.total_pages || 1, total = pg.total ?? groups.length;
   if (paint.live) S.feed = { next: page + 1, pages: pg.total_pages || 1, opts: { select: true }, more: async n => arr(await load(n)).map(normGroup) };
   const tab = (t: string, label: string) => html`<a href="${hashWith({ type: t === 'all' ? '' : t, page: '' })}" class="${type === t ? 'on' : ''}">${label}</a>`;
