@@ -3,7 +3,7 @@ import { AuthError, api } from '../core/api';
 import { showLogin } from '../core/auth';
 import { App, S, el } from '../core/base';
 import { toast } from '../core/dom';
-import { type Group, type TxMeta, type TxRowsOpts, txRows } from '../core/feed';
+import { type Group, type TxMeta, type TxRowsOpts, groupUpdate, txRows } from '../core/feed';
 import { buzz } from '../core/haptics';
 import { invalidate } from '../core/lists';
 import { bindSwipe } from './phone';
@@ -76,9 +76,9 @@ async function pickChoose(i: number) {
   if (row) row.classList.add('saving');
   buzz(8);
   try {
-    const t: any = { transaction_journal_id: sp.jid };
+    const t: any = {};
     if (k === 'category') t.category_name = item.v; else t.budget_id = item.v || '0';
-    await api('/transactions/' + g.id, { method: 'PUT', body: { apply_rules: false, fire_webhooks: true, transactions: [t] } });
+    await api('/transactions/' + g.id, { method: 'PUT', body: groupUpdate(g, x => x === sp ? t : null, { fire_webhooks: true }) });
     invalidate(); if (item.create) S.listsAt = 0;
     if (row && row.isConnected) { row.classList.remove('saving'); row.classList.add('saved'); setTimeout(() => row!.classList.remove('saved'), 900); }
     toast((k === 'category' ? 'Category' : 'Budget') + (item.v ? ' set to ' + (item.create ? item.v : item.l) : ' removed'));

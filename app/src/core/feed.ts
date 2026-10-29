@@ -32,6 +32,14 @@ export function normGroup(g: ApiData): Group {
   return { id: String(g.id), title: a.group_title || '', type: f.type as string, date: f.date as string, splits, total: splits.reduce((s, x) => s + x.amount, 0) };
 }
 
+// The body for PUT /transactions/{id}. Firefly takes the list as every part the group keeps and deletes
+// any part left out, so send them all and change only the parts patch returns fields for.
+export function groupUpdate(g: Group, patch: (s: Split) => Record<string, unknown> | null | undefined, extra: Record<string, unknown> = {}) {
+  const body: Record<string, unknown> = { apply_rules: false, ...extra, transactions: g.splits.map(s => ({ ...patch(s), transaction_journal_id: s.jid })) };
+  if (g.splits.length > 1) body.group_title = g.title || g.splits[0].description;
+  return body;
+}
+
 // Signed amount: negative = money out. With an account in view, sign is relative to that account.
 export function signed(g: Group, accountId?: string) {
   if (accountId) return g.splits.reduce((s, x) => s + (x.source_id === accountId ? -x.amount : x.destination_id === accountId ? x.amount : 0), 0);

@@ -3,7 +3,7 @@ import { AuthError, api, eachLimited, getAll } from '../core/api';
 import { showLogin } from '../core/auth';
 import { App, S, el, fmtDate, money, todayIso } from '../core/base';
 import { head, opt, toast, todoTabs } from '../core/dom';
-import { type Group, type Split, normGroup } from '../core/feed';
+import { type Group, type Split, groupUpdate, normGroup } from '../core/feed';
 import { addDays } from '../core/helpers';
 import { lists } from '../core/lists';
 import { VIEWS, parseHash } from '../core/router';
@@ -79,8 +79,9 @@ async function inboxSave() {
   const bud = el<HTMLSelectElement>('ib-bud') ? el<HTMLSelectElement>('ib-bud').value : '';
   const alsoSimilar = el<HTMLInputElement>('ib-similar') && el<HTMLInputElement>('ib-similar').checked, makeRule = el<HTMLInputElement>('ib-rule') && el<HTMLInputElement>('ib-rule').checked;
   const btn = el<HTMLButtonElement>('ib-save'); btn.disabled = true; btn.textContent = 'Saving…';
-  const put = (grp: Group) => api('/transactions/' + grp.id, { method: 'PUT', body: { apply_rules: false, transactions: grp.splits.filter(x => !x.category).map(x => {
-    const o: any = { transaction_journal_id: x.jid, category_name: cat }; if (bud && x.type === 'withdrawal' && !x.budget_id) o.budget_id = bud; return o; }) } });
+  const put = (grp: Group) => api('/transactions/' + grp.id, { method: 'PUT', body: groupUpdate(grp, x => {
+    if (x.category) return null;
+    const o: any = { category_name: cat }; if (bud && x.type === 'withdrawal' && !x.budget_id) o.budget_id = bud; return o; }) });
   try {
     await put(g);
     let n = 1;
