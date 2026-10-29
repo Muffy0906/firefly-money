@@ -113,6 +113,8 @@ Browser ──(session cookie)──▶ nginx container ──(your Firefly toke
 
 ## Quick start (Docker)
 
+On **TrueNAS SCALE**, install **Money** from the app catalog instead, see [TrueNAS SCALE](#truenas-scale) below.
+
 Every push to `main` builds a ready-to-run image, `ghcr.io/muffy0906/firefly-money`, using GitHub Actions (`.github/workflows/docker.yml`). You don't need to download any files, just the compose file:
 
 ```bash
@@ -137,41 +139,52 @@ Open `http://<your-server>:8090` and sign in with your `DASH_PASSWORD`.
 
 **Prefer plain files?** The comments at the bottom of `docker-compose.yml` show how to run the stock `nginx` image with `app/index.html`, `app/default.conf.template` and the `app/assets` folder mounted from a folder. Build the scripts into `app/assets/js` first with `npm install && npm run build` (needs Node.js 20 or newer). In that setup, you update by pulling the repo, building again and restarting the container.
 
-### TrueNAS SCALE (24.10 and newer)
+### TrueNAS SCALE
 
-1. **Apps → Discover Apps → ⋮ → Install via YAML**, give it a name like `money`, and paste:
+Money is in the TrueNAS **community** app catalog, so you install it like any other app:
 
-   ```yaml
-   services:
-     money:
-       image: ghcr.io/muffy0906/firefly-money:latest
-       pull_policy: always          # fetch the newest image whenever the app is (re)started
-       restart: unless-stopped
-       ports:
-         - "8090:80"
-       environment:
-         FIREFLY_URL: http://192.168.1.20:8080
-         FIREFLY_TOKEN: paste-your-token
-         DASH_PASSWORD: choose-a-long-password
+1. Go to **Apps → Discover Apps** and search for **Money**. If it doesn't show up, click **⋮ → Refresh Catalog** (TrueNAS only syncs the catalog about once a day).
+2. Click **Install** and fill in the **Money Configuration** section:
+   - **Firefly III URL**: how the NAS reaches Firefly, e.g. `http://192.168.1.20:8080`. No trailing slash.
+   - **Firefly III Personal Access Token**: your Firefly token.
+   - **Sign-in Password**: the password for the Money sign-in screen. Use something long.
+3. Leave the **WebUI Port** at its default, `30530`, unless something else uses it. Click **Install**.
+4. When the app is running, click **Web UI** (or open `http://<your-nas>:30530`) and sign in with your password.
 
-   # Adds the "Web UI" button to the app in TrueNAS. Keep the port the same as the one above.
-   x-portals:
-     - name: Web UI
-       scheme: http
-       host: 0.0.0.0
-       port: 8090
-       path: /
-   ```
+**Updating:** new releases reach the catalog a little after they're tagged here. The app then shows **Update available**, and **Update** pulls the new version and restarts it. To check which version is running, open **Settings → About** in Money.
 
-   `host: 0.0.0.0` means "this NAS's address". If you use HTTPS through a reverse proxy, set `scheme: https`, and set `host` and `port` to your proxy's address instead.
-2. **Updating:** when TrueNAS sees a newer image, the app shows **Update available**, and **Update** pulls it and restarts. If your TrueNAS version doesn't show the badge for custom apps, **Stop** and **Start** the app. The `pull_policy: always` line makes it fetch the newest image on start.
-   To check which version is running, open **Settings → About** in Money: *Money version* shows the commit and build date (e.g. `c78fd51 · 2026-09-30`). It should match the latest commit on the repo's main page.
-3. If the image fails to pull with a "denied" or "unauthorized" error, make the package public. On GitHub, open your profile → **Packages** → the package → **Package settings → Change visibility → Public**.
-4. **App icon (optional):** TrueNAS has no icon setting for apps installed via YAML, but you can set one in the app's own metadata file. In **System → Shell**, run `sudo nano /mnt/.ix-apps/app_configs/<app-name>/metadata.yaml`, and set the `icon:` line to:
-   ```
-   icon: https://raw.githubusercontent.com/Muffy0906/firefly-money/main/docs/icon.png
-   ```
-   Save and refresh the Apps page. Edit this per-app file, not `/mnt/.ix-apps/metadata.yaml`, which TrueNAS rewrites on updates. The logo is also in `docs/icon.svg`.
+<details>
+<summary><b>Install via YAML instead</b> (older TrueNAS, or to track <code>latest</code> from <code>main</code>)</summary>
+
+**Apps → Discover Apps → ⋮ → Install via YAML**, give it a name like `money`, and paste:
+
+```yaml
+services:
+  money:
+    image: ghcr.io/muffy0906/firefly-money:latest
+    pull_policy: always          # fetch the newest image whenever the app is (re)started
+    restart: unless-stopped
+    ports:
+      - "8090:80"
+    environment:
+      FIREFLY_URL: http://192.168.1.20:8080
+      FIREFLY_TOKEN: paste-your-token
+      DASH_PASSWORD: choose-a-long-password
+
+# Adds the "Web UI" button to the app in TrueNAS. Keep the port the same as the one above.
+x-portals:
+  - name: Web UI
+    scheme: http
+    host: 0.0.0.0
+    port: 8090
+    path: /
+```
+
+`host: 0.0.0.0` means "this NAS's address". To update, **Stop** and **Start** the app: `pull_policy: always` makes it fetch the newest image on start. Apps installed this way have no icon; if you want one, set `icon: https://raw.githubusercontent.com/Muffy0906/firefly-money/main/docs/icon.png` in `/mnt/.ix-apps/app_configs/<app-name>/metadata.yaml` (from **System → Shell**) and refresh the Apps page.
+
+If you switch from a YAML install to the catalog app, delete the old app first so the two don't both run.
+
+</details>
 
 ### Unraid
 
