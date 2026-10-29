@@ -150,7 +150,7 @@
   @media (max-width: 900px) { .report-cols { grid-template-columns: minmax(0, 1fr); } }
   .search { position: relative; flex: 1; max-width: 420px; }
   .search input { width: 100%; padding-left: 36px; }
-  .search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--muted); }
+  .search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--muted); pointer-events: none; }
 
   /* ---------- Panels ---------- */
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 26px; }
@@ -1176,16 +1176,16 @@
 
   /* ---------- Universal search on phones: a search button up top, and a full-screen search ---------- */
   @media (max-width: 900px) {
-    .search-btn { display: grid; place-items: center; position: fixed; z-index: 19; top: calc(env(safe-area-inset-top, 0px) + 6px); right: calc(10px + env(safe-area-inset-right, 0px));
+    .search-btn { display: grid; place-items: center; position: fixed; z-index: 19; top: calc(env(safe-area-inset-top, 0px) + 6px); right: calc(16px + env(safe-area-inset-right, 0px));
       width: 36px; height: 36px; padding: 0; border-radius: 50%; border: 1px solid var(--line); background: color-mix(in srgb, var(--panel) 85%, transparent);
       -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); color: var(--text); cursor: pointer; }
     .search-btn svg { width: 18px; height: 18px; }
-    html.shell .search-btn { top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 4px); border-color: transparent; background: none; -webkit-backdrop-filter: none; backdrop-filter: none; color: var(--accent); }
+    html.shell .search-btn { top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 4px); right: calc(10px + env(safe-area-inset-right, 0px)); border-color: transparent; background: none; -webkit-backdrop-filter: none; backdrop-filter: none; color: var(--accent); }
     html.shell .search-btn svg { width: 22px; height: 22px; }
     /* leaves with the title bar, by the same distance so the two move as one */
     .search-btn { transition: transform .3s cubic-bezier(.2, .8, .2, 1), opacity .2s; }
     html.scroll-down .search-btn { transform: translateY(calc(-1 * (env(safe-area-inset-top, 0px) + var(--edge) + 44px))); opacity: 0; pointer-events: none; }
-    html:not(.shell) #view > .head:first-child { padding-right: 44px; }
+    html:not(.shell) #view > .head:first-child { padding-right: 52px; }
     html.pal-open .search-btn, #app[hidden] ~ .search-btn { display: none; }
     .palette { padding: 0; align-items: stretch; background: var(--bg); }
     .palette-box { width: 100%; height: 100vh; height: 100dvh; border: 0; border-radius: 0; box-shadow: none; display: flex; flex-direction: column; background: var(--bg); animation: none; }
@@ -1320,14 +1320,18 @@
     .txbar { gap: 8px; }
     /* Search folds to a round button next to the filters, and takes the row while it's in use */
     .txbar .search { flex: 0 0 40px; min-width: 0; transition: flex-basis .25s ease; }
-    .txbar .search input { height: 40px; padding: 0 12px 0 38px; }
+    /* padding 0 while folded: the 38px icon padding made the input 52px wide, spilling out of its 40px circle under the filters */
+    .txbar .search input { height: 40px; padding: 0; }
+    .txbar.searching .search input, .txbar .search:focus-within input, .txbar .search input:not(:placeholder-shown) { padding: 0 12px 0 38px; }
     .txbar .search input::placeholder { color: transparent; }
     .txbar .search:focus-within input::placeholder { color: var(--muted); }
     .txbar.searching .search, .txbar .search:focus-within, .txbar .search:has(input:not(:placeholder-shown)) { flex: 1 1 auto; }
     .txbar.searching .tabs, .txbar:has(.search:focus-within) .tabs, .txbar:has(.search input:not(:placeholder-shown)) .tabs { display: none; }
-    .txbar .tabs { flex: 0 1 auto; min-width: 0; overflow-x: auto; }
-    .txbar .tabs a { padding: 7px 11px; }
+    /* the filters fill the rest of the row, so it ends on the cards' right edge */
+    .txbar .tabs { flex: 1 1 auto; min-width: 0; overflow-x: auto; }
+    .txbar .tabs a { flex: 1 0 auto; padding: 7px 11px; text-align: center; }
     .txbar .selall { display: none; }
+    @media (max-width: 380px) { .txbar .tabs a { padding: 7px 8px; } }
     #view .daycards .tbl.feed tr.dayhead div { padding: 12px 14px 2px; }
   }
 
