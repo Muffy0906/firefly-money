@@ -1,7 +1,7 @@
-import { S, el, money } from '../core/base';
+import { App, type Feed, S, el, money } from '../core/base';
 import { closeDrawer } from '../core/dom';
 import { type Group, type TxRowsOpts, signed, txRows } from '../core/feed';
-import { buzz } from '../core/helpers';
+import { buzz } from '../core/haptics';
 import { refreshAll } from '../core/router';
 import { selAll } from './bulk';
 import { bindSwipe } from './phone';
@@ -11,9 +11,13 @@ import { bindSwipe } from './phone';
   if (!('ontouchstart' in window)) return;
   const ind = el('ptr'); let y0: number | null = null, d = 0, busyNow = false;
   const blocked = () => scrollY > 0 || el('app').hidden || el('drawer').classList.contains('open') || !el('palette').hidden || busyNow;
-  addEventListener('touchstart', e => { y0 = blocked() || (e.target as HTMLElement).closest('#dash .grip') ? null : e.touches[0].clientY; d = 0; }, { passive: true });
+  // Drags that belong to something else: panning or pinching the map, moving or resizing a tile, Year in Money.
+  const own = '.leaflet-container, #dash .grip, .rsz, .story';
+  const reset = () => { y0 = null; ind.classList.remove('armed'); ind.style.transform = ''; ind.style.opacity = ''; };
+  addEventListener('touchstart', e => { y0 = blocked() || e.touches.length > 1 || (e.target as HTMLElement).closest(own) ? null : e.touches[0].clientY; d = 0; }, { passive: true });
   addEventListener('touchmove', e => {
     if (y0 === null) return;
+    if (e.touches.length > 1) { reset(); return; }
     d = Math.max(0, Math.min(120, (e.touches[0].clientY - y0) * .5));
     if (scrollY > 0) d = 0;
     ind.style.transform = 'translate(-50%, ' + (d - 50) + 'px) rotate(' + d * 3 + 'deg)';
@@ -55,18 +59,30 @@ import { bindSwipe } from './phone';
 export function bindFeed() {
   const m = el('feedMore'), f = S.feed; if (!m || !f) return;
   const io = new IntersectionObserver(async ents => {
-    if (!ents.some(x => x.isIntersecting) || f.busy) return;
+    if (!ents.some(x => x.isIntersecting)) return;
     if (S.feed !== f || !m.isConnected) return io.disconnect();
-    f.busy = true;
-    try {
-      const gs = await f.more(f.next);
-      if (S.feed !== f || !m.isConnected) return;
-      f.next++; appendRows(gs, f.opts);
-      if (f.next > f.pages || !gs.length) { io.disconnect(); m.remove(); } else { io.unobserve(m); io.observe(m); }
-    } catch (e) { m.textContent = 'Couldn’t load more: ' + (e as Error).message; io.disconnect(); }
-    finally { f.busy = false; }
+    if (await nextPage(f, m)) { io.unobserve(m); io.observe(m); } else io.disconnect();
   }, { rootMargin: '700px 0px' });
   io.observe(m);
+}
+// Adds the feed's next page; true while there are more after it. Scrolling and a jump to a day (App.feedMore) share one load.
+function nextPage(f: Feed, m: HTMLElement): Promise<boolean> {
+  if (f.busy) return f.busy;
+  if (f.next > f.pages) return Promise.resolve(false);
+  return f.busy = (async () => {
+    try {
+      const gs = await f.more(f.next);
+      if (S.feed !== f || !m.isConnected) return false;
+      f.next++; appendRows(gs, f.opts);
+      if (f.next > f.pages || !gs.length) { m.remove(); return false; }
+      return true;
+    } catch (e) { m.textContent = 'Couldn’t load more: ' + (e as Error).message; f.next = f.pages + 1; return false; }
+    finally { f.busy = null; }
+  })();
+}
+async function feedMore() {
+  const m = el('feedMore'), f = S.feed;
+  return !!m && !!f && nextPage(f, m);
 }
 function dayNet(tbody: Element) {
   return [...tbody.querySelectorAll<HTMLElement>('tr[data-gid]')].reduce((s, tr) => { const m = S.txMeta[tr.dataset.gid!]; return s + (m ? signed(m.g, m.accountId) : 0); }, 0);
@@ -85,3 +101,11 @@ function appendRows(gs: Group[], opts: TxRowsOpts) {
   bindSwipe();
   const all = document.querySelector<HTMLInputElement>('.selall input'); if (all && all.checked) selAll(true);
 }
+
+// The methods other modules call (pages load before this one), added to App and to its type
+const methods = {
+  feedMore,
+};
+Object.assign(App, methods);
+type Methods = typeof methods;
+declare module '../core/base' { interface AppApi extends Methods {} }

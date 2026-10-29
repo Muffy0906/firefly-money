@@ -1,12 +1,15 @@
 import { html, htmlList, raw } from '../core/html';
 import { AuthError, PAGES, api, getAll, type ApiError } from '../core/api';
 import { withAuth } from '../core/auth';
-import { App, S, cycleDay, el, fmtDate, isoDate, monthRange, nowMonth, num, todayIso } from '../core/base';
+import { App, S, cycleDay, el, fmtDate, isoDate, money, monthRange, nowMonth, num, todayIso } from '../core/base';
 import { confirmBox, head, opt, toast } from '../core/dom';
 import { LS, budgetAlert, saveBlob } from '../core/helpers';
+import { buzz, hapticsOn } from '../core/haptics';
+import { canMagnet, magnetOn } from '../features/magnet';
 import { logosOn } from '../core/logo';
+import { hourlyRate, learnRate, lensOn, workHours } from '../core/worklens';
 import { THEMES, themeButtons } from '../core/login';
-import { type Custom, KEY, applyCustom, isHex, lum, readCustom } from '../core/themevars';
+import { type Custom, KEY, PHOTO_KEY, SCENES, applyCustom, isHex, lum, readCustom } from '../core/themevars';
 import { type Account, invalidate, isAsset, isLiab, lists, ordinal } from '../core/lists';
 import { VIEWS, route } from '../core/router';
 
@@ -34,6 +37,7 @@ VIEWS.settings = async (r, paint) => {
   const L = await lists(true);
   const [about, rates, hooks, ingest] = await Promise.all([
     api('/about').catch(() => ({})), getAll('/exchange-rates').catch(() => null), getAll('/webhooks').catch(() => null), ingestKey(),
+    lensOn() ? learnRate() : null,
   ]);
   const cards = ingest ? await loadCards() : null;
   const enabled = L.currencies.filter(c => c.enabled), disabled = L.currencies.filter(c => !c.enabled);
@@ -53,8 +57,13 @@ VIEWS.settings = async (r, paint) => {
     ${row('Hide amounts', 'Blur every amount. Press P to switch.', html`<input ${SWITCH} aria-label="Hide amounts" data-pref="privacy"${privacy ? ' checked' : ''} data-onchange="App.togglePrivacy()">`)}
     ${row('Compact view', 'Tighter spacing to fit more in', html`<input ${SWITCH} aria-label="Compact view" data-pref="compact"${compact ? ' checked' : ''} data-onchange="App.toggleDensity()">`)}
     ${row('Logos', 'Payees’ and banks’ logos instead of initials', html`<input ${SWITCH} aria-label="Show logos"${logosOn() ? ' checked' : ''} data-onchange="App.toggleLogos(this.checked)">`)}
+    ${row('Haptics', 'A light tap when you save, delete or flip a switch. iPhone needs iOS 18 or later.', html`<input ${SWITCH} aria-label="Haptics"${hapticsOn() ? ' checked' : ''} data-onchange="App.toggleHaptics(this.checked)">`)}
+    ${canMagnet() ? row('Magnetic hover', 'Buttons, cards and charts lean a little toward your mouse', html`<input ${SWITCH} aria-label="Magnetic hover"${magnetOn() ? ' checked' : ''} data-onchange="App.toggleMagnet(this.checked)">`) : ''}
+    ${row('Hours of work', 'Under each purchase, the hours you worked to pay for it', html`<input ${SWITCH} aria-label="Hours of work"${lensOn() ? ' checked' : ''} data-onchange="App.toggleWorkLens(this.checked)">`)}
+    ${lensOn() ? html`${row('Hours a week', 'How long you work', html`<select aria-label="Hours a week" data-onchange="App.setWorkHours(this.value)">${htmlList([10, 15, 20, 25, 30, 32, 35, 37.5, 40, 45, 50, 55, 60].map(h => opt(h, h + ' hours', workHours())))}</select>`)}
+    ${row('Hourly take-home', +LS.get('workRate', 0) > 0 ? 'Yours. Clear it to work it out from your income.' : hourlyRate() ? 'Worked out from what came in over the last six months: ' + money(hourlyRate()) + ' an hour' : 'Working it out from your income…', html`<input type="number" inputmode="decimal" min="0" step="0.01" class="set-num" aria-label="Hourly take-home" placeholder="${hourlyRate() ? hourlyRate().toFixed(2) : 'Auto'}" value="${+LS.get('workRate', 0) > 0 ? String(LS.get('workRate', 0)) : ''}" data-onchange="App.setWorkRate(this.value)">`)}` : ''}
     ${more('logos', 'About logos', '', html`<p class="sub-s">Your Money server fetches each logo from DuckDuckGo’s icon service by the payee’s website (guessed from its name; change it in the account’s settings) and keeps it, so your browser never contacts another site.</p>`)}`,
-    'Theme, hide amounts and compact view are saved on this device only. Your colors for each theme sync like your other settings.');
+    'Theme, hide amounts, compact view, haptics and magnetic hover are saved on this device only. Hours of work and your colors for each theme sync like your other settings.');
 
   const syncOff = !!LS.get('syncOff', false), syncAt = LS.get('syncAt', 0);
   const syncStatus = syncOff ? 'Off: this device keeps its own settings.' : S.syncError ? html`<span class="up">Couldn’t sync: ${S.syncError}</span>`
@@ -65,7 +74,7 @@ VIEWS.settings = async (r, paint) => {
     'Your Overview layout, month start, drafts, saved reports, dismissed insights, forecast, loan plan and subscription choices and theme colors are kept in Firefly III, so they follow you to every device.');
 
   const showAll = r.q.rates === 'all';
-  const rateBody = html`${rates && rates.length ? html`<div class="list">${htmlList(rates.slice(0, showAll ? 500 : 6).map(x => { const a = x.attributes; return html`<div class="row"><span class="name">1 ${a.from_currency_code || a.from} = ${num(a.rate)} ${a.to_currency_code || a.to} <span class="sub-s">on ${fmtDate(a.date)}</span></span><button class="link" data-onclick="App.deleteRate('${x.id}')">Remove</button></div>`; }))}</div>${rates.length > 6 ? html`<p style="margin:10px 0 0"><a class="link" href="#/settings${showAll ? '' : '?rates=all'}">${showAll ? 'Show fewer' : 'Show all ' + rates.length + ' rates'}</a></p>` : ''}` : html`<p class="sub-s" style="margin:0">Used to convert foreign amounts in reports. No rates yet.</p>`}<form style="margin-top:14px" data-onsubmit="event.preventDefault();App.addRate(this)"><div class="grid2"><label>From<select name="f">${htmlList(enabled.map(c => opt(c.code, c.code, S.currency)))}</select></label><label>To<select name="t">${htmlList(enabled.map(c => opt(c.code, c.code, (enabled.find(x => x.code !== S.currency) || {}).code)))}</select></label><label>Rate<input type="number" step="any" min="0" name="r" required></label><label>Date<input type="date" name="d" value="${todayIso()}" required></label></div><button class="btn small">Add rate</button></form>`;
+  const rateBody = html`${rates && rates.length ? html`<div class="list">${htmlList(rates.slice(0, showAll ? 500 : 6).map(x => { const a = x.attributes; return html`<div class="row"><span class="name">1 ${a.from_currency_code || a.from} = ${num(a.rate)} ${a.to_currency_code || a.to} <span class="sub-s">on ${fmtDate(a.date)}</span></span><button class="link" data-onclick="App.deleteRate('${x.id}')">Remove</button></div>`; }))}</div>${rates.length > 6 ? html`<p style="margin:10px 0 0"><a class="link" href="#/settings?s=currencies${showAll ? '' : '&rates=all'}">${showAll ? 'Show fewer' : 'Show all ' + rates.length + ' rates'}</a></p>` : ''}` : html`<p class="sub-s" style="margin:0">Used to convert foreign amounts in reports. No rates yet.</p>`}<form style="margin-top:14px" data-onsubmit="event.preventDefault();App.addRate(this)"><div class="grid2"><label>From<select name="f">${htmlList(enabled.map(c => opt(c.code, c.code, S.currency)))}</select></label><label>To<select name="t">${htmlList(enabled.map(c => opt(c.code, c.code, (enabled.find(x => x.code !== S.currency) || {}).code)))}</select></label><label>Rate<input type="number" step="any" min="0" name="r" required></label><label>Date<input type="date" name="d" value="${todayIso()}" required></label></div><button class="btn small">Add rate</button></form>`;
   const cur = group('currencies', 'Currencies', html`
     ${htmlList(enabled.map(c => row(html`${c.code} · ${c.name}${c.code === S.currency ? html` <span class="chip good">Main</span>` : ''}`, '',
       c.code !== S.currency ? html`<button class="link" data-onclick="App.currency('${c.code}','primary')">Make main</button><button class="link" data-onclick="App.currency('${c.code}','disable')">Disable</button>` : '')))}
@@ -86,34 +95,28 @@ VIEWS.settings = async (r, paint) => {
   const ab = (about && about.data) || {};
   const aboutHtml = group('about', 'About', html`
     ${row('Money', '', moneyVersion() || 'Local build')}
+    ${row('What’s new', 'The highlights of this version', html`<button class="btn small" type="button" data-onclick="App.whatsNew(true)">Show</button>`)}
     ${row('Firefly III', '', ab.version || '—')}
     ${row('API', '', ab.api_version || '—')}`,
     'Your Firefly profile, password, two-factor login, API tokens and user administration aren’t available through Firefly’s API, so change those in Firefly III itself.');
 
-  const body = html`${months}${look}${sync}${applePayHtml(ingest, cards, L.own.filter(a => isAsset(a) || isLiab(a)))}${cur}${data}${aboutHtml}`, has = String(body);
-  const nav = htmlList(SET_SECTIONS.filter(([id]) => has.includes('id="set-' + id + '"')).map(([id, t]) => html`<button type="button" data-k="${id}" data-onclick="App.setJump('${id}')">${t}</button>`));
-  paint(html`${head('Settings', '', '')}<div class="set-layout"><nav class="set-nav" id="setNav" aria-label="Settings sections">${nav}</nav><div class="settings">${body}</div></div>`);
-  requestAnimationFrame(setSpy);
+  // One category at a time: the list of them sits on the left on wide screens, and on phones it's the first screen,
+  // where tapping one slides it in. The groups that have nothing to show (Apple Pay without the server key) drop out.
+  const groups: Record<string, unknown> = { months, look, sync, applepay: applePayHtml(ingest, cards, L.own.filter(a => isAsset(a) || isLiab(a))), currencies: cur, data, about: aboutHtml };
+  const cats = SET_SECTIONS.filter(([id]) => groups[id] && String(groups[id]));
+  const wide = innerWidth >= SET_WIDE, at = cats.find(c => c[0] === r.q.s) || (wide ? cats[0] : null);
+  const nav = htmlList(cats.map(([id, t]) => html`<a href="#/settings?s=${id}" class="${at && at[0] === id ? 'on' : ''}"${at && at[0] === id ? raw(' aria-current="page"') : ''}>${t}</a>`));
+  const menu = html`<div class="panel set-panel set-menu">${htmlList(cats.map(([id, t, hint]) => html`<a class="set-row" href="#/settings?s=${id}"><span class="set-label"><span>${t}</span><span class="sub-s">${hint}</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>`))}</div>`;
+  const back = html`<a class="set-back" href="#/settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Settings</a>`;
+  const title = at && !wide ? html`${back}${head(at[1], '', '')}` : head('Settings', '', '');
+  paint(html`<div class="set-layout"><div class="set-side">${title}<nav class="set-nav" id="setNav" aria-label="Settings categories">${nav}</nav></div><div class="settings">${at ? groups[at[0]] : menu}</div></div>`);
 };
-/* ---------- Wide screens: a list of the sections beside them, marking the ones on screen ---------- */
-const SET_SECTIONS: [string, string][] = [['months', 'Months & budgets'], ['look', 'Appearance'], ['sync', 'Sync'], ['applepay', 'Apple Pay'], ['currencies', 'Currencies'], ['data', 'Data'], ['about', 'About']];
-function setJump(id: string) {
-  const g = el('set-' + id); if (!g) return;
-  g.classList.remove('pal-flash'); void g.offsetWidth; g.classList.add('pal-flash');
-  g.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-}
-let spyQueued = false;
-function setSpy() {
-  spyQueued = false;
-  const nav = el('setNav'); if (!nav || !nav.offsetParent) return;
-  nav.querySelectorAll<HTMLElement>('button').forEach(b => {
-    const r = el('set-' + b.dataset.k)?.getBoundingClientRect();
-    b.classList.toggle('on', !!r && r.bottom > 80 && r.top < innerHeight - 80);
-  });
-}
-addEventListener('scroll', () => { if (!spyQueued && el('setNav')) { spyQueued = true; requestAnimationFrame(setSpy); } }, { passive: true });
-addEventListener('resize', () => { if (el('setNav')) requestAnimationFrame(setSpy); });
-/* ---------- Customize colors: your own background, accent and (for Liquid glass) light, tint and blur ---------- */
+/* ---------- The categories, with what's in each (the phone's list shows it under the name) ---------- */
+const SET_WIDE = 1100;          // the width at which the category list sits beside the settings (money.css matches it)
+export const SET_SECTIONS: [string, string, string][] = [['months', 'Months & budgets', 'Month start, budget warning'], ['look', 'Appearance', 'Theme, colors, logos, haptics'],
+  ['sync', 'Sync', 'Settings on all your devices'], ['applepay', 'Apple Pay', 'Add expenses as you pay'], ['currencies', 'Currencies', 'Main currency, exchange rates'],
+  ['data', 'Data', 'Export, webhooks, clean up'], ['about', 'About', 'Versions and what’s new']];
+/* ---------- Customize colors: your own background, accent and (for the glass themes) light, tint and blur ---------- */
 const curTheme = () => document.documentElement.getAttribute('data-theme') || 'auto';
 const themeName = () => { const t = THEMES.find(x => x[0] === curTheme()); return t ? t[1] : ''; };
 // The colour the theme shows right now (yours, or its own), as #rrggbb for a colour well
@@ -125,6 +128,18 @@ function shown(v: string) {
 }
 // Text sits right on the background (titles, the month), so warn when the two get too close
 function lowContrast() { const a = lum(shown('--bg')), b = lum(shown('--text')); return (Math.max(a, b) + .05) / (Math.min(a, b) + .05) < 4.5; }
+// Frosted glass: what's behind the glass. Swatches hint at each scene's colors.
+const SCENE_SW: Record<string, string> = {
+  room: 'linear-gradient(135deg,#efe4d6,#b98a64 55%,#8a5a3c)', dunes: 'radial-gradient(circle at 70% 30%,#fff1d6 0 18%,transparent 22%),linear-gradient(180deg,#f3c9b8,#b5654a)',
+  garden: 'linear-gradient(135deg,#fffbe6,#a9bf8e 50%,#5f8050)', coast: 'linear-gradient(180deg,#f2f8fb 30%,#3f87a3 52%,#e8d8bd 72%)',
+  blossom: 'linear-gradient(135deg,#d47fa8,#fff4f8 50%,#a596e0)', night: 'radial-gradient(circle at 30% 40%,#ff7a3d 0 12%,transparent 15%),radial-gradient(circle at 70% 60%,#2bb3c9 0 10%,transparent 13%),linear-gradient(180deg,#3b2a6b,#120f1c)',
+};
+function scenePicker(c: Custom) {
+  const cur = c.scene || 'room';
+  const btns = htmlList(SCENES.map(([k, label]) => html`<button type="button" title="${label}" aria-label="${label} scene" class="${k === cur ? 'on' : ''}" style="background:${SCENE_SW[k]};background-origin:border-box" data-s="${k}" data-onclick="App.themeScene(this.dataset.s)"></button>`));
+  const photo = LS.get(PHOTO_KEY, '');
+  return html`<div class="themes scenes">${btns}${photo ? html`<button type="button" title="Your photo" aria-label="Your photo" class="${cur === 'photo' ? 'on' : ''}" style="background:center/cover url('${photo}')" data-onclick="App.themeScene('photo')"></button>` : ''}<label class="btn small">${photo ? 'New photo…' : 'Your photo…'}<input type="file" accept="image/*" hidden data-onchange="App.themePhoto(this)"></label></div>`;
+}
 function customizer() {
   const t = curTheme();
   if (t === 'auto') return html`<p class="sub-s" style="margin:4px 0 0">Calm switches between light and dark with your system, so it can’t take your own colors. Pick Calm light, Calm dark or another theme to customize it.</p>`;
@@ -134,12 +149,13 @@ function customizer() {
     ${row('Background', html`Behind everything<span class="up tc-warn"${lowContrast() ? '' : ' hidden'}>. Text may be hard to read on this color.</span>`,
       html`<input type="color" aria-label="Background color" value="${shown('--bg')}" data-oninput="App.themeVar('bg', this.value)">`)}
     ${row('Accent', 'Buttons, switches and highlights', html`<input type="color" aria-label="Accent color" value="${shown('--accent')}" data-oninput="App.themeVar('accent', this.value)">`)}
-    ${t === 'glass' ? html`
-    ${row('Light', 'The three colors glowing behind the glass', html`<input type="color" aria-label="First light color" value="${shown('--glow1')}" data-oninput="App.themeVar('glow1', this.value)"><input type="color" aria-label="Second light color" value="${shown('--glow2')}" data-oninput="App.themeVar('glow2', this.value)"><input type="color" aria-label="Third light color" value="${shown('--glow3')}" data-oninput="App.themeVar('glow3', this.value)">`)}
+    ${t === 'frosted' ? row('Scene', 'What’s behind the glass', scenePicker(c)) : ''}
+    ${t === 'glass' || t === 'frosted' ? html`
+    ${row(t === 'glass' ? 'Light' : 'Room', t === 'glass' ? 'The three colors glowing behind the glass' : 'The three colors of the room behind the glass', html`<input type="color" aria-label="First light color" value="${shown('--glow1')}" data-oninput="App.themeVar('glow1', this.value)"><input type="color" aria-label="Second light color" value="${shown('--glow2')}" data-oninput="App.themeVar('glow2', this.value)"><input type="color" aria-label="Third light color" value="${shown('--glow3')}" data-oninput="App.themeVar('glow3', this.value)">`)}
     ${row('Glass tint', 'The color of the cards', html`<input type="color" aria-label="Glass tint" value="${shown('--glass-base')}" data-oninput="App.themeVar('tint', this.value)">`)}
     ${row('Frost', 'Clear to solid', html`<input type="range" min="0" max="90" step="1" aria-label="Frost" value="${frost}" data-oninput="App.themeRange('frost', this)"><output>${frost}%</output>`)}
     ${row('Blur', 'How much the light softens behind the cards', html`<input type="range" min="0" max="60" step="1" aria-label="Blur" value="${blur}" data-oninput="App.themeRange('blur', this)"><output>${blur}px</output>`)}
-    ${row('Moving light', 'Let the light drift slowly', html`<input ${SWITCH} aria-label="Moving light"${c.motion === false ? '' : ' checked'} data-onchange="App.themeVar('motion', this.checked)">`)}` : ''}
+    ${t === 'glass' ? row('Moving light', 'Let the light drift slowly', html`<input ${SWITCH} aria-label="Moving light"${c.motion === true ? ' checked' : ''} data-onchange="App.themeVar('motion', this.checked)">`) : ''}` : ''}
     ${Object.keys(c).length ? row('', '', html`<button class="btn small" type="button" data-onclick="App.resetThemeCustom()">Reset ${themeName()}</button>`) : ''}`;
 }
 // Redraw after the theme changes (setTheme) or the colors are reset
@@ -161,6 +177,30 @@ function themeRange(k: 'frost' | 'blur', input: HTMLInputElement) {
   const v = +input.value, out = input.nextElementSibling;
   if (out) out.textContent = v + (k === 'blur' ? 'px' : '%');
   saveCustom(k, v);
+}
+// A scene brings its own colors, so picking one drops colors you'd set for the last
+function themeScene(k: string) {
+  if (k !== 'photo' && !SCENES.some(x => x[0] === k)) return;
+  const t = curTheme(), all = readCustom(), c = { ...all[t], scene: k };
+  delete c.bg; delete c.glow1; delete c.glow2; delete c.glow3; delete c.accent;
+  all[t] = c; LS.set(KEY, all); applyCustom(t); drawThemeCustom(); buzz(8);
+}
+// Your own photo behind the glass: made smaller (it's blurred anyway) and kept on this device
+function themePhoto(input: HTMLInputElement) {
+  const f = input.files && input.files[0]; if (!f) return;
+  const img = new Image(), url = URL.createObjectURL(f);
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    const k = Math.min(1, 1200 / Math.max(img.width, img.height)), cv = document.createElement('canvas');
+    cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+    cv.getContext('2d')!.drawImage(img, 0, 0, cv.width, cv.height);
+    const data = cv.toDataURL('image/jpeg', .8);
+    LS.set(PHOTO_KEY, data);
+    if (LS.get(PHOTO_KEY, '') !== data) { toast('That photo is too big to keep. Try a smaller one.'); return; }
+    themeScene('photo');
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); toast('Couldn’t open that photo'); };
+  img.src = url;
 }
 function resetThemeCustom() {
   const all = readCustom();
@@ -333,14 +373,23 @@ function showKey(btn: HTMLElement | null) {
 }
 
 function toggleLogos(on: boolean) { LS.set('logos', !!on); toast(on ? 'Logos on' : 'Logos off'); }
+function toggleHaptics(on: boolean) { LS.set('haptics', !!on); if (on) buzz(); toast(on ? 'Haptics on' : 'Haptics off'); }
 // The month start day: stay on the current month, and redraw every page with the new ranges
 function setCycleDay(v: string) { LS.set('cycleDay', Math.min(28, Math.max(1, Math.floor(num(v)) || 1))); S.all = false; [S.y, S.m] = nowMonth(); PAGES.clear(); toast('Months now start on the ' + ordinal(cycleDay())); route(); }
+// Hours of work (core/worklens.ts): every amount list is drawn again with or without the hours
+function toggleWorkLens(on: boolean) { LS.set('workLens', !!on); PAGES.clear(); toast(on ? 'Purchases show the hours of work they cost' : 'Hours of work off'); if (on) learnRate(); route({ quiet: true }); }
+function setWorkHours(v: string) { LS.set('workHours', num(v) || 40); PAGES.clear(); route({ quiet: true }); }
+function setWorkRate(v: string) { LS.set('workRate', Math.max(0, Math.round(num(v) * 100) / 100)); PAGES.clear(); route({ quiet: true }); }
 function setBudgetAlert(v: string) { LS.set('budgetAlert', num(v)); PAGES.clear(); toast('Budget warnings at ' + budgetAlert() + '%'); }
 
 // The methods markup handlers call (see events.ts), added to App and to its type
 const methods = {
   currency,
   toggleLogos,
+  toggleHaptics,
+  toggleWorkLens,
+  setWorkHours,
+  setWorkRate,
   setCycleDay,
   setBudgetAlert,
   copyText,
@@ -358,8 +407,9 @@ const methods = {
   themeVar,
   themeRange,
   resetThemeCustom,
+  themeScene,
+  themePhoto,
   drawThemeCustom,
-  setJump,
 };
 Object.assign(App, methods);
 type Methods = typeof methods;

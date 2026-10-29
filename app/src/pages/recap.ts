@@ -8,6 +8,7 @@ import { isAsset, isLiab, lists, normAccount } from '../core/lists';
 import { VIEWS } from '../core/router';
 import { billDays } from './bills';
 import { insight, refundsIn } from '../features/refunds';
+import { shareChart } from '../features/charts';
 
 /* ================= Monthly recap =================
    One month in review: what came in and went out against last month and the three before it, where the money
@@ -19,7 +20,7 @@ const delta = (now: number, then: number, up = 'up') => {
   return html`<span class="${(d > 0) === (up === 'up') ? 'up' : 'down'}">${d > 0 ? '▲' : '▼'} ${money0(Math.abs(d))} (${pct > 0 ? '+' : ''}${pct}%)</span> vs usual`;
 };
 // The month's own accounts on a day, summed: assets minus debts (Firefly keeps liabilities as negative balances)
-async function netOn(date: string) {
+export async function netOn(date: string) {
   const [as, ls] = await Promise.all([getAll('/accounts', { type: 'asset', date }), getAll('/accounts', { type: 'liabilities', date })]);
   const byId = new Map([...as, ...ls].map(a => [String(a.id), normAccount(a)]));
   return [...byId.values()].filter(a => a.active && a.netWorth && (isAsset(a) || isLiab(a))).reduce((s, a) => s + a.balance, 0);
@@ -63,12 +64,11 @@ VIEWS.recap = async (r, paint) => {
   const catRows = arr(cats).map(x => ({ id: x.id, name: x.name, v: absDiff(x) })).concat(sumDiff(noCat) ? [{ id: '', name: 'Uncategorized', v: sumDiff(noCat) }] : [])
     .filter(x => x.v > 0).sort((a, b) => b.v - a.v);
   if (sumDiff(noCat3)) usualCat.set('Uncategorized', sumDiff(noCat3) * scale);
-  const maxCat = Math.max(1, ...catRows.map(x => x.v));
-  const catHtml = htmlList(catRows.slice(0, 8).map(x => {
+  const catHtml = shareChart(catRows.map(x => {
     const u = usualCat.get(x.name) || 0, d = x.v - u, big = Math.abs(d) >= 20 && (!u || Math.abs(d) / u >= 0.15);
-    const label = x.id ? html`<a href="#/transactions?category=${x.id}" style="text-decoration:none">${x.name}</a>` : x.name;
-    return html`<div class="cat"><div class="row"><span class="name">${label}</span><span class="num">${money0(x.v)}${big ? html` <span class="${d > 0 ? 'up' : 'down'}" style="font-size:12px">${d > 0 ? '+' : '−'}${money0(Math.abs(d))}</span>` : ''}</span></div><div class="track"><div class="fill" style="width:${(x.v / maxCat * 100).toFixed(1)}%"></div>${u ? html`<div class="tick" style="left:${Math.min(100, u / maxCat * 100).toFixed(1)}%" title="Usual: ${money0(u)}"></div>` : ''}</div></div>`;
-  }));
+    const vs = !u ? ' · new' : big ? html` · <span class="${d > 0 ? 'up' : 'down'}">${money0(Math.abs(d))} ${d > 0 ? 'over' : 'under'}</span>` : ' · usual';
+    return { name: x.name, v: x.v, href: x.id ? '#/transactions?category=' + x.id : undefined, sub: html`${money0(x.v)}${vs}` };
+  }), html`<span class="eyebrow">Spent</span><strong class="num">${money0(spent)}</strong>`, 'Spending by category', { limit: 8 });
 
   // Biggest single purchases, and the day you spent the most
   const splits = spends.map(normGroup).flatMap(gr => gr.splits.filter(s => s.type === 'withdrawal').map(s => ({ ...s, gid: gr.id })));
@@ -95,5 +95,5 @@ VIEWS.recap = async (r, paint) => {
   if (late.length) notes.push(html`<span class="up">${late.length} bill${late.length === 1 ? ' is' : 's are'} overdue.</span>`);
 
   const kpi = (label: string, v: unknown, sub: unknown, cls = '') => html`<div class="kpi"><div class="eyebrow">${label}</div><div class="val num ${cls}">${v}</div><div class="sub-s">${sub}</div></div>`;
-  paint(html`${head(cur.label + ' recap', soFar ? 'So far, up to ' + fmtDay(end) : 'The month in review', monthNav())}${notes.length ? html`<section class="panel recap-notes"><ul>${htmlList(notes.map(n => html`<li>${n}</li>`))}</ul></section>` : ''}<div class="kpis">${kpi('Earned', money0(earned), soFar ? (sumDiff(inc3) ? 'usually ' + money0(sumDiff(inc3) / 3) + ' a month' : '') : delta(earned, usualIn, 'down'), 'pos')}${kpi('Spent', money0(spent), delta(spent, usualOut), 'neg')}${kpi('Kept', money0(kept), earned ? Math.round(rate * 100) + '% of income' : '', kept < 0 ? 'neg' : '')}${nw != null ? kpi('Net worth', (nw > 0 ? '+' : '') + money0(nw), 'change over the month', nw < 0 ? 'neg' : 'pos') : ''}</div><div class="cards"><section class="panel"><div class="panel-head"><h2>Where it went</h2><a class="link" href="#/categories">Categories</a></div><p class="lead">The marks show a usual month${soFar ? ' up to the same day' : ''}</p>${catHtml || html`<p class="empty">Nothing spent yet.</p>`}</section><section class="panel"><h2>Biggest purchases</h2><p class="lead">${splits.length} purchase${splits.length === 1 ? '' : 's'} in all</p>${topHtml ? html`<div class="list">${topHtml}</div>` : html`<p class="empty">No purchases.</p>`}</section><section class="panel"><h2>New payees</h2><p class="lead">Paid this month and not in the year before</p>${freshHtml ? html`<div class="list">${freshHtml}</div>` : html`<p class="empty">No new payees. Same places as always.</p>`}</section><section class="panel"><div class="panel-head"><h2>Bills</h2><a class="link" href="#/bills?view=calendar">Calendar</a></div>${billList.length ? html`<p class="lead">${billList.filter(x => x.state === 'paid').length} of ${billList.length} paid</p><div class="list"><div class="row"><span class="name">Paid</span><span class="num pos">${money0(billSum.paid)}</span></div><div class="row"><span class="name">Still due</span><span class="num">${money0(billSum.due)}</span></div>${late.length ? html`<div class="row"><span class="name">Overdue: ${late.map(x => x.name).join(', ')}</span><span class="num neg">${money0(billSum.late)}</span></div>` : ''}</div>` : html`<p class="empty">No bills due this month.</p>`}</section></div>`);
+  paint(html`${head(cur.label + ' recap', soFar ? 'So far, up to ' + fmtDay(end) : 'The month in review', monthNav())}${notes.length ? html`<section class="panel recap-notes"><ul>${htmlList(notes.map(n => html`<li>${n}</li>`))}</ul></section>` : ''}<div class="kpis">${kpi('Earned', money0(earned), soFar ? (sumDiff(inc3) ? 'usually ' + money0(sumDiff(inc3) / 3) + ' a month' : '') : delta(earned, usualIn, 'down'), 'pos')}${kpi('Spent', money0(spent), delta(spent, usualOut), 'neg')}${kpi('Kept', money0(kept), earned ? Math.round(rate * 100) + '% of income' : '', kept < 0 ? 'neg' : '')}${nw != null ? kpi('Net worth', (nw > 0 ? '+' : '') + money0(nw), 'change over the month', nw < 0 ? 'neg' : 'pos') : ''}</div><div class="cards"><section class="panel"><div class="panel-head"><h2>Where it went</h2><a class="link" href="#/categories">Categories</a></div><p class="lead">Each category against a usual month${soFar ? ' up to the same day' : ''}</p>${catHtml || html`<p class="empty">Nothing spent yet.</p>`}</section><section class="panel"><h2>Biggest purchases</h2><p class="lead">${splits.length} purchase${splits.length === 1 ? '' : 's'} in all</p>${topHtml ? html`<div class="list">${topHtml}</div>` : html`<p class="empty">No purchases.</p>`}</section><section class="panel"><h2>New payees</h2><p class="lead">Paid this month and not in the year before</p>${freshHtml ? html`<div class="list">${freshHtml}</div>` : html`<p class="empty">No new payees. Same places as always.</p>`}</section><section class="panel"><div class="panel-head"><h2>Bills</h2><a class="link" href="#/bills?view=calendar">Calendar</a></div>${billList.length ? html`<p class="lead">${billList.filter(x => x.state === 'paid').length} of ${billList.length} paid</p><div class="list"><div class="row"><span class="name">Paid</span><span class="num pos">${money0(billSum.paid)}</span></div><div class="row"><span class="name">Still due</span><span class="num">${money0(billSum.due)}</span></div>${late.length ? html`<div class="row"><span class="name">Overdue: ${late.map(x => x.name).join(', ')}</span><span class="num neg">${money0(billSum.late)}</span></div>` : ''}</div>` : html`<p class="empty">No bills due this month.</p>`}</section></div>`);
 };

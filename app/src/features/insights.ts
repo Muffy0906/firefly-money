@@ -105,6 +105,11 @@ async function insightCards({ cur: period, future, budgets, limits, cards, trend
     }
   }
 
+  // December and early January: the year's story is ready (pages/year.ts)
+  if (isCur && (nm === 11 || (nm === 0 && now.getDate() <= 20))) {
+    const yr = nm === 11 ? ny : ny - 1;
+    add('year:' + yr, 'down', 'spark', 'Your ' + yr + ' in Money', 'A few cards on your year: your places, your biggest month, days you spent nothing', '#/year?y=' + yr, 90);
+  }
   const hidden = LS.get('insightsHidden', {});
   const shown = out.filter(x => !hidden[x.id]).sort((a, b) => b.score - a.score).slice(0, max || 4);
   if (!shown.length) return '';
@@ -117,7 +122,7 @@ function hideInsight(btn: HTMLElement) {
   Object.keys(hidden).forEach(k => { if (Date.now() - hidden[k] > 100 * 864e5) delete hidden[k]; });
   LS.set('insightsHidden', hidden);
   const rest = [...box.children].filter(c => c !== card);
-  vt('ins', () => { card.remove(); if (!rest.length) box.remove(); }, () => rest.forEach((c, i) => vtName(c, 'ins' + i)));
+  vt('ins', () => { card.remove(); if (!rest.length) (box.closest('#dash > .w') || box).remove(); }, () => rest.forEach((c, i) => vtName(c, 'ins' + i)));
 }
 
 // The methods markup handlers call (see events.ts), added to App and to its type

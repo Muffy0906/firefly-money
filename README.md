@@ -11,44 +11,31 @@ It's a small static web app (TypeScript bundled into one script) served by a sma
 
 **[Try the live demo →](https://muffy0906.github.io/firefly-money/)** It runs entirely in your browser with made-up data, so there's nothing to install and no sign-in.
 
-![Overview](docs/screenshots/overview.png)
+![Overview in the Frosted glass theme](docs/screenshots/overview.png)
 
 <p>
-  <img src="docs/screenshots/transactions.png" width="49%" alt="Transactions grouped by day">
-  <img src="docs/screenshots/overview-charts.png" width="49%" alt="Daily spending calendar and money flow chart">
-</p>
-<p>
+  <img src="docs/screenshots/overview-charts.png" width="49%" alt="Money flow, daily spending calendar and loans on the Overview">
   <img src="docs/screenshots/quick-add.png" width="49%" alt="Natural-language quick add">
-  <img src="docs/screenshots/overview-light.png" width="49%" alt="Overview in the Calm light theme">
 </p>
 <p>
   <img src="docs/screenshots/phone-overview.png" width="24%" alt="Phone overview">
+  <img src="docs/screenshots/phone-overview-charts.png" width="24%" alt="Phone overview: spending ring, cash and credit cards">
+  <img src="docs/screenshots/phone-transactions.png" width="24%" alt="Phone transactions">
   <img src="docs/screenshots/phone-edit-sheet.png" width="24%" alt="Phone edit sheet">
 </p>
 
-*Screenshots use the built-in demo data (all names and amounts are made up), shown in the Liquid glass neon theme and, bottom right, Calm light.*
+*Screenshots use the built-in demo data (all names and amounts are made up), in the Frosted glass theme. The [live demo](https://muffy0906.github.io/firefly-money/) opens in the same theme and layout.*
 
-<details>
-<summary><b>Themes:</b> 11 built-in themes, and you can tweak each one's colors in Settings → Appearance</summary>
+### One page in each theme
 
-Liquid glass neon and Calm light are shown above. Calm can also follow your system's light or dark mode.
+12 built-in themes, and you can tweak each one's colors in Settings → Appearance. Calm can also follow your system's light or dark mode.
 
-<p>
-  <img src="docs/screenshots/theme-dark.png" width="32%" alt="Overview in the Calm dark theme" title="Calm dark">
-  <img src="docs/screenshots/theme-carbon.png" width="32%" alt="Overview in the Carbon neon theme" title="Carbon neon">
-  <img src="docs/screenshots/theme-midnight.png" width="32%" alt="Overview in the Midnight theme" title="Midnight">
-</p>
-<p>
-  <img src="docs/screenshots/theme-neon.png" width="32%" alt="Overview in the Neon theme" title="Neon">
-  <img src="docs/screenshots/theme-ocean.png" width="32%" alt="Overview in the Ocean theme" title="Ocean">
-  <img src="docs/screenshots/theme-sunrise.png" width="32%" alt="Overview in the Sunrise theme" title="Sunrise">
-</p>
-<p>
-  <img src="docs/screenshots/theme-forest.png" width="32%" alt="Overview in the Forest theme" title="Forest">
-  <img src="docs/screenshots/theme-nord.png" width="32%" alt="Overview in the Nord theme" title="Nord">
-  <img src="docs/screenshots/theme-rose.png" width="32%" alt="Overview in the Rosé theme" title="Rosé">
-</p>
-</details>
+| | | |
+|:-:|:-:|:-:|
+| <img src="docs/screenshots/theme-glass-transactions.png" alt="Transactions in the Liquid glass neon theme"><br>Transactions · Liquid glass neon | <img src="docs/screenshots/theme-light-reports.png" alt="Reports in the Calm light theme"><br>Reports · Calm light | <img src="docs/screenshots/theme-dark-forecast.png" alt="Forecast in the Calm dark theme"><br>Forecast · Calm dark |
+| <img src="docs/screenshots/theme-carbon-budgets.png" alt="Budgets in the Carbon neon theme"><br>Budgets · Carbon neon | <img src="docs/screenshots/theme-midnight-bills.png" alt="Bills in the Midnight theme"><br>Bills · Midnight | <img src="docs/screenshots/theme-neon-ask.png" alt="Ask in the Neon theme"><br>Ask · Neon |
+| <img src="docs/screenshots/theme-ocean-piggy.png" alt="Piggy banks in the Ocean theme"><br>Piggy banks · Ocean | <img src="docs/screenshots/theme-sunrise-recap.png" alt="Monthly recap in the Sunrise theme"><br>Monthly recap · Sunrise | <img src="docs/screenshots/theme-forest-year.png" alt="Year in Money in the Forest theme"><br>Year in Money · Forest |
+| <img src="docs/screenshots/theme-nord-todo.png" alt="To do in the Nord theme"><br>To do · Nord | <img src="docs/screenshots/theme-rose-categories.png" alt="Categories & tags in the Rosé theme"><br>Categories & tags · Rosé |  |
 
 ## Why Money?
 
@@ -65,7 +52,7 @@ Firefly III is a great engine for your finances. Money is a faster, friendlier w
 **Everyday use**
 - **Overview:** net worth, spending by category against last month, budgets, balances with 30-day sparklines, loans, upcoming bills, top payees, income sources, savings goals, cash flow, a daily-spending calendar and a money-flow chart.
 - **Insight cards:** short notes like "Dining is 46% above usual", "Groceries budget may run out around the 24th" or "Card payment due in 4 days". They compare this month with the same point in each of the last three months.
-- **Customizable dashboard:** place cards anywhere as freeform tiles that snap to a fine grid (24 columns) and resize them by the corner, make them full width, or hide them. Start from 1 to 4 columns (or Auto), turn the net-worth summary and insight strip on or off, and add the Net worth, Top payees, Income sources and Savings goals cards. Each card has its own settings (⚙): how many recent transactions, categories or payees to show, whether to list closed accounts, paid-off loans or reached goals, how far ahead to look for bills, and how many months the cash-flow chart covers. The layout and settings are saved in Firefly, so it follows you to every device (see **Sync between devices** below).
+- **Customizable dashboard:** place cards anywhere as freeform tiles that snap to a fine grid (24 columns) and resize them by the corner, make them full width, or hide them. Start from 1 to 4 columns (or Auto), turn the net-worth summary and insight strip on or off. A new Overview starts with six cards (Safe to spend, Needs attention, Where it went, Budgets, Coming up, Cash flow); the rest wait under Customize → Add cards: Net worth, balances, loans, Daily spending, Money flow, Top payees, Income sources, Savings goals, Recent transactions, and the charts **Spending pace** (this month's running total against last month, day by day, and where it's heading), **Savings rate** (the share of each month's income you kept) and **Category trends** (your biggest categories month by month, against their usual). Cards that are off aren't fetched, so a calmer Overview also loads faster. Each card has its own settings (⚙): how many recent transactions, categories or payees to show, whether to list closed accounts, paid-off loans or reached goals, how far ahead to look for bills, and how many months the cash-flow chart covers. The layout and settings are saved in Firefly, so it follows you to every device (see **Sync between devices** below).
 - **Payees and income sources:** the Accounts tabs show how much went to each payee, or came from each income source, in the month picked at the top (or all time), busiest first. Each payee's page sums up its last twelve months: total, per month, typical charge, how often, a bar per month, its categories and the bill it pays.
 - **Logos:** payees, banks and cards show their logo (Walmart, Chase, Netflix…) instead of initials. The website is guessed from the name and can be changed in the account’s settings; your Money server fetches the logo from DuckDuckGo’s icon service and caches it for a month (`/logo/`), so the browser never contacts another site. Turn it off in Settings → Logos.
 - **Safe-to-spend forecast:** detects your paydays and subtracts upcoming bills, recurring transactions, card payoffs and loan payments.
@@ -76,8 +63,11 @@ Firefly III is a great engine for your finances. Money is a faster, friendlier w
 - **Ask:** plain questions like "why did I spend more this month?", "which bills are due before payday?" or "how much did I spend on groceries this year?", answered from your data with how it was worked out and links to the transactions. It uses no AI; questions it doesn't know become a search.
 - **Bills calendar:** the Bills page can show the month as a calendar, with each bill on the day it was paid or is due, and totals for paid, still due and overdue.
 - **Monthly recap:** a page per month with what came in and went out against a usual month, where the money went, the biggest purchases, new payees, bills and the change in net worth.
+- **Year in Money:** your year as a story of full-screen cards (Insights → Year in Money): what came in and went out, how much of each workday paid for your spending, your top category and places, your biggest month and purchase, days you bought nothing, and your net worth's change. Tap or swipe to move, hold to pause, share a summary at the end. The Overview offers it in December.
+- **Time scrubber:** drag along the Net worth card's line and the card goes back to that month: the total, assets, debts and the accounts that moved most since then. Let go and it offers that month's Overview.
+- **Hours of work:** Settings → Appearance → Hours of work shows under each purchase how long you worked for it ("1.5 h", "3 d"), from your take-home over the last six months and the hours you work a week, or an hourly rate you set.
 - **Review queue:** new transactions (from imports, rules or other apps) wait on the Review page until you tick them off or mark them all reviewed. It also finds transfers between your accounts that were imported as an expense and an income, and makes each pair one transfer in a tap.
-- **Transactions:** a feed grouped by day with sticky headers, merchant avatars and infinite scroll. You can change a category or budget inline, edit several at once, split, search, attach files and link transactions. Duplicate copies a transaction, splits and all, dated today, and Save as draft keeps a new one on a Drafts list until you add it.
+- **Transactions:** the month at a glance (spent, earned, net, and a bar for each day's spending: tap one to jump to that day), search and filters in one row, and a feed with each day as its own card, merchant avatars ringed in their category's colour (the same as in the spending donut) and infinite scroll. You can change a category or budget inline, edit several at once, split, search, attach files and link transactions. Duplicate copies a transaction, splits and all, dated today, and Save as draft keeps a new one on a Drafts list until you add it.
 - **Refunds:** open an expense and tap Refund. Money fills in an income into the account you paid from, with the same payee and category, tagged `Refund` and linked to the purchase (change the amount if only part came back). Reports, Budgets, the overview and the recap take refunds off spending instead of counting them as income, and the budget comes from the linked purchase. Quick add works too: `amazon refund 42.10 amex`.
 - **Quick add in plain words:** type `coffee 5.40 amex yesterday`, `paycheck 2850 chase` or `transfer 400 from checking to savings last friday` and the form fills itself in. Payee memory then fills in the category and budget from the last time.
 - **Apple Pay auto-logging:** an iPhone Shortcut sends each Apple Pay tap to Money, which adds it to the card's account with the category from last time, tagged "Apple Pay". Set up in Settings → Apple Pay; see [docs/apple-pay.md](docs/apple-pay.md).
@@ -94,7 +84,7 @@ Firefly III is a great engine for your finances. Money is a faster, friendlier w
 **Feel**
 - Animated page and edit-panel transitions (View Transitions API), with instant fallback in other browsers and when reduced motion is on.
 - Changes show right away and roll back if Firefly refuses them. Deleting has an undo option.
-- **Phone:** bottom tab bar, bottom sheets you can drag down to close, swipe to delete, pull to refresh, and light vibration on supported devices.
+- **Phone:** bottom tab bar, bottom sheets you can drag down to close, swipe a transaction left to categorize or delete it, pull to refresh, and light vibration on supported devices.
 - **Keyboard:**
   - `J`/`K` move through transactions and `Enter` opens one.
   - `C` and `B` change the category or budget, and `X` selects.
@@ -123,6 +113,8 @@ Browser ──(session cookie)──▶ nginx container ──(your Firefly toke
 
 ## Quick start (Docker)
 
+On **TrueNAS SCALE**, install **Money** from the app catalog instead, see [TrueNAS SCALE](#truenas-scale) below.
+
 Every push to `main` builds a ready-to-run image, `ghcr.io/muffy0906/firefly-money`, using GitHub Actions (`.github/workflows/docker.yml`). You don't need to download any files, just the compose file:
 
 ```bash
@@ -147,41 +139,52 @@ Open `http://<your-server>:8090` and sign in with your `DASH_PASSWORD`.
 
 **Prefer plain files?** The comments at the bottom of `docker-compose.yml` show how to run the stock `nginx` image with `app/index.html`, `app/default.conf.template` and the `app/assets` folder mounted from a folder. Build the scripts into `app/assets/js` first with `npm install && npm run build` (needs Node.js 20 or newer). In that setup, you update by pulling the repo, building again and restarting the container.
 
-### TrueNAS SCALE (24.10 and newer)
+### TrueNAS SCALE
 
-1. **Apps → Discover Apps → ⋮ → Install via YAML**, give it a name like `money`, and paste:
+Money is in the TrueNAS **community** app catalog, so you install it like any other app:
 
-   ```yaml
-   services:
-     money:
-       image: ghcr.io/muffy0906/firefly-money:latest
-       pull_policy: always          # fetch the newest image whenever the app is (re)started
-       restart: unless-stopped
-       ports:
-         - "8090:80"
-       environment:
-         FIREFLY_URL: http://192.168.1.20:8080
-         FIREFLY_TOKEN: paste-your-token
-         DASH_PASSWORD: choose-a-long-password
+1. Go to **Apps → Discover Apps** and search for **Money**. If it doesn't show up, click **⋮ → Refresh Catalog** (TrueNAS only syncs the catalog about once a day).
+2. Click **Install** and fill in the **Money Configuration** section:
+   - **Firefly III URL**: how the NAS reaches Firefly, e.g. `http://192.168.1.20:8080`. No trailing slash.
+   - **Firefly III Personal Access Token**: your Firefly token.
+   - **Sign-in Password**: the password for the Money sign-in screen. Use something long.
+3. Leave the **WebUI Port** at its default, `30530`, unless something else uses it. Click **Install**.
+4. When the app is running, click **Web UI** (or open `http://<your-nas>:30530`) and sign in with your password.
 
-   # Adds the "Web UI" button to the app in TrueNAS. Keep the port the same as the one above.
-   x-portals:
-     - name: Web UI
-       scheme: http
-       host: 0.0.0.0
-       port: 8090
-       path: /
-   ```
+**Updating:** new releases reach the catalog a little after they're tagged here. The app then shows **Update available**, and **Update** pulls the new version and restarts it. To check which version is running, open **Settings → About** in Money.
 
-   `host: 0.0.0.0` means "this NAS's address". If you use HTTPS through a reverse proxy, set `scheme: https`, and set `host` and `port` to your proxy's address instead.
-2. **Updating:** when TrueNAS sees a newer image, the app shows **Update available**, and **Update** pulls it and restarts. If your TrueNAS version doesn't show the badge for custom apps, **Stop** and **Start** the app. The `pull_policy: always` line makes it fetch the newest image on start.
-   To check which version is running, open **Settings → About** in Money: *Money version* shows the commit and build date (e.g. `c78fd51 · 2026-09-30`). It should match the latest commit on the repo's main page.
-3. If the image fails to pull with a "denied" or "unauthorized" error, make the package public. On GitHub, open your profile → **Packages** → the package → **Package settings → Change visibility → Public**.
-4. **App icon (optional):** TrueNAS has no icon setting for apps installed via YAML, but you can set one in the app's own metadata file. In **System → Shell**, run `sudo nano /mnt/.ix-apps/app_configs/<app-name>/metadata.yaml`, and set the `icon:` line to:
-   ```
-   icon: https://raw.githubusercontent.com/Muffy0906/firefly-money/main/docs/icon.png
-   ```
-   Save and refresh the Apps page. Edit this per-app file, not `/mnt/.ix-apps/metadata.yaml`, which TrueNAS rewrites on updates. The logo is also in `docs/icon.svg`.
+<details>
+<summary><b>Install via YAML instead</b> (older TrueNAS, or to track <code>latest</code> from <code>main</code>)</summary>
+
+**Apps → Discover Apps → ⋮ → Install via YAML**, give it a name like `money`, and paste:
+
+```yaml
+services:
+  money:
+    image: ghcr.io/muffy0906/firefly-money:latest
+    pull_policy: always          # fetch the newest image whenever the app is (re)started
+    restart: unless-stopped
+    ports:
+      - "8090:80"
+    environment:
+      FIREFLY_URL: http://192.168.1.20:8080
+      FIREFLY_TOKEN: paste-your-token
+      DASH_PASSWORD: choose-a-long-password
+
+# Adds the "Web UI" button to the app in TrueNAS. Keep the port the same as the one above.
+x-portals:
+  - name: Web UI
+    scheme: http
+    host: 0.0.0.0
+    port: 8090
+    path: /
+```
+
+`host: 0.0.0.0` means "this NAS's address". To update, **Stop** and **Start** the app: `pull_policy: always` makes it fetch the newest image on start. Apps installed this way have no icon; if you want one, set `icon: https://raw.githubusercontent.com/Muffy0906/firefly-money/main/docs/icon.png` in `/mnt/.ix-apps/app_configs/<app-name>/metadata.yaml` (from **System → Shell**) and refresh the Apps page.
+
+If you switch from a YAML install to the catalog app, delete the old app first so the two don't both run.
+
+</details>
 
 ### Unraid
 

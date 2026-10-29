@@ -3,8 +3,10 @@ import { AuthError, api } from '../core/api';
 import { showLogin } from '../core/auth';
 import { type ApiData, App, S, el, fmtDate, fmtDay, money, num, sameName, todayIso, type AppApi, type Field } from '../core/base';
 import { LS } from '../core/helpers';
+import { BUZZ_SAVE, buzz } from '../core/haptics';
 import { closeDrawer, formError, icon, openDrawer, opt, toast, vt, vtName } from '../core/dom';
-import { avatarHtml, normGroup, payeeOf, signed } from '../core/feed';
+import { type Group, amtInner, avatarHtml, normGroup, payeeOf, signed } from '../core/feed';
+import { hoursText, lensOn } from '../core/worklens';
 import { type Account, invalidate, isAsset, isCard, isLiab, lists } from '../core/lists';
 import { REFUND_TAG, isRefundTag, refundLinkType } from './refunds';
 import { route } from '../core/router';
@@ -26,36 +28,57 @@ export function newTx(preset: { type?: string, date?: string, account?: string, 
   if (preset.amount) S.form.splits[0].amount = preset.amount;
   renderTxForm();
 }
+const EDITABLE = ['withdrawal', 'deposit', 'transfer'];
+// The edit form for a saved transaction
+function formOf(g: Group): TxForm {
+  const f = g.splits[0];
+  return {
+    id: g.id, type: g.type, date: String(g.date).slice(0, 10), title: g.title, rules: false,
+    main: g.type === 'deposit' ? f.destination_id : f.source_id, src: f.source_id, dst: f.destination_id,
+    splits: g.splits.map(s => {
+      const x: SplitForm = { jid: s.jid, description: s.description, amount: String(s.amount), counter: g.type === 'deposit' ? s.source_name : s.destination_name,
+        category: s.category, budget: s.budget_id, bill: s.bill_id, tags: s.tags.join(', '), notes: s.notes, fa: s.fa, fc: s.fc, orig: {} };
+      const { orig, ...fields } = x; x.orig = fields;
+      return x;
+    }),
+  };
+}
 export async function editTx(id: string) {
   const meta = S.txMeta && S.txMeta[id], row = document.querySelector<HTMLElement>('#view tr[data-gid="' + id + '"]');
   if (meta) {
     const g = meta.g, v = signed(g, meta.accountId);
     S.drawerHero = { id, av: avatarHtml(g, 'lg'), name: payeeOf(g).name, date: g.date, kicker: 'Transaction',
-      amount: !meta.accountId && g.type === 'transfer' ? money(g.total) : (v > 0 ? '+' : '') + money(v) };
+      amount: !meta.accountId && g.type === 'transfer' ? money(g.total) : (v > 0 ? '+' : '') + money(v) + (v < 0 && lensOn() && hoursText(v) ? ' · ' + hoursText(v) + ' of work' : '') };
   } else S.drawerHero = null;
+  // The list already has the whole transaction, so the form opens filled in straight away; the copy fetched
+  // from Firefly III replaces it only if it differs and you haven't started editing.
+  const known = meta && S.lists && EDITABLE.includes(meta.g.type) ? meta.g : null;
   const loading = html`<div style="padding:8px 0">${htmlList(['60%', '100%', '100%', '80%'].map(w => html`<div class="sk" style="width:${w};height:38px;margin-bottom:16px"></div>`))}</div>`;
   const rowAv = row && row.querySelector('.av') as HTMLElement;
-  const opening = vt('drawer-open', () => { if (rowAv) rowAv.style.viewTransitionName = ''; openDrawer('Loading…', loading); vtName(el('drawer').querySelector('.dhero .av'), 'txav'); },
-    () => vtName(rowAv, 'txav'));
+  let shown = null as TxForm | null, shownJson = '', typed = '';
+  const opening = vt('drawer-open', () => {
+    if (rowAv) rowAv.style.viewTransitionName = '';
+    if (known) { shown = S.form = formOf(known); shownJson = JSON.stringify(shown); renderTxForm(); collectTx(); typed = JSON.stringify(S.form); }
+    else openDrawer('Loading…', loading);
+    vtName(el('drawer').querySelector('.dhero .av'), 'txav');
+  }, () => vtName(rowAv, 'txav'));
   try {
     const [res] = await Promise.all([api('/transactions/' + id), lists()]);
     if (opening) await opening.updateCallbackDone.catch(() => {});   // the drawer shell must be in place before the form goes in
-    const g = normGroup(res.data), f = g.splits[0];
-    S.form = {
-      id: g.id, type: g.type, date: String(g.date).slice(0, 10), title: g.title, rules: false,
-      main: g.type === 'deposit' ? f.destination_id : f.source_id, src: f.source_id, dst: f.destination_id,
-      splits: g.splits.map(s => {
-        const x: SplitForm = { jid: s.jid, description: s.description, amount: String(s.amount), counter: g.type === 'deposit' ? s.source_name : s.destination_name,
-          category: s.category, budget: s.budget_id, bill: s.bill_id, tags: s.tags.join(', '), notes: s.notes, fa: s.fa, fc: s.fc, orig: {} };
-        const { orig, ...fields } = x; x.orig = fields;
-        return x;
-      }),
-    };
-    if (!['withdrawal', 'deposit', 'transfer'].includes(g.type)) {
+    const g = normGroup(res.data);
+    if (shown) {
+      if (S.form !== shown || !el('drawer').classList.contains('open')) return;      // closed, or moved on to another form
+      const fresh = formOf(g);
+      if (JSON.stringify(fresh) === shownJson || !EDITABLE.includes(g.type)) return;
+      collectTx();
+      if (JSON.stringify(S.form) !== typed || el('txForm')!.contains(document.activeElement)) return;   // you're already editing
+    }
+    if (!EDITABLE.includes(g.type)) {
       openDrawer('Transaction', html`<p>This is a <strong>${g.type}</strong> transaction (${money(g.total)} on ${fmtDate(g.date)}). Edit it in Firefly III.</p>`,
         html`<button class="btn danger" data-onclick="App.deleteTx()">Delete</button><span class="grow"></span><button class="btn" data-onclick="App.closeDrawer()">Close</button>`);
       return;
     }
+    S.form = formOf(g);
     renderTxForm();
   } catch (e) {
     if (e instanceof AuthError) return showLogin(e.message);
@@ -80,10 +103,26 @@ export function renderTxForm() {
   const splitHtml = htmlList(f.splits.map((s, i) =>
     html`<div class="split" data-i="${i}">${multi ? html`<div class="split-head"><span>Split ${i + 1}</span><button type="button" class="link" data-onclick="App.removeSplit(${i})">Remove</button></div>` : ''}<label>Description<input type="text" data-k="description" value="${s.description}" required></label><div class="grid2"><label>Amount<input type="number" data-k="amount" value="${s.amount}" step="0.01" min="0.01" inputmode="decimal" required></label>${f.type !== 'transfer' ? html`<label>${f.type === 'withdrawal' ? 'Paid to' : 'Received from'}<input type="text" data-k="counter" list="dl-counter" value="${s.counter}" placeholder="Name" data-onchange="App.payeeFill(${i}, this.value)"></label>` : html`<span></span>`}</div><div class="grid2"><label>Category<input type="text" data-k="category" list="dl-cat" value="${s.category}" placeholder="None"></label>${f.type === 'withdrawal' ? html`<label>Budget<select data-k="budget">${opt('', 'None', s.budget)}${htmlList(L.budgets.filter(b => b.active || b.id === s.budget).map(b => opt(b.id, b.name, s.budget)))}</select></label>` : html`<span></span>`}</div><div class="grid2">${f.type === 'withdrawal' ? html`<label>Bill<select data-k="bill">${opt('', 'None', s.bill)}${htmlList(L.bills.map(b => opt(b.id, b.name, s.bill)))}</select></label>` : html`<span></span>`}<label>Tags<input type="text" data-k="tags" list="dl-tags" value="${s.tags}" placeholder="Comma separated"></label></div>${L.foreign.length ? html`<div class="grid2"><label>Foreign amount (optional)<input type="number" data-k="fa" step="0.01" min="0" value="${s.fa}"></label><label>Foreign currency<select data-k="fc">${opt('', 'None', s.fc)}${htmlList(L.foreign.map(c => opt(c.code, c.code + ' · ' + c.name, s.fc)))}</select></label></div>` : ''}<label>Notes<textarea data-k="notes" rows="2">${s.notes}</textarea></label></div>`));
   const body =
-    html`<form id="txForm" data-onsubmit="event.preventDefault();App.saveTx(this)">${f.refundOf ? html`<p class="sub-s refund-of">Refund of ${f.refundOf.label}. It goes back into the account you paid from, and Reports and Budgets take it off that spending.</p>` : ''}${f.id ? '' : html`<div class="nlq">${icon('spark')}<input type="text" id="nlq" value="${f.nl || ''}" placeholder="Describe it — e.g. starbucks 5.40 amex yesterday" autocomplete="off" enterkeyhint="done" data-oninput="App.nlParse(this.value)" data-onkeydown="App.nlKey(event,this)"><div id="nlChips" class="nlchips">${f.nlChips || ''}</div></div>`}<div class="seg">${typeBtn('withdrawal', 'Expense')}${typeBtn('deposit', 'Income')}${typeBtn('transfer', 'Transfer')}</div><label>Date<input type="date" id="f-date" value="${f.date}" required></label>${accountsHtml}${multi ? html`<label>Title for the whole transaction<input type="text" id="f-title" value="${f.title}" required></label>` : ''}${splitHtml}<button type="button" class="btn small" data-onclick="App.addSplit()" style="margin-bottom:18px">+ Split into another part</button><label class="check"><input type="checkbox" id="f-rules"${f.rules ? ' checked' : ''}> Run my Firefly rules on this transaction</label><datalist id="dl-counter">${htmlList(counterList.map(a => html`<option value="${a.name}">`))}</datalist><datalist id="dl-cat">${htmlList(L.categories.map(c => html`<option value="${c.name}">`))}</datalist><datalist id="dl-tags">${htmlList(L.tags.map(t => html`<option value="${t.name}">`))}</datalist><button type="submit" hidden></button></form>${f.id ? html`<div id="txExtras"><p class="sub-s">Loading attachments and links…</p></div>` : ''}`;
+    html`<form id="txForm" data-haptic="saved" data-onsubmit="event.preventDefault();App.saveTx(this)">${f.refundOf ? html`<p class="sub-s refund-of">Refund of ${f.refundOf.label}. It goes back into the account you paid from, and Reports and Budgets take it off that spending.</p>` : ''}${f.id ? '' : html`<div class="nlq">${icon('spark')}<input type="text" id="nlq" value="${f.nl || ''}" placeholder="Describe it — e.g. starbucks 5.40 amex yesterday" autocomplete="off" enterkeyhint="done" data-oninput="App.nlParse(this.value)" data-onkeydown="App.nlKey(event,this)"><div id="nlChips" class="nlchips">${f.nlChips || ''}</div></div>`}<div class="seg">${typeBtn('withdrawal', 'Expense')}${typeBtn('deposit', 'Income')}${typeBtn('transfer', 'Transfer')}</div><label>Date<input type="date" id="f-date" value="${f.date}" required></label>${accountsHtml}${multi ? html`<label>Title for the whole transaction<input type="text" id="f-title" value="${f.title}" required></label>` : ''}${splitHtml}<button type="button" class="btn small" data-onclick="App.addSplit()" style="margin-bottom:18px">+ Split into another part</button><label class="check"><input type="checkbox" id="f-rules"${f.rules ? ' checked' : ''}> Run my Firefly rules on this transaction</label><datalist id="dl-counter">${htmlList(counterList.map(a => html`<option value="${a.name}">`))}</datalist><datalist id="dl-cat">${htmlList(L.categories.map(c => html`<option value="${c.name}">`))}</datalist><datalist id="dl-tags">${htmlList(L.tags.map(t => html`<option value="${t.name}">`))}</datalist><button type="submit" hidden></button></form>${f.id ? html`<div id="txExtras"><p class="sub-s">Loading attachments and links…</p></div>` : ''}`;
   const foot = html`${f.id ? html`<button class="btn danger" type="button" data-onclick="App.deleteTx()">Delete</button><button class="btn" type="button" data-onclick="App.duplicateTx()" title="A new transaction with the same details, dated today">Duplicate</button>${f.type === 'withdrawal' ? html`<button class="btn" type="button" data-onclick="App.refundTx()" title="Money back for this purchase, into the account it was paid from">Refund</button>` : ''}` : html`<button class="btn" type="button" data-onclick="App.saveDraft()" title="Keep it on this list to finish later; nothing goes to Firefly yet">${f.draft ? 'Update draft' : 'Save as draft'}</button>`}<span class="grow"></span><button class="btn" type="button" data-onclick="App.closeDrawer()">Cancel</button><button class="btn primary" type="button" id="txSave" data-onclick="App.submit('txForm')">${f.id ? 'Save changes' : 'Add transaction'}</button>`;
   const wasOpen = el('drawer').classList.contains('open') && el('txForm');
   const scroll = wasOpen ? el('drawerBody').scrollTop : 0;
+  // Typing in "Describe it" redraws the form on every key. Keep that box itself, so the iPhone keyboard stays as it is:
+  // a new box, even focused straight away, puts the keyboard back on letters after each number.
+  const typing = wasOpen ? el<HTMLInputElement>('nlq') : null;
+  if (typing && document.activeElement === typing) {
+    const t = document.createElement('template'); t.innerHTML = String(body);
+    const form = el('txForm'), box = typing.closest('.nlq')!, fresh = t.content.querySelector('form')!;
+    [...form.children].forEach(c => { if (c !== box) c.remove(); });
+    let before = true;
+    [...fresh.children].forEach(c => {
+      if (c.classList.contains('nlq')) { before = false; el('nlChips').innerHTML = c.querySelector('#nlChips')!.innerHTML; return; }
+      if (before) box.before(c); else form.append(c);
+    });
+    const ft = el('drawer').querySelector(':scope > footer'); if (ft) ft.innerHTML = String(foot);
+    el('drawerBody').scrollTop = scroll;
+    return;
+  }
   openDrawer(f.id ? 'Edit transaction' : f.draft ? 'Draft' : f.refundOf ? 'Refund' : 'New transaction', body, foot);
   if (wasOpen) el('drawerBody').scrollTop = scroll;
   if (f.id && (window.App as Partial<AppApi>).loadTxExtras) App.loadTxExtras(f.id, f.splits.map(s => s.jid).filter(Boolean));
@@ -155,10 +194,9 @@ async function saveTx(formEl: HTMLFormElement) {
   if (row) {
     row.classList.add('saving');
     const d = row.querySelector('.desc'); if (d && f.splits.length === 1) d.textContent = f.splits[0].description;
-    const a = row.querySelector('.amt'); if (a && f.splits.length === 1 && f.type !== 'transfer') a.textContent = (f.type === 'deposit' ? '+' : '-') + money(num(f.splits[0].amount)).replace('-', '');
+    const a = row.querySelector('.amt'); if (a && f.splits.length === 1 && f.type !== 'transfer') a.innerHTML = String(amtInner((f.type === 'deposit' ? 1 : -1) * Math.abs(num(f.splits[0].amount))));
     const c = row.querySelector('.catcol span'); if (c && f.splits.length === 1) { c.textContent = f.splits[0].category || '—'; }
   } else toast('Saving…');
-  if (window.App && App.buzz) App.buzz(8);
   try {
     if (f.id) await api('/transactions/' + f.id, { method: 'PUT', body });
     else {
@@ -166,7 +204,7 @@ async function saveTx(formEl: HTMLFormElement) {
       if (f.refundOf && f.type === 'deposit') await linkRefund(res, f.refundOf.jid);
     }
     if (f.draft) dropDraft(f.draft);
-    invalidate(); toast(f.id ? 'Transaction updated' : 'Transaction added'); route();
+    buzz(BUZZ_SAVE); invalidate(); toast(f.id ? 'Transaction updated' : 'Transaction added'); route();
   } catch (e) {
     if (e instanceof AuthError) return showLogin(e.message);
     if (row) row.classList.remove('saving');

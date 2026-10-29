@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { type Group, dayLabel, groupUpdate, monogram, payeeOf } from '../app/src/core/feed';
+import { type Group, SERIES, catColor, dayLabel, groupUpdate, monogram, payeeOf, rankCats } from '../app/src/core/feed';
 
 describe('payeeOf', () => {
   const g = (type: string, splits: unknown[], title = '') => ({ type, title, splits }) as unknown as Group;
@@ -55,5 +55,20 @@ describe('groupUpdate', () => {
   it('leaves the title off a single part and keeps extra fields', () => {
     const body = groupUpdate(g([split]), () => ({ reconciled: true }), { fire_webhooks: true });
     expect(body).toEqual({ apply_rules: false, fire_webhooks: true, transactions: [{ reconciled: true, transaction_journal_id: '1' }] });
+  });
+});
+
+describe('catColor', () => {
+  it('gives the month\'s biggest categories the donut\'s colours, in its order', () => {
+    rankCats([{ name: 'Gas', v: 40 }, { name: 'Groceries', v: 300 }, { name: 'Nothing', v: 0 }, { name: 'Dining', v: 120 }]);
+    expect(catColor('Groceries')).toBe(SERIES[0]);
+    expect(catColor('Dining')).toBe(SERIES[1]);
+    expect(catColor('Gas')).toBe(SERIES[2]);
+  });
+  it('gives any other category a steady colour of its own, and none to no category', () => {
+    rankCats([]);
+    expect(catColor('Pets')).toMatch(/^hsl\(\d+ 50% 55%\)$/);
+    expect(catColor('Pets')).toBe(catColor('Pets'));
+    expect(catColor('')).toBe('');
   });
 });

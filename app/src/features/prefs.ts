@@ -1,7 +1,8 @@
 import { html } from '../core/html';
 import { App } from '../core/base';
 import { icon, toast, vt } from '../core/dom';
-import { LS, buzz } from '../core/helpers';
+import { buzz } from '../core/haptics';
+import { LS } from '../core/helpers';
 
 /* ---------- Privacy mode & density ---------- */
 function applyPrefs() {
@@ -22,18 +23,28 @@ export function togglePrivacy() {
   vt('prefs', applyPrefs); buzz(8);
   toast(on ? 'Amounts hidden · press P or hover to peek' : 'Amounts visible');
 }
+// Fold the sidebar down to its icons for more room, or open it again. Kept per device: a laptop and a big screen differ.
+const sideLabels = (on: boolean) => document.querySelectorAll<HTMLElement>('.side-tg').forEach(b => { b.title = (on ? 'Expand' : 'Collapse') + ' the sidebar ([)'; b.setAttribute('aria-label', (on ? 'Expand' : 'Collapse') + ' the sidebar'); });
+sideLabels(!!LS.get('sideMini', false));
+export function toggleSide() {
+  const on = !LS.get('sideMini', false); LS.set('sideMini', on);
+  document.documentElement.classList.toggle('side-mini', on); sideLabels(on); buzz(8);
+  setTimeout(() => dispatchEvent(new Event('resize')), 260);     // once it has slid: the Overview lays its tiles out for the new width
+}
 function toggleDensity() { LS.set('compact', !LS.get('compact', false)); vt('prefs', applyPrefs); buzz(8); }
 applyPrefs();
 
 /* ---------- While scrolling: lets CSS pause expensive effects (the glass theme's moving light) ---------- */
 (function scrollFlag() {
   const root = document.documentElement; let t = 0;
-  addEventListener('scroll', () => { if (!t) root.classList.add('scrolling'); clearTimeout(t); t = setTimeout(() => { root.classList.remove('scrolling'); t = 0; }, 160); }, { passive: true, capture: true });
+  // only Glass with Moving light on uses it: a class change on <html> restyles the whole page, which stutters at the start of a scroll
+  addEventListener('scroll', () => { if ((root.dataset.theme !== 'glass' || root.style.getPropertyValue('--glass-motion') !== 'running') && !t) return; if (!t) root.classList.add('scrolling'); clearTimeout(t); t = setTimeout(() => { root.classList.remove('scrolling'); t = 0; }, 160); }, { passive: true, capture: true });
 })();
 
 // The methods markup handlers call (see events.ts), added to App and to its type
 const methods = {
   togglePrivacy,
+  toggleSide,
   toggleDensity,
   drawToggles,
 };

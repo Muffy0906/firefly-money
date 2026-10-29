@@ -79,7 +79,7 @@ def add_tx(d, typ, amt, desc, src, dst, cat=None, bud=None):
         'foreign_amount': None, 'foreign_currency_code': None, 'reconciled': False, 'latitude': spot and spot[0], 'longitude': spot and spot[1]}]}})
 ACC_BY = {a['id']: a for a in ACC}
 
-d = (TODAY.replace(day=1) - timedelta(days=150)).replace(day=1)
+d = (TODAY.replace(day=1) - timedelta(days=int(os.environ.get('HISTORY_DAYS', 150)))).replace(day=1)   # HISTORY_DAYS=1100: three years, for the Timeline
 while d <= TODAY:
     if d.day in (15,) or d == (d.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1):
         add_tx(d, 'deposit', 2850, 'ACME CORP PAYROLL', '6', '1', 'Salary')

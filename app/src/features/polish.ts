@@ -23,10 +23,26 @@ function prefetch(name: string) {
 
 /* ---------- After every page paint ---------- */
 function afterPaint(r: RouteInfo, o: { quiet?: boolean } = {}) {
-  if (!o.quiet) countUp();
+  if (!o.quiet) { countUp(); playIn(); }
   bindChart();
   bindSwipe();
   if (App.afterPaint2) App.afterPaint2(r);
+}
+// A tab you've seen before comes back from memory without a paint: play its entrance all the same
+function replayIn() { countUp(); playIn(); }
+// Every page you open eases in, first visit or not: cards rise one after another, lines draw, bars grow, donuts and
+// rings sweep round (the animations are in money.css under .anim). Refreshes of the page you're on don't replay it.
+let animT = 0;
+function playIn() {
+  if (reduceMotion) return;
+  const v = el('view');
+  v.querySelectorAll<HTMLElement>(':scope :is(.hero, .kpi, .panel, .insight)').forEach((n, i) => n.style.setProperty('--i', String(Math.min(i, 10))));
+  // Inside a page slide the whole page is already moving: cards rising on top of that reads as a stutter, so then only
+  // the charts draw in
+  v.classList.toggle('calm', document.documentElement.classList.contains('vt-page'));
+  v.classList.remove('anim'); void v.offsetWidth; v.classList.add('anim');
+  // Take .enter off with it: without .anim the page's own fade-in rules apply again and would play a second time (a flicker)
+  clearTimeout(animT); animT = window.setTimeout(() => v.classList.remove('anim', 'enter'), 2600);
 }
 function countUp() {
   if (reduceMotion) return;
@@ -67,7 +83,9 @@ function bindChart() {
 }
 
 /* ---------- Hover tooltips for chart points ---------- */
+let touchAt = 0;   // a tap also sends a mousemove; the tap already placed the tip above the finger
 document.addEventListener('mousemove', e => {
+  if (Date.now() - touchAt < 800) return;
   const t = e.target && (e.target as HTMLElement).closest ? (e.target as HTMLElement).closest('[data-tip]') : null, tip = el('tip');
   if (!t) { if (tip.dataset.src === 'pt') { tip.hidden = true; tip.dataset.src = ''; } return; }
   tip.textContent = t.getAttribute('data-tip'); tip.dataset.src = 'pt'; tip.hidden = false;
@@ -76,6 +94,28 @@ document.addEventListener('mousemove', e => {
   tip.style.top = (e.clientY + hgt + 20 > innerHeight ? e.clientY - hgt - 12 : e.clientY + 14) + 'px';
 });
 document.addEventListener('scroll', () => { const tip = el('tip'); if (tip.dataset.src === 'pt') tip.hidden = true; }, true);
+// Ring charts: the slice under the pointer stands out, with its row in the list beside it; on a phone a tap on any chart point shows its tip above the finger
+let ringT: ReturnType<typeof setTimeout> | undefined;
+function ringHot(seg: Element | null) {
+  document.querySelectorAll('.donut.hot').forEach(d => { if (!seg || !d.contains(seg)) { d.classList.remove('hot'); d.closest('.share')?.querySelectorAll('.part.hot').forEach(p => p.classList.remove('hot')); } });
+  if (!seg) return;
+  const d = seg.closest('.donut')!, i = Number((seg as HTMLElement).dataset.i);
+  d.classList.add('hot'); d.querySelectorAll('.seg').forEach(x => x.classList.toggle('on', x === seg));
+  d.closest('.share')?.querySelectorAll('.part').forEach((p, k) => p.classList.toggle('hot', k === i));
+}
+document.addEventListener('pointerover', e => { if (e.pointerType === 'mouse') ringHot(e.target instanceof Element ? e.target.closest('.donut .seg[data-tip]') : null); });
+document.addEventListener('pointerup', e => {
+  if (e.pointerType === 'mouse') return;
+  touchAt = Date.now();
+  const seg = e.target instanceof Element ? e.target.closest<HTMLElement>('[data-tip]') : null, tip = el('tip');
+  ringHot(seg && seg.matches('.donut .seg') ? seg : null); clearTimeout(ringT);
+  if (!seg) { if (tip.dataset.src === 'ring' || tip.dataset.src === 'pt') tip.hidden = true; return; }
+  tip.textContent = seg.getAttribute('data-tip'); tip.dataset.src = 'ring'; tip.hidden = false;
+  const w = tip.offsetWidth, hgt = tip.offsetHeight;
+  tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, e.clientX - w / 2)) + 'px';
+  tip.style.top = (e.clientY - hgt - 18 >= 8 ? e.clientY - hgt - 18 : e.clientY + 18) + 'px';
+  ringT = setTimeout(() => { tip.hidden = true; ringHot(null); }, 2500);
+});
 
 /* ---------- Quick add + keyboard shortcuts ---------- */
 export async function quickAdd() { await lists(); const r = parseHash(); newTx(r.name === 'account' && r.id ? { account: r.id } : {}); }
@@ -149,6 +189,7 @@ function liveRuleFilter(q: string) {
 const methods = {
   prefetch,
   afterPaint,
+  replayIn,
   quickAdd,
   payeeFill,
   softDeleteTx,

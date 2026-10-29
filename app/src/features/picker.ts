@@ -4,7 +4,7 @@ import { showLogin } from '../core/auth';
 import { App, S, el } from '../core/base';
 import { toast } from '../core/dom';
 import { type Group, type TxMeta, type TxRowsOpts, groupUpdate, txRows } from '../core/feed';
-import { buzz } from '../core/helpers';
+import { buzz } from '../core/haptics';
 import { invalidate } from '../core/lists';
 import { bindSwipe } from './phone';
 

@@ -9,7 +9,7 @@ from playwright.async_api import async_playwright
 
 BASE = os.environ.get('BASE', 'http://127.0.0.1:8765/')   # e.g. a flaky demo server: BASE=http://127.0.0.1:8766/
 PAGES = ['', 'forecast', 'transactions', 'inbox', 'review', 'accounts', 'account/1', 'account/3?range=all', 'account/102', 'loans', 'budgets', 'categories',
-         'bills', 'recurring', 'piggy', 'rules', 'reports', 'reports?preset=last-3&cmp=year', 'recap', 'map', 'settings', 'cleanup',
+         'bills', 'recurring', 'piggy', 'rules', 'reports', 'reports?preset=last-3&cmp=year', 'recap', 'year', 'year?y=2025', 'timeline', 'map', 'settings', 'cleanup',
          'forecast?days=365', 'ask', 'ask?q=why%20did%20I%20spend%20more%20this%20month', 'ask?q=which%20bills%20are%20due%20before%20payday', 'ask?q=biggest%20expense%20last%20month']
 # The markup's event handlers (data-onclick="App.x(…)") in the page and the TypeScript sources (not the minified
 # bundle), with the JS concatenations ' + … + ' and template values ${…} filled in with 1
@@ -21,7 +21,7 @@ SHOTS = sys.argv[sys.argv.index('--shots') + 1] if '--shots' in sys.argv else No
 # The page for the current hash has painted (not the previous page or the loading skeleton) and no animation is running
 # (a function, not an expression: Playwright evals expressions, which the Content-Security-Policy refuses)
 PAINTED = """() => { const r = parseHash(); return !S.vtRun && S.pageKey && S.pageKey.startsWith(r.name + '/' + r.id + '?')
-  && document.querySelector('#view .head .actions, #view .error'); }"""
+  && document.querySelector('#view .head .actions, #view .error, #story'); }"""
 
 
 async def goto(page, route):
@@ -51,6 +51,16 @@ async def check(pw, width, height, mobile):
         await page.evaluate("localStorage.setItem('moneyKey', 'demo')"); await page.reload()
     await page.wait_for_function(PAINTED, timeout=15000)
     if await page.evaluate("localStorage.getItem('moneyKey')"): errors.append('the password saved by an older version was not deleted')
+    # What's new: someone updating from an older version (the saved password above) sees it once; a new install (the phone)
+    # and the online demo don't
+    if not mobile and '/demo/' not in BASE:
+        try:
+            await page.wait_for_selector('#whatsNew[open]', timeout=5000)
+            await page.click('#whatsNew .btn.primary'); await page.wait_for_selector('#whatsNew:not([open])', state='attached')
+        except Exception: errors.append('What\'s new did not open and close after an update')
+    else:
+        await page.wait_for_timeout(1500)
+        if await page.locator('#whatsNew[open]').count(): errors.append('What\'s new opened on a new install or the demo')
     # every data-on* handler in the source parses and calls an App method that exists
     if not mobile:
         await goto(page, '')
@@ -64,7 +74,7 @@ async def check(pw, width, height, mobile):
         if await page.locator('#view .error').count():
             errors.append(f'#{p}: page showed an error: ' + await page.inner_text('#view .error'))
         # open each primary "new …" button on the page, then close the drawer
-        buttons = page.locator('#view .head .actions button.btn.primary')
+        buttons = page.locator('#view .head .actions button.btn.primary:visible')   # (New transaction is hidden on phones: the + does it)
         for i in range(await buttons.count()):
             await buttons.nth(i).click()
             await page.wait_for_timeout(600)
@@ -116,14 +126,35 @@ async def check(pw, width, height, mobile):
     if await page.locator('#view .xfer-pair').count() != 1:
         errors.append('the transfer imported as an expense and an income is not offered as a match')
     await goto(page, 'transactions'); await page.wait_for_selector('tr[data-gid]')
+    # The phone's bento Overview: two small tiles to a row, Half/Full in Customize changes a tile's width and is kept
+    if mobile:
+        await goto(page, ''); await page.evaluate('App.dashReset()'); await page.wait_for_function(PAINTED, timeout=15000)
+        await page.wait_for_selector('#dash.bento [data-w="spent"]')
+        half = await page.evaluate("() => el('dash').querySelector('[data-w=spent]').offsetWidth / el('dash').offsetWidth")
+        if not .3 < half < .6: errors.append(f'the Spent tile is not half the width on a phone: {half:.2f}')
+        await page.evaluate('App.dashEdit(true)'); await page.wait_for_selector('#dash.bento.editing')
+        await page.locator('#dash [data-w="spent"] .wbtn').click(); await page.wait_for_timeout(400)
+        if await page.evaluate("JSON.parse(localStorage.getItem('money.dash')).size.spent") != 'm': errors.append('Full on a phone tile was not kept')
+        await page.evaluate("el('dash').querySelector('[data-w=spent]').scrollIntoView({block: 'start'})"); await page.wait_for_timeout(200)
+        a = await page.locator('#dash [data-w="safe"] .grip').bounding_box(); b = await page.locator('#dash [data-w="spent"]').bounding_box()
+        await page.mouse.move(a['x'] + 4, a['y'] + 4); await page.mouse.down()     # drag Safe to spend by its handle onto the top of Spent
+        for i in range(1, 13): await page.mouse.move(a['x'] + 4 + (b['x'] + 30 - a['x']) * i / 12, a['y'] + 4 + (b['y'] + 20 - a['y']) * i / 12); await page.wait_for_timeout(30)
+        await page.mouse.up(); await page.wait_for_timeout(500)
+        order = await page.evaluate("JSON.parse(localStorage.getItem('money.dash')).order")
+        if order.index('safe') > order.index('spent'): errors.append(f'dragging a tile earlier on a phone was not kept: {order}')
+        await page.evaluate('App.dashReset()'); await page.evaluate('App.dashEdit(false)')
     # a background refresh must not drop what you're in the middle of
     if not mobile:
         await page.evaluate("App.selAll(false)")
+        # (whatever empties the selection from here on leaves its stack, for the error message)
+        await page.evaluate('''() => { let v = S.sel; window.__selCleared = '';
+          Object.defineProperty(S, 'sel', { configurable: true, get: () => v, set: x => { if (v && v.size && !(x && x.size)) window.__selCleared = new Error().stack; v = x; } }); }''')
         boxes = page.locator('input[data-sel]')
         await boxes.nth(0).check(); await boxes.nth(1).check()
         await page.evaluate('refreshAll()')
         if await page.evaluate('S.sel.size') != 2:
-            errors.append('a background refresh cleared the bulk-edit selection')
+            why = await page.evaluate("[location.hash, S.sel.size, document.querySelectorAll('input[data-sel]:checked').length, window.__selCleared].join(' | ')")
+            errors.append('a background refresh cleared the bulk-edit selection: ' + why)
         await page.evaluate('App.selAll(false)')
         # switching between a cached page and one that isn't cached must not stack pages on top of each other
         for p in ['inbox', 'transactions', 'inbox', 'transactions']:
@@ -148,11 +179,20 @@ async def check(pw, width, height, mobile):
         if await page.evaluate('S.all'):
             errors.append('picking Month on an account did not leave All time')
         await page.locator('#view .seg').get_by_role('button', name='Month', exact=True).click()   # back to this month
-        # Customize the overview: column count, the extra cards, hiding the summary
-        await goto(page, ''); await page.wait_for_selector('#dash [data-w="payees"] .cat', timeout=15000)
-        for k in ['payees', 'income', 'goals']:
+        # Customize the overview: a calm set of cards to start with, the rest added from Customize, column count, hiding a tile
+        await goto(page, '')
+        await page.evaluate('App.dashReset()'); await page.wait_for_function(PAINTED, timeout=15000)     # the demo opens arranged like the README's screenshots
+        await page.wait_for_selector('#dash [data-w="spending"] .part', timeout=15000)
+        for k in ['safe', 'spending', 'budgets', 'cashflow']:
             if not await page.locator(f'#dash [data-w="{k}"]').count(): errors.append(f'overview card {k!r} is missing')
+        if await page.locator('#dash [data-w="payees"]').count(): errors.append('a new overview shows every card instead of the starting few')
         await page.evaluate('App.dashEdit(true)'); await page.wait_for_selector('#dashCols')
+        for name in ['Top payees', 'Income sources', 'Savings goals', 'Recent transactions', 'Spending pace', 'Savings rate', 'Category trends']:
+            await page.locator('.add-card', has_text=name).click(); await page.wait_for_function(PAINTED, timeout=15000); await page.wait_for_selector('#dashCols')
+        await page.wait_for_selector('#dash [data-w="payees"] .part', timeout=15000)
+        for k in ['payees', 'income', 'goals', 'recent', 'pace', 'savings', 'trends']:
+            if not await page.locator(f'#dash [data-w="{k}"]').count(): errors.append(f'adding the {k!r} card from Customize did not show it')
+        if await page.locator('.add-card', has_text='Top payees').count(): errors.append('an added card is still offered under Add cards')
         await page.locator('#dashCols button', has_text='2').click()
         await page.wait_for_timeout(600)
         if await page.evaluate("el('dash').dataset.cols + '/' + JSON.parse(localStorage.getItem('money.dash')).cols") != '2/2':
@@ -179,10 +219,16 @@ async def check(pw, width, height, mobile):
           for (const [a, p] of r) for (const [b, q] of r) if (a < b && p.left < q.right - 1 && q.left < p.right - 1 && p.top < q.bottom - 1 && q.top < p.bottom - 1) return a + '/' + b; return ''; }""")
         if overlap: errors.append('overview tiles overlap: ' + overlap)
         await page.locator('#dashCols button', has_text='2').click(); await page.wait_for_function(PAINTED, timeout=15000); await page.wait_for_selector('#dashCols')
-        await page.locator('.dash-opts input[type=checkbox]').first.uncheck(); await page.wait_for_function(PAINTED, timeout=15000)
+        await page.locator('#dash [data-w="networth"] .hbtn').click(); await page.wait_for_function(PAINTED, timeout=15000)
         await page.wait_for_selector('#dashCols')
-        if await page.locator('#view .hero').count() or await page.evaluate("el('dash').dataset.cols") != '2':
-            errors.append('hiding the net worth summary did not stick')
+        if await page.locator('#dash [data-w="networth"]').count() or await page.evaluate("el('dash').dataset.cols") != '2':
+            errors.append('hiding the net worth tile did not stick')
+        # Adding it back puts it at the end of the page, not in a gap higher up
+        await page.locator('.add-card[data-onclick*="networth"]').click(); await page.wait_for_function(PAINTED, timeout=15000)
+        await page.wait_for_selector('#dash [data-w="networth"]'); await page.wait_for_timeout(300)
+        if not await page.evaluate("""(() => { const ts = [...document.querySelectorAll('#dash > .w, #dash .w')].map(e => [e.dataset.w, e.getBoundingClientRect().top]);
+          const nw = ts.find(t => t[0] === 'networth'); return nw && ts.every(t => t[1] <= nw[1] + 1); })()"""):
+            errors.append('an added card did not go at the end of the Overview: ' + str(await page.evaluate("[...document.querySelectorAll('#dash .w')].map(e => e.dataset.w + ' ' + Math.round(e.getBoundingClientRect().top) + ' ' + Math.round(e.getBoundingClientRect().left) + ' ' + Math.round(e.getBoundingClientRect().width))")))
         # Payees list what was spent at each one in the month picked at the top
         await goto(page, 'accounts?tab=expense'); await page.wait_for_selector('#view .tbl td.amt')
         if '$' not in await page.locator('#view .tbl tbody tr td.amt').first.inner_text() or not await page.locator('#view .month').count():
@@ -221,7 +267,7 @@ async def check(pw, width, height, mobile):
         # The forecast redraws after the click; wait for the row instead of a fixed pause (slow CI runners missed it)
         try: await page.locator('#view .tbl .desc', has_text='Smoke test laptop').first.wait_for(timeout=10000)
         except Exception: errors.append('a forecast what-if did not show up')
-        await goto(page, ''); await page.wait_for_selector('#dash [data-w="payees"] .cat', timeout=15000)
+        await goto(page, ''); await page.wait_for_selector('#dash [data-w="payees"] .part', timeout=15000)
         await page.evaluate('App.dashEdit(true)'); await page.wait_for_selector('#dashCols')
         # A tile's own settings: fewer recent transactions
         await page.locator('#dash [data-w="recent"] .obtn').click(); await page.wait_for_selector('#dash [data-w="recent"] .wopts:not([hidden]) select')
@@ -230,7 +276,7 @@ async def check(pw, width, height, mobile):
         n = await page.locator('#dash [data-w="recent"] tr.click').count()
         if n != 5: errors.append(f'the recent transactions setting showed {n} rows instead of 5')
         await page.evaluate('App.dashReset()'); await page.wait_for_function(PAINTED, timeout=15000)
-        if not await page.locator('#view .hero').count(): errors.append('Reset did not bring the summary back')
+        if not await page.locator('#dash [data-w="networth"]').count(): errors.append('Reset did not bring the net worth tile back')
         await page.evaluate('App.dashEdit(false)')
         # Signing out ends the session: the API refuses until you sign in again
         if '/demo/' not in BASE:
@@ -243,32 +289,55 @@ async def check(pw, width, height, mobile):
     return errors
 
 
+# The Overview as the README and the online demo show it (app/src/demo/demo.ts sets up the same layout; a phone
+# puts Where it went before Cash so Cash and Credit cards pair up)
+def shot_dash(phone):
+    mid = '"spending","cash"' if phone else '"cash","spending"'
+    return ('{"v":3,"units":4,"order":["insights","networth","earned","spent","attention",' + mid + ',"cards","flow","heatmap","loans"],'
+            '"shown":["cash","cards","flow","heatmap","loans"],"hidden":["safe","budgets","bills","cashflow"],'
+            '"size":{"networth":"s","attention":"s","cash":"s","cards":"s","heatmap":"s","loans":"s","spending":"m","flow":"m"}}')
+
+
+# The README's theme gallery and the TrueNAS catalog: (route, page, theme, action)
+GALLERY = [('transactions', 'transactions', 'glass', None), ('reports', 'reports', 'light', None), ('forecast', 'forecast', 'dark', None),
+           ('budgets', 'budgets', 'carbon', None), ('bills', 'bills', 'midnight', None), ('ask?q=why%20did%20I%20spend%20more%20this%20month', 'ask', 'neon', None),
+           ('piggy', 'piggy', 'ocean', None), ('recap', 'recap', 'sunrise', None), ('year', 'year', 'forest', None), ('inbox', 'todo', 'nord', None),
+           ('categories', 'categories', 'rose', None)]
+
+
 async def screenshots(pw, out):
     br = await pw.chromium.launch()
-    async def shot(route, name, w=1440, h=900, mobile=False, theme='glass', action=None, full=False):
-        ctx = await br.new_context(viewport={'width': w, 'height': h}, is_mobile=mobile, has_touch=mobile, device_scale_factor=2 if mobile else 1)
+    async def shot(route, name, w=1440, h=900, mobile=False, theme='frosted', action=None, full=False, scale=None):
+        ctx = await br.new_context(viewport={'width': w, 'height': h}, is_mobile=mobile, has_touch=mobile, device_scale_factor=scale or (2 if mobile else 1))
         await ctx.add_cookies([{'name': 'money_session', 'value': 'demo', 'url': BASE.split('#')[0].rstrip('/') + '/api/'}])
+        await ctx.add_init_script(f"localStorage.setItem('money.dash', '{shot_dash(mobile)}'); localStorage.setItem('money.nwYears', '3'); localStorage.setItem('money.syncOff', 'true'); window.MONEY_NO_WHATSNEW = true")
         if theme: await ctx.add_init_script(f"localStorage.setItem('moneyTheme','{theme}')")
         pg = await ctx.new_page(); await pg.goto(BASE + '#/' + route)
-        await pg.wait_for_function(PAINTED); await pg.wait_for_function("() => !document.querySelector('#view .sk, #view [aria-busy]')"); await pg.wait_for_timeout(1200)
+        await pg.wait_for_function(PAINTED); await pg.wait_for_function("() => !document.querySelector('#view .sk, #view [aria-busy]')"); await pg.wait_for_timeout(2800)
         if action: await action(pg)
         await pg.screenshot(path=f'{out}/{name}.png', full_page=full); await ctx.close()
     async def open_tx(pg):
-        await pg.locator('tr[data-gid] .desc').nth(1).click(); await pg.wait_for_selector('#txForm'); await pg.wait_for_timeout(700)
+        await pg.locator('tr[data-gid] .desc, .daycards [data-gid]').nth(1).click(); await pg.wait_for_selector('#txForm'); await pg.wait_for_timeout(700)
     async def quick_add(pg):
         await pg.evaluate('App.quickAdd()'); await pg.wait_for_selector('#nlq'); await pg.wait_for_timeout(300)
         await pg.locator('#nlq').press_sequentially('coffee 5.40 rewards yesterday', delay=10); await pg.wait_for_timeout(500)
     async def to_flow(pg):
-        await pg.evaluate("document.querySelector('[data-w=flow]').scrollIntoView({block:'end'})"); await pg.evaluate('scrollBy(0,30)'); await pg.wait_for_timeout(500)
-    await shot('', 'overview')
-    await shot('', 'overview-charts', action=to_flow)
-    await shot('transactions', 'transactions')
+        await pg.evaluate("document.querySelector('[data-w=flow]').scrollIntoView({block:'end'})"); await pg.evaluate('scrollBy(0,30)'); await pg.wait_for_timeout(900)
+    async def phone_scroll(pg):
+        await pg.evaluate("document.querySelector('[data-w=spending]').scrollIntoView({block:'start'})"); await pg.evaluate('scrollBy(0,-90)'); await pg.wait_for_timeout(900)
+    # Frosted glass first: it's the theme the README leads with
+    await shot('', 'overview', 1600, 1000, scale=2)
+    await shot('', 'overview-charts', 1600, 1000, action=to_flow)
     await shot('transactions', 'quick-add', action=quick_add)
-    await shot('', 'overview-light', theme='light')
-    await shot('', 'phone-overview', 390, 844, True)
-    await shot('transactions', 'phone-edit-sheet', 390, 844, True, action=open_tx)
-    for k in ['dark', 'carbon', 'midnight', 'neon', 'ocean', 'sunrise', 'forest', 'nord', 'rose']:   # one per theme, for the theme gallery
-        await shot('', f'theme-{k}', theme=k)
+    await shot('', 'phone-overview', 402, 874, True)
+    await shot('', 'phone-overview-charts', 402, 874, True, action=phone_scroll)
+    await shot('transactions', 'phone-transactions', 402, 874, True)
+    await shot('transactions', 'phone-edit-sheet', 402, 874, True, action=open_tx)
+    # The gallery: one page in each of the other themes
+    async def year_places(pg):     # Year in Money opens on a title card; step on to the places slide
+        for _ in range(4): await pg.mouse.click(1100, 450); await pg.wait_for_timeout(1800)
+    for route, page, theme, action in GALLERY:
+        await shot(route, f'theme-{theme}-{page}', theme=theme, action=year_places if page == 'year' else action)
     await br.close()
 
 
