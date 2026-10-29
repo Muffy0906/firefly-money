@@ -31,6 +31,12 @@ describe('sparkBars', () => {
     expect(clean(sparkBars([5, 10, 0, 20], 20))).toContain('class="bar now"');
     clean(sparkBars([0, 0, 0], 0));
   });
+  it('gives each month a tip when asked', () => {
+    const s = clean(sparkBars([5, 10], 10, ['Sep · $5', 'Oct · $10']));
+    expect(s.match(/data-tip=/g)).toHaveLength(2);
+    expect(s).toContain('data-tip="Oct · $10"');
+    expect(clean(sparkBars([5, 10], 10))).not.toContain('data-tip');
+  });
 });
 
 describe('shareChart', () => {

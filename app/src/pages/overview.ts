@@ -170,7 +170,7 @@ function networthTile(netWorth: number, pts: NetWorthPoint[] | null | undefined)
 }
 function spentTile(spend: number, before: number, prevShort: string, trend: CashMonth[], all: boolean) {
   const change = before ? (spend - before) / before * 100 : 0, bars = trend.map(t => t.spend);
-  return html`<section class="panel stat"><div class="eyebrow">Spent</div><div class="stat-v num" data-count="${spend}">${money0(spend)}</div><div class="sub-s">${all ? 'of all time' : before ? html`<span class="${change > 0 ? 'up' : 'down'}">${change > 0 ? '▲' : '▼'} ${Math.abs(change).toFixed(0)}%</span> vs ${prevShort}` : html`&nbsp;`}</div>${all ? '' : sparkBars(bars, Math.max(1, ...bars))}</section>`;
+  return html`<section class="panel stat"><div class="eyebrow">Spent</div><div class="stat-v num" data-count="${spend}">${money0(spend)}</div><div class="sub-s">${all ? 'of all time' : before ? html`<span class="${change > 0 ? 'up' : 'down'}">${change > 0 ? '▲' : '▼'} ${Math.abs(change).toFixed(0)}%</span> vs ${prevShort}` : html`&nbsp;`}</div>${all ? '' : sparkBars(bars, Math.max(1, ...bars), trend.map(t => t.label + ' · ' + money0(t.spend)))}</section>`;
 }
 // What came in, what went out, and what was kept: two bars on the same scale, so a month that ran over shows it at a glance
 function earnedTile(income: number, spend: number) {
@@ -247,7 +247,7 @@ function trendsPanel(labels: string[], months: ApiData[][]) {
   const rows = htmlList(top.map(r => {
     const now = r.v[r.v.length - 1], past = r.v.slice(0, -1), usual = past.length ? past.reduce((s, x) => s + x, 0) / past.length : 0, d = usual ? (now - usual) / usual * 100 : 0;
     const name = r.id ? html`<a href="#/transactions?category=${r.id}" style="text-decoration:none">${r.name}</a>` : r.name;
-    return html`<div class="trend-row"><span class="name">${name}<span class="sub-s">${usual ? html`<span class="${d > 0 ? 'up' : 'down'}">${Math.abs(d) < 5 ? 'about usual' : Math.round(Math.abs(d)) + '% ' + (d > 0 ? 'above' : 'below') + ' usual'}</span>` : 'new'}</span></span>${sparkBars(r.v, max)}<span class="num">${money0(now)}</span></div>`;
+    return html`<div class="trend-row"><span class="name">${name}<span class="sub-s">${usual ? html`<span class="${d > 0 ? 'up' : 'down'}">${Math.abs(d) < 5 ? 'about usual' : Math.round(Math.abs(d)) + '% ' + (d > 0 ? 'above' : 'below') + ' usual'}</span>` : 'new'}</span></span>${sparkBars(r.v, max, r.v.map((v, i) => labels[i] + ' · ' + money0(v)))}<span class="num">${money0(now)}</span></div>`;
   }));
   return html`<section class="panel"><h2>Category trends</h2><p class="lead">Your biggest categories, ${labels[0]} to ${labels[labels.length - 1]}</p>${rows ? html`<div class="trends">${rows}</div>` : html`<p class="empty">No spending recorded yet.</p>`}</section>`;
 }

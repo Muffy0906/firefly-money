@@ -115,10 +115,15 @@ export function barChart(pts: { label: string, v: number | null, go?: string }[]
   return html`<svg class="barchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}"><line x1="0" x2="${W}" y1="${zero.toFixed(1)}" y2="${zero.toFixed(1)}" stroke="var(--line)"/>${bars}</svg>`;
 }
 
-/* ---------- Little bars in a row: one category's months, the last one (now) in the accent ---------- */
-export function sparkBars(vals: number[], max: number) {
+/* ---------- Little bars in a row: one category's months, the last one (now) in the accent; tips name each month ---------- */
+export function sparkBars(vals: number[], max: number, tips?: string[]) {
   const W = 84, H = 26, n = vals.length, gap = 3, bw = (W - gap * (n - 1)) / n;
-  return html`<svg class="sbars" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" preserveAspectRatio="none" aria-hidden="true">${htmlList(vals.map((v, i) => { const h = Math.max(v ? 2 : 1, H * v / (max || 1)); return html`<rect class="bar${i === n - 1 ? ' now' : ''}" style="--j:${i}" x="${(i * (bw + gap)).toFixed(1)}" y="${(H - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2"></rect>`; }))}</svg>`;
+  return html`<svg class="sbars" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" preserveAspectRatio="none" aria-hidden="true">${htmlList(vals.map((v, i) => {
+    const h = Math.max(v ? 2 : 1, H * v / (max || 1)), x = i * (bw + gap);
+    const bar = html`<rect class="bar${i === n - 1 ? ' now' : ''}" style="--j:${i}" x="${x.toFixed(1)}" y="${(H - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2"></rect>`;
+    // The whole column (gaps included) answers the pointer, so a short bar is as easy to hit as a tall one
+    return tips ? html`<g data-tip="${tips[i]}"><rect x="${(x - gap / 2).toFixed(1)}" y="0" width="${(bw + gap).toFixed(1)}" height="${H}" fill="transparent"></rect>${bar}</g>` : bar;
+  }))}</svg>`;
 }
 
 /* ---------- Sparklines: last 30 days of each account's balance ---------- */
