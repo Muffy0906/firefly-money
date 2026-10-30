@@ -1121,22 +1121,25 @@
      Browsers drop background colours when printing unless told otherwise, and that's what the bars and legend dots are made of;
      Safari also prints a fading SVG gradient as a solid block, so chart fills become a flat tint of their colour (set on the path). */
   @media print {
-    :root, html[data-theme] { --bg: #fff !important; --panel: #fff !important; --line: #e9e7e0 !important; --text: #22221f !important; --muted: #75726a !important;
-      --faint: #efede7 !important; --good: #3f7a5a !important; --spend: #c0603a !important; --income: #6f9a82 !important; --warn: #b8893a !important;
-      --shadow: none !important; --edge: 0px !important; color-scheme: light; }
-    html, body { background: #fff !important; color: var(--text); }
+    /* Prints in the chosen theme, backdrop and all. Browsers drop backgrounds unless "Background graphics" is ticked,
+       and print-color-adjust: exact overrides that for the page, cards, bars, dots and swatches. No page margin so the
+       theme's background reaches the paper's edges; main's padding repeats on every page instead (box-decoration-break). */
+    @page { margin: 0; }
+    html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     *, *::before, *::after { -webkit-print-color-adjust: exact; print-color-adjust: exact; text-shadow: none !important; }
-    body::before, body::after { display: none !important; }
+    html { --edge: 0px !important; }
     .side, .head .actions, .toolbar, .drawer, .scrim, .toast, .undo, .tabbar, .fab, .search-btn, .demo-badge, .tip, .ptr, .offline, .saved-reports, .save-report { display: none !important; }
-    .app { display: block; } main, main#view { padding: 0 !important; max-width: none; }
-    :is(.panel, .kpi, .insight, .extra, .split, .dash-bar, .daycards tbody.day) { background: #fff !important; border: 1px solid var(--line) !important; box-shadow: none !important;
-      -webkit-backdrop-filter: none !important; backdrop-filter: none !important; animation: none !important; }
+    .app { display: block; }
+    main, main#view { padding: 14mm 12mm !important; max-width: none; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+    :is(.panel, .kpi, .insight, .extra, .split, .dash-bar, .daycards tbody.day) { box-shadow: none !important; animation: none !important; }
     .panel, .kpi, .part, .tbl tr { break-inside: avoid; }
     .report-cols .panel { break-inside: auto; }
     .panel-head, .panel .lead, .panel h2 { break-after: avoid; } .donut { break-inside: avoid; }
-    .track { background: var(--faint) !important; }
+    /* WebKit prints a stop-opacity gradient as a solid block: flat tint instead */
     :is(.area, .soft) { fill: currentColor; fill-opacity: .16; animation: none !important; }
     :is(.draw, .fill, .seg, .bar) { animation: none !important; } .fill { box-shadow: none !important; }
+    /* iOS WebKit prints a fixed backdrop once, as a block on the last page: the plain theme colour there */
+    @supports (-webkit-touch-callout: none) { body::before, body::after { display: none !important; } }
   }
   @media (max-width: 900px) {
     .tabbar:not([hidden]) { display: grid; }
