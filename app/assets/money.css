@@ -488,9 +488,10 @@
   /* ---------- Command palette ---------- */
   .palette { position: fixed; inset: 0; background: rgba(20,20,18,.35); z-index: 50; display: grid; justify-items: center; align-items: start; padding-top: 12vh; }
   .palette-box { width: min(620px, 92vw); background: var(--panel); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; animation: fadeUp .14s ease both; }
+  /* #palQ: an id so the themes' input fills and focus rings (html[data-theme] :is(input[type=search], …)) can't paint a box inside the header */
   .pal-top { display: flex; align-items: center; gap: 10px; padding: 0 16px 0 20px; border-bottom: 1px solid var(--line); }
   .pal-top > svg { width: 18px; height: 18px; flex: none; color: var(--muted); }
-  .palette-box .pal-top input { flex: 1; min-width: 0; width: 100%; border: 0; border-radius: 0; padding: 18px 0; font-size: 16px; background: transparent; box-shadow: none; outline: none; -webkit-appearance: none; appearance: none; }
+  .pal-top #palQ { flex: 1; min-width: 0; width: 100%; border: 0; border-radius: 0; padding: 18px 0; font-size: 16px; background: transparent; box-shadow: none; outline: none; -webkit-appearance: none; appearance: none; }
   .pal-top input::-webkit-search-cancel-button { display: none; }
   .pal-cancel { display: none; flex: none; font-size: 16px; }
   .pal-list { max-height: 52vh; overflow-y: auto; padding: 6px; overscroll-behavior: contain; }
@@ -1213,7 +1214,7 @@
     .palette { padding: 0; align-items: stretch; background: var(--bg); }
     .palette-box { width: 100%; height: 100vh; height: 100dvh; border: 0; border-radius: 0; box-shadow: none; display: flex; flex-direction: column; background: var(--bg); animation: none; }
     .pal-top { padding: calc(env(safe-area-inset-top, 0px) + max(8px, var(--edge) + 4px)) calc(14px + env(safe-area-inset-right, 0px)) 8px calc(16px + env(safe-area-inset-left, 0px)); border-bottom: 0; gap: 12px; }
-    .palette-box .pal-top input { padding: 10px 12px 10px 36px; margin-left: -34px; border-radius: 10px; background: var(--faint); font-size: 17px; }
+    .pal-top #palQ { padding: 10px 12px 10px 36px; margin-left: -34px; border-radius: 10px; background: var(--faint); font-size: 17px; }
     .pal-top > svg { position: relative; z-index: 1; margin-left: 10px; }
     .pal-cancel { display: block; color: var(--accent); }
     .pal-list { flex: 1; max-height: none; padding: 4px calc(8px + env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) calc(8px + env(safe-area-inset-left, 0px)); -webkit-overflow-scrolling: touch; }
