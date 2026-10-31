@@ -246,9 +246,9 @@ export function glideRows(root: HTMLElement, old: Map<string, number>) {
 
 /* ---------- The wave (another month, redrawn in place) ---------- */
 // A month change spreads out from the button you pressed: each card's numbers and chart change as the wave reaches
-// it, nearest first. Nothing is drawn for the wave itself (a ring over the page would cost Glass a lot of blur work);
-// it's only when each card starts moving.
-const WAVE_STEP = 34, WAVE_MAX = 300;                    // ms between cards, on average; the farthest card starts by then
+// it, nearest first, and the card gives a small nudge away from the button as the wave passes, so you can see it
+// travel. Nothing is drawn over the page (a ring would cost Glass a lot of blur work).
+const WAVE_STEP = 60, WAVE_MAX = 480;                    // ms between cards, on average; the farthest card starts by then
 const CARD = '[data-w], .kpi, section.panel, .hero, .card';
 let tap: { x: number, y: number, t: number } | null = null;
 if (!RM) addEventListener('pointerdown', ev => {
@@ -277,12 +277,37 @@ function waveDelays(root: HTMLElement, dir: string) {
     dist.set(c, Math.hypot(dx, dy));
   });
   const far = Math.max(1, ...dist.values()), spread = Math.min(WAVE_MAX, Math.max(0, dist.size - 1) * WAVE_STEP);
+  // The nudge: each card dips a little and moves a few pixels away from where the wave started, then settles
+  dist.forEach((d, c) => {
+    const r = c.getBoundingClientRect(), vx = r.left + r.width / 2 - o.x, vy = r.top + r.height / 2 - o.y, l = Math.hypot(vx, vy) || 1;
+    const push = 'translate(' + (vx / l * 4).toFixed(1) + 'px,' + (vy / l * 4).toFixed(1) + 'px) scale(.985)';
+    c.animate([{ transform: 'none' }, { transform: push, offset: .35 }, { transform: 'none' }],
+      { duration: 460, delay: Math.round(d / far * spread), easing: 'cubic-bezier(.3,.7,.3,1)', composite: 'add' });
+  });
   return (e: Element) => {
     let c: Element | null = e.closest(CARD);
     while (c && c.parentElement?.closest(CARD)) c = c.parentElement.closest(CARD);
     const d = c ? dist.get(c) : undefined;
     return d == null ? 0 : Math.round(d / far * spread);
   };
+}
+
+/* ---------- The month label ---------- */
+// The month's name slides out one way and the new one in from the other, the way the month went. Both are copies
+// laid over the real label (kept in place, hidden), so its width and the arrows beside it don't move mid-slide.
+export const monthLabel = (root: Element) => root.querySelector('.month > span')?.innerHTML ?? null;
+export function slideLabel(root: Element, was: string | null, dir?: string) {
+  if (RM || was == null || (dir !== 'next' && dir !== 'prev')) return;
+  const s = root.querySelector<HTMLElement>('.month > span');
+  if (!s || s.innerHTML === was) return;
+  const k = dir === 'next' ? 1 : -1, d = 22, now = s.innerHTML;
+  const ghost = (h: string) => { const g = document.createElement('span'); g.className = 'mghost'; g.setAttribute('aria-hidden', 'true'); g.innerHTML = h; s.appendChild(g); return g; };
+  const out = ghost(was), inn = ghost(now);
+  s.classList.add('msliding');
+  const opt = { duration: 380, easing: 'cubic-bezier(.32,.72,0,1)', fill: 'both' as FillMode };
+  out.animate([{ transform: 'none', opacity: 1 }, { transform: 'translateX(' + -k * d + 'px)', opacity: 0 }], { ...opt, duration: 260 });
+  inn.animate([{ transform: 'translateX(' + k * d + 'px)', opacity: 0 }, { transform: 'none', opacity: 1 }], opt).finished
+    .catch(() => {}).then(() => { out.remove(); inn.remove(); s.classList.remove('msliding'); });
 }
 
 // After a redraw (root already holds the new drawing and is scrolled where it will be). With a direction (another
