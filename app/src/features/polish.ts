@@ -3,6 +3,7 @@ import { api, eachLimited } from '../core/api';
 import { App, S, arr, el, money0, sameName } from '../core/base';
 import { toast } from '../core/dom';
 import { normGroup, tidyDays } from '../core/feed';
+import { glideRows, rowTops } from '../core/morph';
 import { lists } from '../core/lists';
 import { type RouteInfo, VIEWS, parseHash, route } from '../core/router';
 import { openPalette } from './palette';
@@ -149,8 +150,10 @@ export async function payeeFill(i: number, name: string) {
 /* ---------- Undo for deleting transactions ---------- */
 function softDeleteTx(ids: string[]) {
   ids.forEach(id => S.pendingDel.add(id));
+  const before = rowTops(el('view'));               // the rows below close the gap, gliding up
   document.querySelectorAll<HTMLElement>('#view tr[data-gid]').forEach(tr => { if (ids.includes(tr.dataset.gid!)) tr.remove(); });
   tidyDays();
+  glideRows(el('view'), before);
   S.sel = new Set(); if (el('bulkbar')) el('bulkbar').hidden = true;
   const box = el('undo'); clearTimeout(S.undoT);
   let undone = false;
