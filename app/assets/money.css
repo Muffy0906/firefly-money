@@ -473,6 +473,12 @@
      JS in whole pixels. vertical-align: top + the line's own height keeps every digit on the text's baseline. */
   .odo { display: inline-block; overflow: hidden; vertical-align: top; }
   .odo-s { display: block; white-space: pre; }
+  /* The window reaches a little above and below the line (negative margins, so the line doesn't grow) and its top
+     and bottom fade out over --odo-f, which JS deepens while the digits spin and eases back as they settle: digits
+     roll through a soft edge, like a speedometer drum, never a hard cut. At rest the fade stays outside the line. */
+  .odo { margin-block: calc(-1 * var(--odo-p, 0px));
+    -webkit-mask-image: linear-gradient(transparent, #000 var(--odo-f, 0px), #000 calc(100% - var(--odo-f, 0px)), transparent);
+    mask-image: linear-gradient(transparent, #000 var(--odo-f, 0px), #000 calc(100% - var(--odo-f, 0px)), transparent); }
   /* Waiting for another month's numbers: the page stays and dims, then redraws in place */
   #view.stale { opacity: .55; transition: opacity .25s ease; }
   /* ---------- Overview: Add cards (Customize), the newer charts ---------- */

@@ -92,7 +92,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
       S.pageKey = key; S.pageHtml = saved.html; S.pageCacheable = true; S.pageLive = true;
       S.feed = saved.feed; S.kIdx = -1; if (saved.chart) S.chartData = saved.chart;
       scrollTo(0, inPlace ? at : saved.scroll);
-      if (inPlace) morph(v, snap!);
+      if (inPlace) morph(v, snap!, dir);
       else if (window.App && App.replayIn) App.replayIn();
       if (window.App && App.fillStrip) App.fillStrip();     // put away before its month strip came: fill it in now
       if (v.querySelector('input[data-sel]:checked')) App.selChanged();
@@ -151,7 +151,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
       if (inPlace) v.classList.remove('enter', 'anim');
       else if (!fresh || !VT_OK || opts.quiet || instant || !dir) { v.classList.remove('enter'); if (fresh && !opts.quiet && !instant) { void v.offsetWidth; v.classList.add('enter'); } }
       scrollTo(0, keep);          // new pages start at the top; a refresh (or a month redrawn in place) keeps your place
-      if (snap && (inPlace || !fresh)) morph(v, snap);
+      if (snap && (inPlace || !fresh)) morph(v, snap, inPlace ? dir : '');
       if (window.App && App.afterPaint) App.afterPaint(r, { quiet: opts.quiet || !fresh || inPlace });
       if (S.bootStale) { S.bootStale = false; S.warmed = true; setTimeout(() => refreshAll(), 60); }     // opened from saved data: update quietly (and then warm the tabs)
       else if (!S.warmed) { S.warmed = true; warmTabs(); }    // first page after signing in: get the other tabs ready too
