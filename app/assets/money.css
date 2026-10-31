@@ -12,7 +12,7 @@
   }
 
   /* ---------- Themes (set on <html data-theme="…">; none = follow the system) ---------- */
-  :root { --accent: var(--text); --on-accent: var(--bg); color-scheme: light dark; }
+  :root { --accent: var(--text); --on-accent: var(--bg); color-scheme: light dark; --ease-glide: cubic-bezier(.32, .72, 0, 1); }
   html[data-theme="light"] { --bg: #f6f5f1; --panel: #ffffff; --line: #e9e7e0; --text: #22221f; --muted: #8c897f; --faint: #efede7;
     --good: #5d7f6c; --spend: #c47a58; --income: #9fb8a8; --warn: #b8893a; --shadow: 0 18px 50px rgba(34,34,31,.12); color-scheme: light; }
   html[data-theme="dark"] { --bg: #151614; --panel: #1d1e1b; --line: #2b2c28; --text: #ecebe6; --muted: #8f8d85; --faint: #262723;
@@ -206,6 +206,13 @@
   .set-more > summary::-webkit-details-marker { display: none; }
   .set-more > summary::after { content: ''; flex: none; width: 7px; height: 7px; margin: 0 4px 0 -6px; border: solid var(--muted); border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg); transition: transform .15s; }
   .set-more[open] > summary::after { transform: rotate(45deg); }
+  /* Folded sections open and close by sliding to their height, where the browser can animate to a natural height
+     (Chrome and Edge); elsewhere they open at once, as before */
+  @supports (interpolate-size: allow-keywords) { @media (prefers-reduced-motion: no-preference) {
+    :root { interpolate-size: allow-keywords; }
+    :is(.set-more, .rulegroup)::details-content { height: 0; overflow: clip; transition: height .3s var(--ease-glide), content-visibility .3s allow-discrete; }
+    :is(.set-more, .rulegroup)[open]::details-content { height: auto; }
+  } }
   .set-more > summary > :first-child { flex: 1; }
   .set-body { padding: 0 0 16px; }
   .set-body > p.sub-s { line-height: 1.45; }
@@ -322,6 +329,9 @@
   .hint { font-size: 12px; color: var(--muted); margin: -8px 0 14px; }
   dialog { border: 1px solid var(--line); border-radius: 18px; padding: 24px; background: var(--panel); color: var(--text); max-width: 400px; box-shadow: var(--shadow); }
   dialog::backdrop { background: rgba(20, 20, 18, .3); }
+  /* Every dialog (a Delete? confirm too) arrives like What's new: a soft rise with the dim fading in behind it */
+  dialog:not(.whatsnew)[open] { animation: wn-in .26s var(--ease-glide); }
+  dialog:not(.whatsnew)[open]::backdrop { animation: wn-fade .2s ease; }
   dialog h3 { margin: 0 0 8px; font-size: 16px; }
   dialog p { margin: 0 0 20px; color: var(--muted); }
   dialog .btns { display: flex; justify-content: flex-end; gap: 10px; }
@@ -347,8 +357,8 @@
   @media (max-width: 520px) {
     .whatsnew .btns .btn { flex: 1; padding: 11px 15px; }
   }
-  @media (prefers-reduced-motion: reduce) { dialog.whatsnew[open], dialog.whatsnew[open]::backdrop { animation: none; } }
-  .toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: 99px; font-size: 13.5px; opacity: 0; transition: all .2s; z-index: 40; pointer-events: none; max-width: 90vw; }
+  @media (prefers-reduced-motion: reduce) { dialog[open], dialog[open]::backdrop { animation: none; } }
+  .toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: 99px; font-size: 13.5px; opacity: 0; transition: opacity .2s ease, transform .32s var(--ease-glide); z-index: 40; pointer-events: none; max-width: 90vw; }
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
   /* ---------- Login ---------- */
@@ -487,7 +497,16 @@
   @keyframes sweepIn { from { stroke-dasharray: 0 100; } }
   /* ---------- Command palette ---------- */
   .palette { position: fixed; inset: 0; background: rgba(20,20,18,.35); z-index: 50; display: grid; justify-items: center; align-items: start; padding-top: 12vh; }
-  .palette-box { width: min(620px, 92vw); background: var(--panel); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; animation: fadeUp .14s ease both; }
+  .palette-box { width: min(620px, 92vw); background: var(--panel); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; animation: palIn .22s var(--ease-glide) both; }
+  /* Opens and closes as one piece: the dim fades while the box settles in from just above (palette.ts holds it
+     open for the out-motion before hiding it). The phone's full-screen search has neither. */
+  @media (min-width: 901px) {
+    .palette { animation: fadeIn .18s ease both; }
+    .palette.out { pointer-events: none; animation: vtFadeOut .14s ease both; }
+    .palette.out .palette-box { animation: palOut .14s ease both; }
+  }
+  @keyframes palIn { from { opacity: 0; transform: translateY(-8px) scale(.985); } }
+  @keyframes palOut { to { opacity: 0; transform: translateY(-4px) scale(.985); } }
   /* #palQ: an id so the themes' input fills and focus rings (html[data-theme] :is(input[type=search], …)) can't paint a box inside the header */
   .pal-top { display: flex; align-items: center; gap: 10px; padding: 0 16px 0 20px; border-bottom: 1px solid var(--line); }
   .pal-top > svg { width: 18px; height: 18px; flex: none; color: var(--muted); }
@@ -1089,6 +1108,12 @@
   ::view-transition-old(tabbar) { display: none; }
   ::view-transition-old(page) { animation: vtFadeOut .14s ease both; }
   ::view-transition-new(page) { animation: vtFadeUp .26s cubic-bezier(.2,.8,.2,1) both; }
+  /* Another month: the page title and month picker stay put (only the month name cross-fades) while the content
+     below slides, so the control you're pressing doesn't slide away under your finger */
+  html.vt-page:is([data-vtdir="next"], [data-vtdir="prev"]) #view > .head { view-transition-name: phead; }
+  ::view-transition-group(phead) { animation: none; z-index: 1; }
+  ::view-transition-old(phead) { animation: vtFadeOut .12s ease both; }
+  ::view-transition-new(phead) { animation: fadeIn .2s ease both; }
   html[data-vtdir="next"]::view-transition-old(page) { animation: vtOutLeft .2s ease both; }
   html[data-vtdir="next"]::view-transition-new(page) { animation: vtInRight .3s cubic-bezier(.2,.8,.2,1) both; }
   html[data-vtdir="prev"]::view-transition-old(page) { animation: vtOutRight .2s ease both; }
@@ -1104,6 +1129,14 @@
   ::view-transition-group(txav) { animation-duration: .38s; z-index: 5; }
   ::view-transition-old(txav), ::view-transition-new(txav) { height: 100%; width: 100%; }
   ::view-transition-old(txav) { animation: vtFadeOut .12s ease both; }
+  /* An Overview tile changing size (or moving): the card's outline glides to its new shape while its contents stay
+     their real size, pinned top left, instead of the old picture being stretched to fit (big blurry numbers) */
+  ::view-transition-group(.dw) { overflow: clip; border-radius: var(--radius); }
+  ::view-transition-old(.dw), ::view-transition-new(.dw) { width: 100%; height: 100%; object-fit: none; object-position: left top; }
+  ::view-transition-old(.dw) { animation-duration: .16s; }
+  /* the payee and amount grow from the row into the sheet's header (and back), held at their left edge like the page title */
+  ::view-transition-group(txname), ::view-transition-group(txamt) { animation-duration: .38s; z-index: 5; }
+  ::view-transition-old(txname), ::view-transition-new(txname), ::view-transition-old(txamt), ::view-transition-new(txamt) { height: 100%; width: auto; object-fit: contain; object-position: left center; }
   ::view-transition-new(txav) { animation: none; }
   html.vt-theme::view-transition-old(root), html.vt-theme::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
   html.vt-theme::view-transition-group(root) { animation-duration: .52s; }
@@ -1514,24 +1547,39 @@
   .brand { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .side-tg { display: grid; place-items: center; width: 30px; height: 30px; margin: -6px -6px -6px 0; padding: 0; border: 0; border-radius: 9px; background: none; color: var(--muted); cursor: pointer; }
   .side-tg:hover { background: var(--faint); color: var(--text); }
-  .side-tg svg { width: 18px; height: 18px; transition: transform .25s ease; }
+  .side-tg svg { width: 18px; height: 18px; transition: transform .34s var(--ease-glide); }
+  /* Folding is one continuous motion: nothing is taken out of the layout. The rail narrows, every icon glides to
+     the same spot it has when folded (a 40px column, the icon centred in it), labels fade and are clipped as their
+     row narrows instead of wrapping, and the group headings shrink to their divider line. Labels go quickly on the
+     way in and come back once there's room on the way out, so text never slides across an icon. */
   @media (min-width: 901px) {
-    .app { transition: grid-template-columns .25s ease; }
+    .app { transition: grid-template-columns .34s var(--ease-glide); }
+    .side { transition: padding .34s var(--ease-glide); }
+    .brand { flex: none; transition: padding .34s var(--ease-glide), gap .34s var(--ease-glide); }
+    .brand > span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; }
+    .side-tg { flex: none; transition: margin .34s var(--ease-glide), background .12s, color .12s; }
+    .side-search { flex: none; height: 38px; padding-block: 0; overflow: hidden; white-space: nowrap; transition: padding .34s var(--ease-glide), color .12s, border-color .12s; }
+    .side-search kbd { flex: none; }
+    .side .foot .toggles { grid-template-columns: minmax(0, 1fr); }     /* so a nowrap label can't hold the column open */
+    .side .nav a, .side .foot .toggles button { transition: padding .34s var(--ease-glide), background .12s, transform .08s; }
+    :is(.side .nav a, .side-search, .side .foot .toggles button) > span { min-width: 0; overflow: hidden; white-space: nowrap; }
+    :is(.brand, .side .nav a, .side-search, .side .foot .toggles button) > span, .side-search kbd { transition: opacity .2s ease .1s; }
+    .nav-h { position: relative; height: 37.5px; overflow: hidden; white-space: nowrap; transition: height .34s var(--ease-glide), padding .34s var(--ease-glide), color .2s ease .1s; }
+    .nav-h::after { content: ""; position: absolute; left: 11px; right: 11px; top: 10px; height: 1px; background: var(--line); opacity: 0; transition: opacity .2s ease; }
+    .side .foot > :is(#ffLink, button) { max-height: 40px; overflow: hidden; white-space: nowrap; transition: max-height .34s var(--ease-glide), padding .34s var(--ease-glide), opacity .2s ease .1s, visibility 0s, background .12s, color .12s; }
+
     html.side-mini .app { grid-template-columns: 70px 1fr; }
-    html.side-mini .side { padding-left: 6px; padding-right: 6px; overflow-x: hidden; align-items: center; }
-    html.side-mini .side > * { align-self: stretch; }
-    html.side-mini .brand { justify-content: center; padding: 0 0 18px; }
-    html.side-mini .brand > span { display: none; }
-    html.side-mini .side-tg { margin: 0; }
+    html.side-mini .side { padding-left: 7px; padding-right: 7px; overflow-x: hidden; }
+    html.side-mini .brand { gap: 0; padding-left: 0; padding-right: 0; }
+    html.side-mini .side-tg { margin-right: 5px; }
     html.side-mini .side-tg svg { transform: scaleX(-1); }
-    html.side-mini .side-search { justify-content: center; flex: none; width: 40px; height: 38px; margin-inline: auto; padding: 0; }
-    html.side-mini .side-search :is(span, kbd) { display: none; }
-    html.side-mini .nav a, html.side-mini .side .foot .nav a { justify-content: center; width: 40px; height: 38px; margin-inline: auto; padding: 0; }
-    html.side-mini .nav a span { display: none; }
-    html.side-mini .nav-h { height: 1px; padding: 0; margin: 10px 12px; background: var(--line); font-size: 0; }
-    html.side-mini .side .foot :is(.toggles button, a, button) { text-align: center; }
-    html.side-mini .side .foot .toggles button { display: flex; justify-content: center; }
-    html.side-mini .side .foot .toggles button span, html.side-mini #ffLink, html.side-mini .side .foot > button { display: none; }
+    html.side-mini .side-search { padding-left: 11px; padding-right: 0; }
+    html.side-mini .side .nav a { padding-left: 11.5px; padding-right: 0; }
+    html.side-mini .side .foot .toggles button { padding-left: 12.5px; padding-right: 0; }
+    html.side-mini :is(.brand, .side .nav a, .side-search, .side .foot .toggles button) > span, html.side-mini .side-search kbd { opacity: 0; transition: opacity .1s ease; }
+    html.side-mini .nav-h { height: 21px; padding-top: 0; padding-bottom: 0; color: transparent; transition: height .34s var(--ease-glide), padding .34s var(--ease-glide), color .1s ease; }
+    html.side-mini .nav-h::after { opacity: 1; transition: opacity .2s ease .12s; }
+    html.side-mini .side .foot > :is(#ffLink, button) { max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; visibility: hidden; transition: max-height .34s var(--ease-glide), padding .34s var(--ease-glide), opacity .1s ease, visibility 0s .34s; }
   }
   @media (max-width: 520px) {
     .head .actions:has(.dash-edit) { gap: 8px; flex-wrap: nowrap; }
@@ -1698,7 +1746,7 @@
     .side .nav a svg { scale: calc(1 + var(--dock, 0) * .3); transition: scale .2s cubic-bezier(.2, .8, .2, 1); }
     .side .nav a span { translate: var(--dock-x, 0px) 0; }
     html.side-mini .side .nav a svg { scale: calc(1 + var(--dock, 0) * .42); }
-    .side-search svg, .side-tg svg { transition: scale .2s cubic-bezier(.2, .8, .2, 1), transform .25s ease; }
+    .side-search svg, .side-tg svg { transition: scale .2s cubic-bezier(.2, .8, .2, 1), transform .34s var(--ease-glide); }
     .side-search:hover svg, .side-tg:hover svg { scale: 1.14; }
     /* Magnetic hover (magnet.ts): what's under the mouse leans toward it, eased frame by frame in whole pixels. It adds
        .mag with --mx/--my; the translate only exists while it does, since any translate makes a stacking context.

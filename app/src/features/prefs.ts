@@ -29,7 +29,7 @@ sideLabels(!!LS.get('sideMini', false));
 export function toggleSide() {
   const on = !LS.get('sideMini', false); LS.set('sideMini', on);
   document.documentElement.classList.toggle('side-mini', on); sideLabels(on); buzz(8);
-  setTimeout(() => dispatchEvent(new Event('resize')), 260);     // once it has slid: the Overview lays its tiles out for the new width
+  setTimeout(() => dispatchEvent(new Event('resize')), 360);     // once it has slid (.34s): the Overview lays its tiles out for the new width
 }
 function toggleDensity() { LS.set('compact', !LS.get('compact', false)); vt('prefs', applyPrefs); buzz(8); }
 applyPrefs();

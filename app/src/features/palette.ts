@@ -81,6 +81,7 @@ function baseItems(): PalItem[] {
 export async function openPalette() {
   closeDrawer();
   const q = el<HTMLInputElement>('palQ');
+  clearTimeout(palOut); el('palette').classList.remove('out');
   el('palette').hidden = false; q.value = ''; q.focus();      // focus before any await, or iPhone won't show the keyboard
   document.documentElement.classList.add('pal-open');
   palItems = baseItems(); palFilter();
@@ -215,7 +216,16 @@ function jumpTo(target: string, wait: number) {
   };
   setTimeout(look, wait ? 150 : 0);
 }
-function closePalette() { el('palette').hidden = true; document.documentElement.classList.remove('pal-open'); clearTimeout(txTimer); }
+// Closing plays the short out-motion first (desktop, motion allowed: the phone's full-screen search has none, see money.css)
+let palOut: ReturnType<typeof setTimeout> | undefined;
+function closePalette() {
+  const p = el('palette'); if (p.hidden) return;
+  clearTimeout(txTimer); document.documentElement.classList.remove('pal-open');
+  if (p.contains(document.activeElement)) (document.activeElement as HTMLElement).blur();     // the keyboard goes with it
+  const hide = () => { p.hidden = true; p.classList.remove('out'); };
+  if (getComputedStyle(p).animationName === 'none') return hide();
+  p.classList.add('out'); clearTimeout(palOut); palOut = setTimeout(hide, 140);
+}
 
 // The methods markup handlers call (see events.ts), added to App and to its type
 const methods = {

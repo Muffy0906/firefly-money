@@ -225,7 +225,7 @@ function dashSave(mut?: (L: DashLayout) => void) {
 }
 function dashAnimate(fn: () => void) {
   const ws = [...document.querySelectorAll<HTMLElement>('#dash .w')];
-  vt('dash', fn, () => ws.forEach(w => vtName(w, 'dw-' + w.dataset.w)));
+  vt('dash', fn, () => ws.forEach(w => { vtName(w, 'dw-' + w.dataset.w); w.style.setProperty('view-transition-class', 'dw'); }));
 }
 const dashRedraw = () => { S.pageKey = ''; PAGES.clear(); route(); };
 function dashEdit(on: boolean) {
