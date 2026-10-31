@@ -1,4 +1,5 @@
-import { type Html, html, htmlList } from '../core/html';
+import { type Html, html, htmlList, raw } from '../core/html';
+import { type Snap, morph, morphOk, snapshot } from '../core/morph';
 import { api, getAll } from '../core/api';
 import { App, PAGE_SIZE, type Period, S, absDiff, arr, el, money, money0, sumDiff, todayIso, viewPeriod } from '../core/base';
 import { head, icon, monthNav, toast } from '../core/dom';
@@ -25,7 +26,10 @@ VIEWS.transactions = async (r, paint) => {
     : api(endpoint, { params: { start: cur.start, end: cur.end, type, page: pg, limit: PAGE_SIZE } });
   // The month strip loads on its own and is filled in when it's ready, so it never holds up the list
   const stripOn = !search && !scope && !cur.all, stripKey = cur.start + '|' + cur.end;
-  const strip = !stripOn ? '' : STRIPS.get(stripKey)?.html || html`<section class="panel txsum" id="txsum" data-k="${stripKey}"></section>`;
+  // Another month's strip that isn't ready yet: keep showing the one on screen (dimmed) so it can change in place
+  const prev = paint.live && shown ? STRIPS.get(shown.k) : null;
+  const strip = !stripOn ? '' : STRIPS.get(stripKey)?.html || (prev ? raw(String(prev.html).replace(/ data-k="[^"]*" data-n="\d+"/, ` data-k="${stripKey}" data-n="0"`).replace('class="panel txsum"', 'class="panel txsum wait"'))
+    : html`<section class="panel txsum" id="txsum" data-k="${stripKey}"></section>`);
   const res = await load(page);
   // loading a month ahead: keep its strip ready too (without touching the colours of the month on screen)
   if (r.at) { if (stripOn) await monthStrip(cur, stripKey, false).then(h => keepStrip(stripKey, h)).catch(() => {}); return; }
@@ -44,6 +48,10 @@ VIEWS.transactions = async (r, paint) => {
 const STRIPS = new Map<string, { n: number, html: Html }>();
 let stripN = 0;
 function keepStrip(key: string, h: { n: number, html: Html }) {
+  // the same numbers again (a refresh, or loading ahead then opening it): keep the version that may be on screen, so
+  // it isn't swapped for an identical copy halfway through changing into place
+  const was = STRIPS.get(key), bare = (x: { html: Html }) => String(x.html).replace(/ data-n="\d+"/, '');
+  if (was && bare(was) === bare(h)) h = was;
   STRIPS.delete(key); STRIPS.set(key, h);
   while (STRIPS.size > 24) STRIPS.delete(STRIPS.keys().next().value!);
 }
@@ -53,13 +61,39 @@ function keepStrip(key: string, h: { n: number, html: Html }) {
 // that page as it was, empty strip and all, to bring back later), or it may be another month's page by then.
 // So this also runs after every paint and every page brought back (polish.ts).
 function fillStrip() {
-  const box = el('txsum'), s = box && box.dataset.k ? STRIPS.get(box.dataset.k) : null;
-  if (!box || !s || box.dataset.n === String(s.n)) return;
-  box.outerHTML = String(s.html);
-  // the month's ranking can change the category colours of rows already drawn
-  document.querySelectorAll<HTMLElement>('#view tr[data-gid]').forEach(tr => {
-    const m = S.txMeta[tr.dataset.gid!], c = m && m.g.splits.map(x => x.category).find(Boolean);
-    if (c) tr.style.setProperty('--cat', catColor(c));
+  let box = el('txsum');
+  const k = box && box.dataset.k, s = k ? STRIPS.get(k) : null;
+  if (!box || !k) { if (!document.querySelector('#view .daycards')) shown = null; return; }
+  // What it changes from: the strip on screen (or its dimmed stand-in), else the last month's strip seen
+  let from = shown && shown.k !== k ? shown : null;
+  if (s && box.dataset.n !== String(s.n)) {
+    if (box.childElementCount) from = seen(box, k);
+    box.outerHTML = String(s.html);
+    box = el('txsum')!;
+    // the month's ranking can change the category colours of rows already drawn
+    document.querySelectorAll<HTMLElement>('#view tr[data-gid]').forEach(tr => {
+      const m = S.txMeta[tr.dataset.gid!], c = m && m.g.splits.map(x => x.category).find(Boolean);
+      if (c) tr.style.setProperty('--cat', catColor(c));
+    });
+  }
+  if (!box.childElementCount || box.classList.contains('wait')) return;
+  if (from && morphOk()) changeStrip(box, from);
+  shown = seen(box, k);
+}
+// The strip last seen on screen: its month, numbers and bar heights, for the next one to change from
+type Seen = { k: string, snap: Snap, vs: number[] };
+let shown: Seen | null = null;
+const seen = (box: HTMLElement, k: string): Seen => ({ k, snap: snapshot(box), vs: [...box.querySelectorAll<HTMLElement>('.dbars .db')].map(b => parseFloat(b.style.getPropertyValue('--v')) || 0) });
+// Another month in the same place: the totals roll to their new values and each day's bar grows or shrinks to its new
+// height (a 31st day grows from nothing), instead of the strip sliding away with the list
+function changeStrip(box: HTMLElement, from: Seen) {
+  morph(box, from.snap);
+  const H = box.querySelector<HTMLElement>('.dbars')?.clientHeight || 0;
+  if (!H) return;
+  box.querySelectorAll<HTMLElement>('.dbars .db').forEach((b, i) => {
+    const h0 = Math.max(3, (from.vs[i] || 0) * H), h1 = Math.max(3, (parseFloat(b.style.getPropertyValue('--v')) || 0) * H);
+    if (Math.abs(h0 - h1) < .5) return;
+    b.querySelector('i')?.animate([{ transform: 'scaleY(' + (h0 / h1).toFixed(4) + ')' }, { transform: 'none' }], { duration: 560, easing: 'cubic-bezier(.32,.72,0,1)' });
   });
 }
 

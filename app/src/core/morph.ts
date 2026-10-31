@@ -47,6 +47,9 @@ function keyOf(e: Element, root: Node) {
     if (d.w) { parts.push('w:' + d.w); break; }
     if (d.gid) { parts.push('g:' + d.gid); break; }
     if (n.id) { parts.push('#' + n.id); break; }
+    // a card is known by its heading, so a card added above it (a longer report has one more chart) doesn't make it
+    // look like a different card
+    if (n.tagName === 'SECTION') { const h = n.querySelector(':scope > h2, :scope > .panel-head h2'); if (h && h.textContent) { parts.push('h:' + h.textContent.trim()); break; } }
     const p = n.parentNode as (ParentNode & Node) | null;
     parts.push(n.tagName + ':' + (p ? Array.prototype.indexOf.call(p.children, n) : 0));
     if (!p || p === root || p.nodeType !== 1) break;
@@ -59,7 +62,7 @@ const textOf = (e: HTMLElement) => e.dataset.odo ?? e.textContent ?? '';
 
 type SvgSnap = { n: number, kids: [string, Record<string, string>][] };
 export type Snap = {
-  nums: Map<string, string>, fills: Map<string, number>, svgs: Map<string, SvgSnap>,
+  nums: Map<string, string>, fills: Map<string, number>, svgs: Map<string, SvgSnap>, tints: Map<string, string>,
   rows: Map<string, number>, layout: Set<string>, feed: boolean
 };
 // The parts of a page that frame the layout: if most of them are the same in both drawings, it can redraw in place
@@ -71,7 +74,7 @@ function layoutKeys(root: Element | DocumentFragment) {
 }
 
 export function snapshot(root: HTMLElement): Snap {
-  const s: Snap = { nums: new Map(), fills: new Map(), svgs: new Map(), rows: new Map(), layout: layoutKeys(root), feed: !!root.querySelector('.tbl.feed tr[data-gid]') };
+  const s: Snap = { nums: new Map(), fills: new Map(), svgs: new Map(), tints: new Map(), rows: new Map(), layout: layoutKeys(root), feed: !!root.querySelector('.tbl.feed tr[data-gid]') };
   if (RM) return s;
   let c = 0;
   root.querySelectorAll<HTMLElement>(NUM).forEach(e => { if (c < 80 && (!e.children.length || e.dataset.odo) && near(e.getBoundingClientRect())) { s.nums.set(keyOf(e, root), textOf(e)); c++; } });
@@ -84,9 +87,13 @@ export function snapshot(root: HTMLElement): Snap {
     c++;
     s.svgs.set(keyOf(v, root), { n: kids.length, kids: kids.map(k => [k.tagName, Object.fromEntries(ATTRS.filter(a => k.hasAttribute(a)).map(a => [a, k.getAttribute(a)!]))]) });
   });
+  c = 0;
+  root.querySelectorAll<HTMLElement>(TINT).forEach(e => { if (c < 200 && near(e.getBoundingClientRect())) { s.tints.set(keyOf(e, root), getComputedStyle(e).backgroundColor); c++; } });
   s.rows = rowTops(root);
   return s;
 }
+// Cells whose colour is the number (the Daily spending heatmap): they fade from the old shade to the new one
+const TINT = '.hm-cell:not(.pad)';
 // Where each transaction row and day heading is on screen now
 const ROWS = 'tr[data-gid], tr.dayhead[data-day]';
 const rowKey = (r: HTMLElement) => r.dataset.gid ? 'g' + r.dataset.gid : 'd' + r.dataset.day;
@@ -160,12 +167,18 @@ function tweenAttr(a: string, b: string): ((p: number) => string) | null {
 function morphSvg(v: SVGSVGElement, old: SvgSnap) {
   const kids = [...v.querySelectorAll(GEO)];
   const same = kids.length === old.n && kids.every((k, i) => k.tagName === old.kids[i][0]);
-  if (!same) { v.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: 'ease' }); return; }
-  const tw: [Element, string, (p: number) => string][] = [];
-  kids.forEach((k, i) => {
-    const was = old.kids[i][1];
-    ATTRS.forEach(a => { const now = k.getAttribute(a); if (now == null || was[a] == null) return; const f = tweenAttr(was[a], now); if (f) tw.push([k, a, f]); });
+  // A few more or fewer parts (a 31st day's bar, one more slice): each part takes over from the old one of its kind
+  // in the same place and the extra ones fade in. Very different drawings just fade in whole.
+  if (!same && Math.abs(kids.length - old.n) > Math.max(2, old.n * .2)) { v.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: 'ease' }); return; }
+  const was: Record<string, Record<string, string>[]> = {}, seen: Record<string, number> = {};
+  old.kids.forEach(([t, a]) => (was[t] = was[t] || []).push(a));
+  const tw: [Element, string, (p: number) => string][] = [], fresh: Element[] = [];
+  kids.forEach(k => {
+    const t = k.tagName, j = seen[t] = (seen[t] ?? -1) + 1, from = was[t] && was[t][j];
+    if (!from) { fresh.push(k); return; }
+    ATTRS.forEach(a => { const now = k.getAttribute(a); if (now == null || from[a] == null) return; const f = tweenAttr(from[a], now); if (f) tw.push([k, a, f]); });
   });
+  fresh.forEach(k => k.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320, delay: 200, easing: 'ease', fill: 'backwards' }));
   if (!tw.length) return;
   tw.forEach(([k, a, f]) => k.setAttribute(a, f(0)));
   const t0 = performance.now(), dur = 560;
@@ -212,6 +225,10 @@ export function morph(root: HTMLElement, s: Snap) {
     const was = s.fills.get(keyOf(e, root)), now = parseFloat(e.style.width);
     if (was == null || !isFinite(now) || now <= 0 || Math.abs(was - now) < .2) return;
     e.animate([{ transform: 'scaleX(' + (was / now).toFixed(4) + ')', transformOrigin: 'left' }, { transform: 'none', transformOrigin: 'left' }], { duration: 620, easing: 'cubic-bezier(.32,.72,0,1)' });
+  });
+  if (s.tints.size) root.querySelectorAll<HTMLElement>(TINT).forEach(e => {
+    const was = s.tints.get(keyOf(e, root)), now = getComputedStyle(e).backgroundColor;
+    if (was && was !== now) e.animate([{ backgroundColor: was }, { backgroundColor: now }], { duration: 520, easing: 'ease' });
   });
   if (s.svgs.size) root.querySelectorAll<SVGSVGElement>('svg').forEach(v => { const was = s.svgs.get(keyOf(v, root)); if (was && near(v.getBoundingClientRect())) morphSvg(v, was); });
 }

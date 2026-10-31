@@ -50,9 +50,13 @@ function syncToday() {
   if (S.y === was[0] && S.m === was[1]) [S.y, S.m] = monthOf(now);
   setToday(now); S.freshAfter = Date.now(); PAGES.clear();
 }
+const IN_PLACE = new Set(['', 'reports', 'forecast', 'budgets', 'categories', 'bills', 'recap']);
 export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: boolean } = {}) {
   syncToday();
   const r = parseHash(), tok = ++S.tok, v = el('view'), stepped = S.vtDir;
+  // The same page with other options (a report's dates, an account's range, the forecast's horizon): its charts change
+  // in place like a month change, when the layout stays the same (see paint below)
+  const sameRoute = IN_PLACE.has(r.name) && !!S.pageKey && S.pageKey.startsWith(r.name + '/' + r.id + '?');
   S.swr = !!opts.nav;
   const key = r.name + '/' + r.id + '?' + new URLSearchParams(r.q) + '@' + (S.all ? 'all' : S.y + '-' + S.m);
   const cacheable = CACHEABLE.has(r.name) && !S.dashEdit;
@@ -78,7 +82,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
     PAGES.delete(key);
     const dir = S.vtDir; S.vtDir = '';
     // another month of a page that keeps its layout: redraw in place from what's on screen (see paint below)
-    const snap = (dir === 'next' || dir === 'prev') && !instant && morphOk() && S.pageLive && v.firstElementChild ? snapshot(v) : null;
+    const snap = (dir === 'next' || dir === 'prev' || (!dir && sameRoute)) && !instant && morphOk() && S.pageLive && v.firstElementChild ? snapshot(v) : null;
     const inPlace = !!snap && sameLayout(snap, saved.frag);
     const swap = () => {
       const at = scrollY;
@@ -130,7 +134,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
     // What's on screen now, so a redraw in the same layout can move from it: a refresh or edit of this page, or a
     // month change on a page whose cards don't depend on the month (Overview, Budgets…), which then redraws in place
     // instead of sliding (Transactions, a different list each month, still slides)
-    const snap = morphOk() && S.painted && S.pageLive && !instant && v.firstElementChild && (!fresh || dir === 'next' || dir === 'prev') ? snapshot(v) : null;
+    const snap = morphOk() && S.painted && S.pageLive && !instant && v.firstElementChild && (!fresh || dir === 'next' || dir === 'prev' || (!dir && sameRoute)) ? snapshot(v) : null;
     let frag: DocumentFragment | null = null, inPlace = false;
     if (snap && fresh) {
       const tpl = document.createElement('template'); tpl.innerHTML = String(markup); frag = tpl.content;
