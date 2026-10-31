@@ -2,7 +2,7 @@ import { html, htmlList } from '../core/html';
 import { AuthError, api } from '../core/api';
 import { busy, showLogin } from '../core/auth';
 import { App, S, absDiff, arr, el, money, money0, monthRange, type ApiData, type Period, viewPeriod, viewYM } from '../core/base';
-import { closeDrawer, confirmBox, formError, head, monthNav, openDrawer, toast } from '../core/dom';
+import { closeDrawer, confirmBox, formError, head, ICON_X, monthNav, openDrawer, toast } from '../core/dom';
 import { invalidate, lists } from '../core/lists';
 import { VIEWS, route } from '../core/router';
 import { insight } from '../features/refunds';
@@ -23,7 +23,7 @@ VIEWS.categories = async (r, paint) => {
     const d = x.now - x.prev;
     return html`<tr><td><a class="desc" href="#/transactions?category=${x.id}" style="text-decoration:none">${x.name}</a></td><td class="amt">${x.now ? money(x.now) : html`<span class="neutral">—</span>`}</td>${all ? '' : html`<td class="r hide-s sub-s">${x.prev ? html`${Math.abs(d) < 1 ? 'Same' : html`<span class="${d > 0 ? 'up' : 'down'}">${d > 0 ? '+' : '−'}${money0(Math.abs(d))}</span>`} vs ${money0(x.prev)}` : ''}</td>`}<td class="amt hide-s">${x.inc ? html`<span class="pos">${money(x.inc)}</span>` : html`<span class="neutral">—</span>`}</td><td class="act"><button class="btn small" data-onclick="App.categoryForm('${x.id}')">Edit</button></td></tr>`;
   }));
-  const tags = htmlList(L.tags.map(t => html`<span class="chip"><a href="#/transactions?tag=${t.id}">${t.name}</a><button title="Delete tag" data-onclick="App.deleteTag('${t.id}')">×</button></span>`));
+  const tags = htmlList(L.tags.map(t => html`<span class="chip"><a href="#/transactions?tag=${t.id}">${t.name}</a><button title="Delete tag" data-onclick="App.deleteTag('${t.id}')">${ICON_X}</button></span>`));
   paint(html`${head('Categories & tags', '', html`${monthNav()}<button class="btn primary" data-onclick="App.categoryForm()">+ New category</button>`)}<section class="panel flush" style="margin-bottom:28px">${rows ? html`<table class="tbl"><thead><tr><th>Category</th><th class="r">Spent ${all ? 'all time' : 'in ' + cur.short}</th>${all ? '' : html`<th class="r hide-s">vs ${prev.short}</th>`}<th class="r hide-s">Earned</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
       : html`<div class="center-empty">No categories yet.</div>`}</section><section class="panel"><div class="panel-head"><div><h2>Tags</h2><p class="lead">Click a tag to see its transactions</p></div></div><form data-onsubmit="event.preventDefault();App.addTag(this.t)" style="display:flex;gap:10px;margin-bottom:18px;max-width:420px"><input type="text" name="t" placeholder="New tag name" style="flex:1" required><button class="btn">Add tag</button></form>${tags ? html`<div class="tagcloud">${tags}</div>` : html`<p class="empty">No tags yet.</p>`}</section>`);
 };

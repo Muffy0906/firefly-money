@@ -1,6 +1,6 @@
 import { type Html, html, htmlList } from '../core/html';
 import { type ApiData, App, type Period, absDiff, arr, el, fmtDay, isoDate, money, money0, monthRange, nowMonth, num, sumDiff, todayIso } from '../core/base';
-import { vt, vtName } from '../core/dom';
+import { ICON_X, vt, vtName } from '../core/dom';
 import { LS, addDays, budgetAlert, daysBetween } from '../core/helpers';
 import { type Account, ordinal } from '../core/lists';
 import { insight, refundsIn } from './refunds';
@@ -114,7 +114,7 @@ async function insightCards({ cur: period, future, budgets, limits, cards, trend
   const shown = out.filter(x => !hidden[x.id]).sort((a, b) => b.score - a.score).slice(0, max || 4);
   if (!shown.length) return '';
   return html`<div class="insights" id="insights" aria-label="Insights">${htmlList(shown.map(x =>
-    html`<div class="insight t-${x.tone}" role="link" tabindex="0" data-ins="${x.id}" data-onclick="App.go('${x.href}')" data-onkeydown="App.enterClick(event,this)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${INS_ICON[x.ic]}</svg></span><span><div class="t">${x.title}</div><div class="d">${x.detail}</div></span><button class="x" type="button" aria-label="Dismiss" title="Hide this" data-onclick="event.stopPropagation();App.hideInsight(this)">×</button></div>`))}</div>`;
+    html`<div class="insight t-${x.tone}" role="link" tabindex="0" data-ins="${x.id}" data-onclick="App.go('${x.href}')" data-onkeydown="App.enterClick(event,this)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${INS_ICON[x.ic]}</svg></span><span><div class="t">${x.title}</div><div class="d">${x.detail}</div></span><button class="x" type="button" aria-label="Dismiss" title="Hide this" data-onclick="event.stopPropagation();App.hideInsight(this)">${ICON_X}</button></div>`))}</div>`;
 }
 function hideInsight(btn: HTMLElement) {
   const card = btn.closest<HTMLElement>('.insight')!, id = card.dataset.ins!, box = el('insights');
