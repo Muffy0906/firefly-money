@@ -1748,10 +1748,8 @@
     html.side-mini .side .nav a svg { scale: calc(1 + var(--dock, 0) * .42); }
     .side-search svg, .side-tg svg { transition: scale .2s cubic-bezier(.2, .8, .2, 1), transform .34s var(--ease-glide); }
     .side-search:hover svg, .side-tg:hover svg { scale: 1.14; }
-    /* Magnetic hover (magnet.ts): what's under the mouse leans toward it, eased frame by frame in whole pixels. It adds
-       .mag with --mx/--my; the translate only exists while it does, since any translate makes a stacking context.
-       Buttons and Overview tiles also rise (1px, 2px), counted into the same lean. */
-    .mag { translate: var(--mx, 0px) var(--my, 0px); }
+    /* Magnetic hover (magnet.ts, off unless turned on in Settings) writes its lean straight into the element's
+       `translate` while .mag is set, and removes it once it's home, since any translate makes a stacking context. */
   }
   /* Collapsed sidebar: the name of the icon under the mouse (dock.ts), in the chart tooltip's style, pointing at it */
   .side-tip { z-index: 60; padding: 6px 11px; font-size: 13px; font-weight: 500; line-height: 1.35; white-space: nowrap; opacity: 0; visibility: hidden; }
