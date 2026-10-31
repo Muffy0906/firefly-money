@@ -90,6 +90,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
       scrollTo(0, inPlace ? at : saved.scroll);
       if (inPlace) morph(v, snap!);
       else if (window.App && App.replayIn) App.replayIn();
+      if (window.App && App.fillStrip) App.fillStrip();     // put away before its month strip came: fill it in now
       if (v.querySelector('input[data-sel]:checked')) App.selChanged();
       if (saved.stale) setTimeout(revalidate, 50);
     };
