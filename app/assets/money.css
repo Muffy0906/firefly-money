@@ -1108,6 +1108,12 @@
   ::view-transition-old(tabbar) { display: none; }
   ::view-transition-old(page) { animation: vtFadeOut .14s ease both; }
   ::view-transition-new(page) { animation: vtFadeUp .26s cubic-bezier(.2,.8,.2,1) both; }
+  /* Another month: the page title and month picker stay put (only the month name cross-fades) while the content
+     below slides, so the control you're pressing doesn't slide away under your finger */
+  html.vt-page:is([data-vtdir="next"], [data-vtdir="prev"]) #view > .head { view-transition-name: phead; }
+  ::view-transition-group(phead) { animation: none; z-index: 1; }
+  ::view-transition-old(phead) { animation: vtFadeOut .12s ease both; }
+  ::view-transition-new(phead) { animation: fadeIn .2s ease both; }
   html[data-vtdir="next"]::view-transition-old(page) { animation: vtOutLeft .2s ease both; }
   html[data-vtdir="next"]::view-transition-new(page) { animation: vtInRight .3s cubic-bezier(.2,.8,.2,1) both; }
   html[data-vtdir="prev"]::view-transition-old(page) { animation: vtOutRight .2s ease both; }
@@ -1123,6 +1129,14 @@
   ::view-transition-group(txav) { animation-duration: .38s; z-index: 5; }
   ::view-transition-old(txav), ::view-transition-new(txav) { height: 100%; width: 100%; }
   ::view-transition-old(txav) { animation: vtFadeOut .12s ease both; }
+  /* An Overview tile changing size (or moving): the card's outline glides to its new shape while its contents stay
+     their real size, pinned top left, instead of the old picture being stretched to fit (big blurry numbers) */
+  ::view-transition-group(.dw) { overflow: clip; border-radius: var(--radius); }
+  ::view-transition-old(.dw), ::view-transition-new(.dw) { width: 100%; height: 100%; object-fit: none; object-position: left top; }
+  ::view-transition-old(.dw) { animation-duration: .16s; }
+  /* the payee and amount grow from the row into the sheet's header (and back), held at their left edge like the page title */
+  ::view-transition-group(txname), ::view-transition-group(txamt) { animation-duration: .38s; z-index: 5; }
+  ::view-transition-old(txname), ::view-transition-new(txname), ::view-transition-old(txamt), ::view-transition-new(txamt) { height: 100%; width: auto; object-fit: contain; object-position: left center; }
   ::view-transition-new(txav) { animation: none; }
   html.vt-theme::view-transition-old(root), html.vt-theme::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
   html.vt-theme::view-transition-group(root) { animation-duration: .52s; }

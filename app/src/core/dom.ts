@@ -82,10 +82,20 @@ export function vt(kind: string, update: () => void, setup?: () => void) {
   t.finished.catch(quiet).then(() => { root.classList.remove('vt-' + kind); if (S.vtRun === t) S.vtRun = null; document.querySelectorAll<HTMLElement>('[data-vtn]').forEach(n => { n.style.viewTransitionName = ''; delete n.dataset.vtn; }); });
   return t;
 }
+// Parts of a transaction row that read the same in the sheet's header (payee, amount), so each can grow into its
+// place there and back. A part whose text differs (a description vs. the payee's name) just goes with the row.
+const same = (a: string | null | undefined, b: string | null | undefined) => !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
+export function heroParts(row: Element | null | undefined, h: State['drawerHero'] | null | undefined) {
+  if (!row || !h) return [];
+  const name = row.querySelector<HTMLElement>('.desc'), amt = row.querySelector<HTMLElement>('.amt > span:first-child') || row.querySelector<HTMLElement>('.amt');
+  return [[name, 'txname', '.dhero h2', h.name], [amt, 'txamt', '.dhero .dh-amt', h.amount]]
+    .filter(([e, , , t]) => e && same((e as HTMLElement).textContent, t as string))
+    .map(([e, vtn, sel]) => ({ el: e as HTMLElement, vtn: vtn as string, sel: sel as string }));
+}
 export const vtName = (node: Element | null | undefined, name: string) => { if (node) { const n = node as HTMLElement; n.style.viewTransitionName = name; n.dataset.vtn = '1'; } };
 // Drawer header "hero": the transaction's avatar, payee and amount, so the row can morph into it
 function drawerHeroHtml(h: NonNullable<State['drawerHero']>) {
-  return html`<div class="dhero" data-id="${h.id}">${h.av}<div class="dh-txt"><div class="eyebrow">${h.kicker}</div><h2>${h.name}</h2><div class="sub-s num">${h.amount} · ${fmtDate(h.date)}</div></div></div>`;
+  return html`<div class="dhero" data-id="${h.id}">${h.av}<div class="dh-txt"><div class="eyebrow">${h.kicker}</div><h2>${h.name}</h2><div class="sub-s num"><span class="dh-amt">${h.amount}</span> · ${fmtDate(h.date)}</div></div></div>`;
 }
 export function openDrawer(title: string, bodyHtml: Html | string, footHtml?: Html | string) {
   const d = el('drawer'), wasOpen = d.classList.contains('open');
@@ -118,8 +128,12 @@ export function closeDrawer() {
   };
   if (!row) return shut();
   // Morph the drawer's avatar back into its row while the drawer slides away
-  vt('drawer-close', () => { const dav = d.querySelector<HTMLElement>('.dhero .av'); if (dav) dav.style.viewTransitionName = ''; shut(); vtName(row, 'txav'); },
-    () => vtName(d.querySelector('.dhero .av'), 'txav'));
+  const parts = heroParts(row.closest('tr'), h).map(p => ({ ...p, hero: d.querySelector<HTMLElement>(p.sel) }));
+  vt('drawer-close', () => {
+    const dav = d.querySelector<HTMLElement>('.dhero .av'); if (dav) dav.style.viewTransitionName = '';
+    parts.forEach(p => { if (p.hero) p.hero.style.viewTransitionName = ''; });
+    shut(); vtName(row, 'txav'); parts.forEach(p => { if (p.hero) vtName(p.el, p.vtn); });
+  }, () => { vtName(d.querySelector('.dhero .av'), 'txav'); parts.forEach(p => vtName(p.hero, p.vtn)); });
 }
 export function formError(msg: string) {
   const b = el('drawerBody'); if (!b) return toast(msg);
