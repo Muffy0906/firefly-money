@@ -4,7 +4,7 @@ import { showLogin } from './auth';
 import { App, S, type State, el, monthOf, nowMonth, setToday, today } from './base';
 import { VT_OK, drawNav, toast, vt, vtName } from './dom';
 import { lists } from './lists';
-import { morph, morphOk, sameLayout, snapshot } from './morph';
+import { monthLabel, morph, morphOk, sameLayout, slideLabel, snapshot } from './morph';
 
 /* ================= Router ================= */
 function skeleton() {
@@ -85,9 +85,9 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
     const snap = (dir === 'next' || dir === 'prev' || (!dir && sameRoute)) && !instant && morphOk() && S.pageLive && v.firstElementChild ? snapshot(v) : null;
     const inPlace = !!snap && sameLayout(snap, saved.frag);
     const swap = () => {
-      const at = scrollY;
+      const at = scrollY, lab = monthLabel(v);
       stashPage(S.feed);
-      v.replaceChildren(saved.frag); v.classList.remove('enter', ...(inPlace ? ['anim'] : []));
+      v.replaceChildren(saved.frag); if (!instant) slideLabel(v, lab, dir); v.classList.remove('enter', ...(inPlace ? ['anim'] : []));
       if (!instant && !inPlace && (!dir || !VT_OK)) { void v.offsetWidth; v.classList.add('enter'); }     // the same entrance as a first visit
       S.pageKey = key; S.pageHtml = saved.html; S.pageCacheable = true; S.pageLive = true;
       S.feed = saved.feed; S.kIdx = -1; if (saved.chart) S.chartData = saved.chart;
@@ -143,8 +143,10 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
     const swap = () => {
       painted = true; clearTimeout(S.dimT); v.classList.remove('stale');
       const keep = fresh && !inPlace ? 0 : scrollY;
+      const lab = monthLabel(v);           // (before the page is put away)
       if (fresh) stashPage(prevFeed);
       if (frag) v.replaceChildren(frag); else v.innerHTML = String(markup);
+      if (!instant) slideLabel(v, lab, dir);
       S.sel = new Set();          // the new rows start unticked
       S.pageKey = key; S.pageHtml = markup; S.pageCacheable = cacheable && !v.querySelector(':scope > .error'); S.pageLive = true;
       if (from) vtName(v.querySelector('.head h1'), 'ptitle');

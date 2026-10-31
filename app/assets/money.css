@@ -115,6 +115,11 @@
   @media (max-width: 360px) { .head .actions:has(.dash-edit) .month { gap: 4px; } .head .actions:has(.dash-edit) .month .round { width: 30px; height: 30px; }
     .head .actions:has(.dash-edit) .month .btn { padding-inline: 9px; font-size: 13px; } }
   .month span small.cycle { display: block; font-size: 11px; font-weight: 400; color: var(--muted); line-height: 1.2; }
+  /* Month label sliding to another month (morph.ts slideLabel): copies of the old and new label move (and fade) over
+     the real one, which keeps its place hidden */
+  .month > span { position: relative; }
+  .month > span.msliding > :not(.mghost) { visibility: hidden; }
+  .month .mghost { position: absolute; inset: 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
   .round { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); cursor: pointer; font-size: 15px; line-height: 1; }
   .round:disabled { opacity: .35; cursor: default; }
 
