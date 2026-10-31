@@ -50,9 +50,13 @@ function syncToday() {
   if (S.y === was[0] && S.m === was[1]) [S.y, S.m] = monthOf(now);
   setToday(now); S.freshAfter = Date.now(); PAGES.clear();
 }
+const IN_PLACE = new Set(['', 'reports', 'forecast', 'budgets', 'categories', 'bills', 'recap']);
 export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: boolean } = {}) {
   syncToday();
   const r = parseHash(), tok = ++S.tok, v = el('view'), stepped = S.vtDir;
+  // The same page with other options (a report's dates, an account's range, the forecast's horizon): its charts change
+  // in place like a month change, when the layout stays the same (see paint below)
+  const sameRoute = IN_PLACE.has(r.name) && !!S.pageKey && S.pageKey.startsWith(r.name + '/' + r.id + '?');
   S.swr = !!opts.nav;
   const key = r.name + '/' + r.id + '?' + new URLSearchParams(r.q) + '@' + (S.all ? 'all' : S.y + '-' + S.m);
   const cacheable = CACHEABLE.has(r.name) && !S.dashEdit;
@@ -78,7 +82,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
     PAGES.delete(key);
     const dir = S.vtDir; S.vtDir = '';
     // another month of a page that keeps its layout: redraw in place from what's on screen (see paint below)
-    const snap = (dir === 'next' || dir === 'prev') && !instant && morphOk() && S.pageLive && v.firstElementChild ? snapshot(v) : null;
+    const snap = (dir === 'next' || dir === 'prev' || (!dir && sameRoute)) && !instant && morphOk() && S.pageLive && v.firstElementChild ? snapshot(v) : null;
     const inPlace = !!snap && sameLayout(snap, saved.frag);
     const swap = () => {
       const at = scrollY;
@@ -88,7 +92,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
       S.pageKey = key; S.pageHtml = saved.html; S.pageCacheable = true; S.pageLive = true;
       S.feed = saved.feed; S.kIdx = -1; if (saved.chart) S.chartData = saved.chart;
       scrollTo(0, inPlace ? at : saved.scroll);
-      if (inPlace) morph(v, snap!);
+      if (inPlace) morph(v, snap!, dir);
       else if (window.App && App.replayIn) App.replayIn();
       if (window.App && App.fillStrip) App.fillStrip();     // put away before its month strip came: fill it in now
       if (v.querySelector('input[data-sel]:checked')) App.selChanged();
@@ -130,7 +134,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
     // What's on screen now, so a redraw in the same layout can move from it: a refresh or edit of this page, or a
     // month change on a page whose cards don't depend on the month (Overview, Budgets…), which then redraws in place
     // instead of sliding (Transactions, a different list each month, still slides)
-    const snap = morphOk() && S.painted && S.pageLive && !instant && v.firstElementChild && (!fresh || dir === 'next' || dir === 'prev') ? snapshot(v) : null;
+    const snap = morphOk() && S.painted && S.pageLive && !instant && v.firstElementChild && (!fresh || dir === 'next' || dir === 'prev' || (!dir && sameRoute)) ? snapshot(v) : null;
     let frag: DocumentFragment | null = null, inPlace = false;
     if (snap && fresh) {
       const tpl = document.createElement('template'); tpl.innerHTML = String(markup); frag = tpl.content;
@@ -147,7 +151,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
       if (inPlace) v.classList.remove('enter', 'anim');
       else if (!fresh || !VT_OK || opts.quiet || instant || !dir) { v.classList.remove('enter'); if (fresh && !opts.quiet && !instant) { void v.offsetWidth; v.classList.add('enter'); } }
       scrollTo(0, keep);          // new pages start at the top; a refresh (or a month redrawn in place) keeps your place
-      if (snap && (inPlace || !fresh)) morph(v, snap);
+      if (snap && (inPlace || !fresh)) morph(v, snap, inPlace ? dir : '');
       if (window.App && App.afterPaint) App.afterPaint(r, { quiet: opts.quiet || !fresh || inPlace });
       if (S.bootStale) { S.bootStale = false; S.warmed = true; setTimeout(() => refreshAll(), 60); }     // opened from saved data: update quietly (and then warm the tabs)
       else if (!S.warmed) { S.warmed = true; warmTabs(); }    // first page after signing in: get the other tabs ready too

@@ -473,6 +473,12 @@
      JS in whole pixels. vertical-align: top + the line's own height keeps every digit on the text's baseline. */
   .odo { display: inline-block; overflow: hidden; vertical-align: top; }
   .odo-s { display: block; white-space: pre; }
+  /* The window reaches a little above and below the line (negative margins, so the line doesn't grow) and its top
+     and bottom fade out over --odo-f, which JS deepens while the digits spin and eases back as they settle: digits
+     roll through a soft edge, like a speedometer drum, never a hard cut. At rest the fade stays outside the line. */
+  .odo { margin-block: calc(-1 * var(--odo-p, 0px));
+    -webkit-mask-image: linear-gradient(transparent, #000 var(--odo-f, 0px), #000 calc(100% - var(--odo-f, 0px)), transparent);
+    mask-image: linear-gradient(transparent, #000 var(--odo-f, 0px), #000 calc(100% - var(--odo-f, 0px)), transparent); }
   /* Waiting for another month's numbers: the page stays and dims, then redraws in place */
   #view.stale { opacity: .55; transition: opacity .25s ease; }
   /* ---------- Overview: Add cards (Customize), the newer charts ---------- */
@@ -1136,6 +1142,13 @@
   ::view-transition-group(phead) { animation: none; z-index: 1; }
   ::view-transition-old(phead) { animation: vtFadeOut .12s ease both; }
   ::view-transition-new(phead) { animation: fadeIn .2s ease both; }
+  /* Transactions: the month strip and the search/filter row stay put and change in place (transactions.ts fillStrip);
+     only the list slides */
+  html.vt-page:is([data-vtdir="next"], [data-vtdir="prev"]) #view > #txsum { view-transition-name: txsum; }
+  html.vt-page:is([data-vtdir="next"], [data-vtdir="prev"]) #view > .txbar { view-transition-name: txbar; }
+  ::view-transition-group(txsum), ::view-transition-group(txbar) { animation: none; z-index: 1; }
+  ::view-transition-old(txsum), ::view-transition-old(txbar) { display: none; }
+  ::view-transition-new(txsum), ::view-transition-new(txbar) { animation: none; }
   html[data-vtdir="next"]::view-transition-old(page) { animation: vtOutLeft .2s ease both; }
   html[data-vtdir="next"]::view-transition-new(page) { animation: vtInRight .3s cubic-bezier(.2,.8,.2,1) both; }
   html[data-vtdir="prev"]::view-transition-old(page) { animation: vtOutRight .2s ease both; }
@@ -1423,6 +1436,8 @@
   }
 
   .txsum:empty { min-height: 95px; }
+  .txsum.wait { pointer-events: none; }
+  .txsum.wait > * { opacity: .55; transition: opacity .2s ease .15s; }
   @media (max-width: 900px) { .txsum:empty { min-height: 136px; } }
 
   /* ---------- Hours of work (core/worklens.ts): under money out in the feed ---------- */
