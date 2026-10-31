@@ -1,6 +1,6 @@
 import { type Html, html, htmlList } from '../core/html';
 import { api, getAll, sleep } from '../core/api';
-import { App, S, absDiff, arr, el, fmtDate, fmtDay, isoDate, money, money0, monthRange, nowMonth, num, period, sumDiff, todayIso, type ApiData, type Period } from '../core/base';
+import { App, S, absDiff, arr, el, fmtDate, fmtDay, isoDate, money, money0, monthRange, nowMonth, num, sumDiff, todayIso, type ApiData, type Period, viewPeriod, viewYM } from '../core/base';
 import { head, monthNav } from '../core/dom';
 import { normGroup, rankCats, txRows } from '../core/feed';
 import { addDays, budgetAlert } from '../core/helpers';
@@ -22,12 +22,12 @@ type CatRow = { name: string, id?: string, amt: number, prev: number };
 type CashMonth = { label: string, income: number, spend: number, go?: string };
 VIEWS[''] = async (r, paint) => {
   const L = await lists();
-  const cur = period(), all = !!cur.all, prev = monthRange(S.y, S.m - 1);
+  const cur = viewPeriod(r), all = !!cur.all, [vy, vm] = viewYM(r), prev = monthRange(vy, vm - 1);
   // The cash-flow chart's months (six unless its settings say otherwise), up to today in All time
   const nMonths = tileOpt('cashflow', 'months');
-  const [ny, nm] = nowMonth(), months = [...Array(nMonths)].map((_, i) => all ? monthRange(ny, nm - nMonths + 1 + i) : monthRange(S.y, S.m - nMonths + 1 + i));
+  const [ny, nm] = nowMonth(), months = [...Array(nMonths)].map((_, i) => all ? monthRange(ny, nm - nMonths + 1 + i) : monthRange(vy, vm - nMonths + 1 + i));
   const p = (x: Period) => ({ start: x.start, end: x.end });
-  const future = !all && (S.y > ny || (S.y === ny && S.m > nm));
+  const future = !all && (vy > ny || (vy === ny && vm > nm));
   const monthOnly = future || all;   // cards that only make sense for one month (insights, the day heatmap)
   const uncatQ = 'has_no_category:true transaction_type:withdrawal date_after:' + cur.start + ' date_before:' + cur.end;
   const own = L.accounts.filter(a => a.active);
@@ -66,6 +66,7 @@ VIEWS[''] = async (r, paint) => {
     monthOnly || !on('pace') ? none : getAll('/transactions', { start: prev.start, end: prev.end, type: 'withdrawal' }).catch(() => []),
     on('trends') ? Promise.all(months.map(mo => insight('/insight/expense/category', p(mo), monthsRs).catch(() => []))) : none]);
   slowP.catch(() => {});
+  if (r.at) { await Promise.all([coreP, slowP]).catch(() => {}); return; }     // loading a month ahead: the data is all it needs
   const [summary, catNow, catPrev, noCatNow, noCatPrev, trend, recent, budgets, limits, bills, uncat, allTot] = await coreP;
   const nwKey = Object.keys(summary || {}).find(k => k.startsWith('net-worth-in'));
   const computedNW = own.filter(isAsset).reduce((s, a) => s + a.balance, 0) - loans.reduce((s, l) => s + l.debt, 0);

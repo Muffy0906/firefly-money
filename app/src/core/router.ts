@@ -1,7 +1,7 @@
 import { type Html, html, htmlList } from './html';
-import { type ApiError, AuthError, CACHE, INFLIGHT, PAGES, PDB } from './api';
+import { type ApiError, AuthError, CACHE, INFLIGHT, PAGES, PDB, netBusy, sleep } from './api';
 import { showLogin } from './auth';
-import { App, S, type State, el, monthOf, setToday, today } from './base';
+import { App, S, type State, el, monthOf, nowMonth, setToday, today } from './base';
 import { VT_OK, drawNav, toast, vt, vtName } from './dom';
 import { lists } from './lists';
 import { morph, morphOk, sameLayout, snapshot } from './morph';
@@ -25,7 +25,7 @@ export function hashWith(changes: Record<string, string | null | undefined>) {
   return '#/' + r.name + (r.id ? '/' + encodeURIComponent(r.id) : '') + (qs ? '?' + qs : '');
 }
 // Each page module registers its view here by route name. A view draws the page by calling paint with its markup.
-export type RouteInfo = ReturnType<typeof parseHash>;
+export type RouteInfo = ReturnType<typeof parseHash> & { at?: [number, number] };     // at: see viewYM
 export type Paint = ((markup: Html | string) => void) & { live?: boolean };
 export type View = (r: RouteInfo, paint: Paint) => Promise<unknown> | void;
 export const VIEWS: Record<string, View> = {};
@@ -52,7 +52,7 @@ function syncToday() {
 }
 export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: boolean } = {}) {
   syncToday();
-  const r = parseHash(), tok = ++S.tok, v = el('view');
+  const r = parseHash(), tok = ++S.tok, v = el('view'), stepped = S.vtDir;
   S.swr = !!opts.nav;
   const key = r.name + '/' + r.id + '?' + new URLSearchParams(r.q) + '@' + (S.all ? 'all' : S.y + '-' + S.m);
   const cacheable = CACHEABLE.has(r.name) && !S.dashEdit;
@@ -93,6 +93,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
       if (window.App && App.fillStrip) App.fillStrip();     // put away before its month strip came: fill it in now
       if (v.querySelector('input[data-sel]:checked')) App.selChanged();
       if (saved.stale) setTimeout(revalidate, 50);
+      warmMonths(r, tok, stepped);
     };
     if (instant || !dir || inPlace) return swap();     // a tab you've seen comes straight back, like a native tab bar
     const t = vt('page', swap, () => { document.documentElement.dataset.vtdir = dir || ''; });
@@ -163,6 +164,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
     await (VIEWS[r.name] || VIEWS[''])(r, paint);
     netFails = 0;
     if (S.staleTok === tok && tok === S.tok) setTimeout(revalidate, 50);
+    warmMonths(r, tok, stepped);
   } catch (e) {
     if (e instanceof AuthError) return showLogin(e.message);
     const onError = !!v.querySelector(':scope > .error');
@@ -244,14 +246,42 @@ async function recalcAll(btn?: HTMLButtonElement) {
     if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = label; }
   }
 }
-// After a refresh, quietly load the main tabs in the background so opening them is instant.
+/* ---------- Loading ahead: other tabs and the months either side, while nothing else is going on ---------- */
+// Only while the app is on screen and online, and not when the device asks to save data (Data Saver; iOS doesn't say).
+const mayLoadAhead = () => document.visibilityState === 'visible' && navigator.onLine && !S.refreshing &&
+  !(navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+// Waits for a quiet moment: no requests going, and (where the browser has it) an idle frame. False: give up for now.
+async function quiet(stillWanted: () => boolean) {
+  for (let i = 0; netBusy() && i < 50; i++) await sleep(200);
+  if (netBusy() || !stillWanted() || !mayLoadAhead()) return false;
+  const ric = window.requestIdleCallback;
+  await new Promise(res => ric ? ric(res, { timeout: 1500 }) : setTimeout(res, 50));
+  return stillWanted() && mayLoadAhead();
+}
+// After a refresh, quietly load the main tabs (this month) so opening them is instant.
+const WARM_TABS = ['', 'transactions', 'budgets', 'accounts', 'categories', 'bills', 'piggy', 'forecast'];
 async function warmTabs() {
-  const cur = parseHash().name;
-  await new Promise(res => setTimeout(res, 1200));
-  for (const name of ['', 'transactions', 'budgets', 'accounts']) {
-    if (name === cur || S.refreshing) continue;
-    await new Promise(res => setTimeout(res, 250));
-    try { await VIEWS[name]({ name, id: '', q: {} }, () => {}); } catch (e) { /* optional */ }
+  const cur = parseHash().name, at: [number, number] | undefined = S.all ? undefined : [S.y, S.m];
+  await sleep(1200);
+  for (const name of WARM_TABS) {
+    if (name === cur || !VIEWS[name]) continue;
+    if (!await quiet(() => !S.refreshing)) return;
+    try { await VIEWS[name]({ name, id: '', q: {}, at }, () => {}); } catch (e) { /* optional */ }
+  }
+}
+// On a page that shows one month, load the month before and the one after, so stepping either way is instant.
+// After stepping back it starts with the month before (and after stepping forward, the one after), so going on
+// in the same direction is ready first. Stops as soon as you go somewhere else.
+const MONTH_PAGES = new Set(['', 'transactions', 'budgets', 'categories', 'bills', 'account']);
+async function warmMonths(r: RouteInfo, tok: number, stepped?: string) {
+  if (!MONTH_PAGES.has(r.name) || S.all || r.q.search || (r.name === 'account' && r.q.range && r.q.range !== 'month')) return;
+  const [y, m] = [S.y, S.m], [ny, nm] = nowMonth();
+  await sleep(300);
+  for (const d of stepped === 'next' ? [1, -1] : [-1, 1]) {
+    const x = new Date(y, m + d, 1), at: [number, number] = [x.getFullYear(), x.getMonth()];
+    if ((at[0] - ny) * 12 + at[1] - nm > 12) continue;      // the month picker stops a year ahead
+    if (!await quiet(() => tok === S.tok)) return;
+    try { await VIEWS[r.name]({ ...r, at }, () => {}); } catch (e) { /* optional */ }
   }
 }
 document.addEventListener('visibilitychange', () => {

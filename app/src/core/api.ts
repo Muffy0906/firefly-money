@@ -83,6 +83,8 @@ export async function api(path: string, opt: ApiOpts = {}): Promise<ApiData> {
 const NET_MAX = 6, NET_RETRY = [400, 1200, 3000], NET_BUSY = new Set([429, 502, 503, 504]);
 let netActive = 0;
 const netQueue: (() => void)[] = [];
+// How many requests are being sent or waiting, so loading ahead can wait until the network is quiet
+export const netBusy = () => netActive + netQueue.length;
 async function netSlot<T>(fn: () => Promise<T>): Promise<T> {
   if (netActive >= NET_MAX) await new Promise<void>(res => netQueue.push(res));
   netActive++;

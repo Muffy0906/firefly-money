@@ -1,7 +1,7 @@
 import { html, htmlList } from '../core/html';
 import { AuthError, api } from '../core/api';
 import { busy, showLogin } from '../core/auth';
-import { App, S, absDiff, arr, el, money, money0, monthRange, period, type ApiData, type Period } from '../core/base';
+import { App, S, absDiff, arr, el, money, money0, monthRange, type ApiData, type Period, viewPeriod, viewYM } from '../core/base';
 import { closeDrawer, confirmBox, formError, head, monthNav, openDrawer, toast } from '../core/dom';
 import { invalidate, lists } from '../core/lists';
 import { VIEWS, route } from '../core/router';
@@ -10,11 +10,12 @@ import { insight } from '../features/refunds';
 /* ================= Categories & tags ================= */
 VIEWS.categories = async (r, paint) => {
   const L = await lists(true);
-  const cur = period(), all = !!cur.all, prev = monthRange(S.y, S.m - 1), p = (x: Period) => ({ start: x.start, end: x.end });
+  const [vy, vm] = viewYM(r), cur = viewPeriod(r), all = !!cur.all, prev = monthRange(vy, vm - 1), p = (x: Period) => ({ start: x.start, end: x.end });
   const [spNow, spPrev, inNow] = await Promise.all([
     insight('/insight/expense/category', p(cur)), all ? [] : insight('/insight/expense/category', p(prev)),
     insight('/insight/income/category', p(cur)).catch(() => []),
   ]);
+  if (r.at) return;     // loading a month ahead
   const by = (res: ApiData) => Object.fromEntries(arr(res).map(x => [String(x.id), absDiff(x)]));
   const a = by(spNow), b = by(spPrev), c = by(inNow);
   const cats = L.categories.map(x => ({ ...x, now: a[x.id] || 0, prev: b[x.id] || 0, inc: c[x.id] || 0 })).sort((x, y) => y.now - x.now || x.name.localeCompare(y.name));
