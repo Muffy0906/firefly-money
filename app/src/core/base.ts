@@ -29,7 +29,7 @@ export interface State {
   form: FormState | null,
   // Pages and navigation
   pageKey?: string, pageHtml?: string | Html, pageLive?: boolean, pageCacheable?: boolean, pageDepth?: number, painted?: boolean, bootStale?: boolean, warmed?: boolean,
-  navN?: number, curNav?: number, tabNav?: boolean, kIdx?: number, skelT?: ReturnType<typeof setTimeout>,
+  navN?: number, curNav?: number, tabNav?: boolean, kIdx?: number, skelT?: ReturnType<typeof setTimeout>, dimT?: ReturnType<typeof setTimeout>,
   vtDir?: string, vtRun?: (ViewTransition & { kind?: string }) | null, vtFrom?: { node: Element, t: number } | null, lastPtr?: { x: number, y: number },
   // Cache freshness (api.ts)
   swr?: boolean, swrOff?: number, lastRefresh?: number, refreshing?: Promise<void> | null, recalcing?: boolean,

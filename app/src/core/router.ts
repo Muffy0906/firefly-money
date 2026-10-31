@@ -4,6 +4,7 @@ import { showLogin } from './auth';
 import { App, S, type State, el, monthOf, setToday, today } from './base';
 import { VT_OK, drawNav, toast, vt, vtName } from './dom';
 import { lists } from './lists';
+import { morph, morphOk, sameLayout, snapshot } from './morph';
 
 /* ================= Router ================= */
 function skeleton() {
@@ -76,18 +77,23 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
   if (saved) {
     PAGES.delete(key);
     const dir = S.vtDir; S.vtDir = '';
+    // another month of a page that keeps its layout: redraw in place from what's on screen (see paint below)
+    const snap = (dir === 'next' || dir === 'prev') && !instant && morphOk() && S.pageLive && v.firstElementChild ? snapshot(v) : null;
+    const inPlace = !!snap && sameLayout(snap, saved.frag);
     const swap = () => {
+      const at = scrollY;
       stashPage(S.feed);
-      v.replaceChildren(saved.frag); v.classList.remove('enter');
-      if (!instant && (!dir || !VT_OK)) { void v.offsetWidth; v.classList.add('enter'); }     // the same entrance as a first visit
+      v.replaceChildren(saved.frag); v.classList.remove('enter', ...(inPlace ? ['anim'] : []));
+      if (!instant && !inPlace && (!dir || !VT_OK)) { void v.offsetWidth; v.classList.add('enter'); }     // the same entrance as a first visit
       S.pageKey = key; S.pageHtml = saved.html; S.pageCacheable = true; S.pageLive = true;
       S.feed = saved.feed; S.kIdx = -1; if (saved.chart) S.chartData = saved.chart;
-      scrollTo(0, saved.scroll);
-      if (window.App && App.replayIn) App.replayIn();
+      scrollTo(0, inPlace ? at : saved.scroll);
+      if (inPlace) morph(v, snap!);
+      else if (window.App && App.replayIn) App.replayIn();
       if (v.querySelector('input[data-sel]:checked')) App.selChanged();
       if (saved.stale) setTimeout(revalidate, 50);
     };
-    if (instant || !dir) return swap();     // a tab you've seen comes straight back, like a native tab bar
+    if (instant || !dir || inPlace) return swap();     // a tab you've seen comes straight back, like a native tab bar
     const t = vt('page', swap, () => { document.documentElement.dataset.vtdir = dir || ''; });
     if (t) t.kind = 'page';
     return;
@@ -96,16 +102,20 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
   // Opening a deeper page (an account) keeps the list on screen a little longer, so a quick answer slides straight
   // in; a slow one slides in its placeholder right away and fills it when the data comes.
   const pushing = S.vtDir === 'push' && !instant;
+  // Another month: keep this one up (dimmed) a little longer, so the page can redraw in place when the data comes
+  const month = (S.vtDir === 'next' || S.vtDir === 'prev') && !instant && morphOk();
   let painted = false;
+  if (month && !opts.quiet) S.dimT = setTimeout(() => { if (tok === S.tok && !painted) v.classList.add('stale'); }, 140);
   if (!opts.quiet) S.skelT = setTimeout(() => {
     if (tok !== S.tok) return;
+    v.classList.remove('stale');
     // a skipped slide still runs its update later, so the placeholder must not land on top of a page that already painted
     const show = () => { if (painted || tok !== S.tok) return; stashPage(prevFeed); v.innerHTML = String(skeleton()); };
     if (!pushing || S.vtDir !== 'push') return show();
     S.vtDir = '';
     const t = vt('page', show, () => { document.documentElement.dataset.vtdir = 'push'; });
     if (t) t.kind = 'page';
-  }, pushing ? 350 : 140);
+  }, pushing ? 350 : month ? 900 : 140);
   const paint: Paint = markup => {
     if (tok !== S.tok) return;
     clearTimeout(S.skelT);
@@ -114,25 +124,36 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
     if (S.vtRun && S.vtRun.kind !== 'page') { S.vtRun.finished.catch(() => {}).then(() => paint(markup)); return; }   // let a drawer animation finish first
     const fresh = key !== S.pageKey;
     const from = S.vtFrom && S.vtFrom.node.isConnected && Date.now() - S.vtFrom.t < 4000 ? S.vtFrom.node : null; S.vtFrom = null;
+    const dir = S.vtDir; S.vtDir = '';
+    // What's on screen now, so a redraw in the same layout can move from it: a refresh or edit of this page, or a
+    // month change on a page whose cards don't depend on the month (Overview, Budgets…), which then redraws in place
+    // instead of sliding (Transactions, a different list each month, still slides)
+    const snap = morphOk() && S.painted && S.pageLive && !instant && v.firstElementChild && (!fresh || dir === 'next' || dir === 'prev') ? snapshot(v) : null;
+    let frag: DocumentFragment | null = null, inPlace = false;
+    if (snap && fresh) {
+      const tpl = document.createElement('template'); tpl.innerHTML = String(markup); frag = tpl.content;
+      inPlace = sameLayout(snap, frag);
+    }
     const swap = () => {
-      painted = true;
-      const keep = fresh ? 0 : scrollY;
+      painted = true; clearTimeout(S.dimT); v.classList.remove('stale');
+      const keep = fresh && !inPlace ? 0 : scrollY;
       if (fresh) stashPage(prevFeed);
-      v.innerHTML = String(markup);
+      if (frag) v.replaceChildren(frag); else v.innerHTML = String(markup);
       S.sel = new Set();          // the new rows start unticked
       S.pageKey = key; S.pageHtml = markup; S.pageCacheable = cacheable && !v.querySelector(':scope > .error'); S.pageLive = true;
       if (from) vtName(v.querySelector('.head h1'), 'ptitle');
-      if (!fresh || !VT_OK || opts.quiet || instant || !dir) { v.classList.remove('enter'); if (fresh && !opts.quiet && !instant) { void v.offsetWidth; v.classList.add('enter'); } }
-      scrollTo(0, fresh ? 0 : keep);          // new pages start at the top; a refresh keeps your place
-      if (window.App && App.afterPaint) App.afterPaint(r, { quiet: opts.quiet || !fresh });
+      if (inPlace) v.classList.remove('enter', 'anim');
+      else if (!fresh || !VT_OK || opts.quiet || instant || !dir) { v.classList.remove('enter'); if (fresh && !opts.quiet && !instant) { void v.offsetWidth; v.classList.add('enter'); } }
+      scrollTo(0, keep);          // new pages start at the top; a refresh (or a month redrawn in place) keeps your place
+      if (snap && (inPlace || !fresh)) morph(v, snap);
+      if (window.App && App.afterPaint) App.afterPaint(r, { quiet: opts.quiet || !fresh || inPlace });
       if (S.bootStale) { S.bootStale = false; S.warmed = true; setTimeout(() => refreshAll(), 60); }     // opened from saved data: update quietly (and then warm the tabs)
       else if (!S.warmed) { S.warmed = true; warmTabs(); }    // first page after signing in: get the other tabs ready too
     };
-    const dir = S.vtDir; S.vtDir = '';
     // Only moves with a direction (into an account, back out, to another month) slide the page. A plain switch to
     // another page lets its cards rise in instead: snapshotting the whole page for a fade costs the phone a frame or
     // more right as you tap, and the two motions on top of each other look like a stutter.
-    if (!fresh || !S.painted || opts.quiet || instant || !dir) { S.painted = true; return swap(); }
+    if (!fresh || !S.painted || opts.quiet || instant || !dir || inPlace) { S.painted = true; return swap(); }
     const t = vt('page', swap, () => { document.documentElement.dataset.vtdir = dir || ''; vtName(from, 'ptitle'); });
     if (t) t.kind = 'page';
   };

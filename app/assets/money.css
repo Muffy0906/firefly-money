@@ -461,6 +461,13 @@
     :is(#view.anim, .pop) :is(.donut, .ring) .seg { animation: sweepIn .6s cubic-bezier(.3, 0, .2, 1) both; animation-delay: calc(.25s + var(--at, 0) * .9s); }
     :is(#view.anim, .pop) .chart .pt .dot { animation: fadeIn .4s 1.1s both; }
   }
+  /* ---------- Morph (core/morph.ts): a redraw in the same layout moves from the old values to the new ---------- */
+  /* An amount rolling like an odometer: each changed digit is a column one line tall, its strip of digits moved by
+     JS in whole pixels. vertical-align: top + the line's own height keeps every digit on the text's baseline. */
+  .odo { display: inline-block; overflow: hidden; vertical-align: top; }
+  .odo-s { display: block; white-space: pre; }
+  /* Waiting for another month's numbers: the page stays and dims, then redraws in place */
+  #view.stale { opacity: .55; transition: opacity .25s ease; }
   /* ---------- Overview: Add cards (Customize), the newer charts ---------- */
   .dash-add { flex-basis: 100%; margin-top: 6px; }
   .dash-add .eyebrow { margin-bottom: 8px; }
@@ -1217,6 +1224,8 @@
     .drawer { top: auto; left: 0; right: 0; width: 100%; max-height: 92vh; max-height: 92dvh; border-radius: 22px 22px 0 0; transform: translateY(105%); box-shadow: 0 -10px 40px rgba(0,0,0,.25); }
     .drawer.open { transform: none; }
     .drawer.dragging { transition: none !important; }
+    .drawer::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 120px; background: inherit; }     /* pulled up past its place (gestures.ts): no gap under it */
+    .drawer .body { overscroll-behavior-y: contain; }
     .grab { display: block; width: 40px; height: 5px; border-radius: 99px; background: var(--line); margin: 9px auto -4px; flex: none; }
     .drawer header { padding-top: 14px; touch-action: none; }
     .drawer footer { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
@@ -1554,6 +1563,8 @@
      way in and come back once there's room on the way out, so text never slides across an icon. */
   @media (min-width: 901px) {
     .app { transition: grid-template-columns .34s var(--ease-glide); }
+    html.side-glide .app { overflow-x: clip; }
+    html.side-glide main#view { width: var(--glide-w); max-width: none; }     /* one width for the whole fold (prefs.ts toggleSide) */
     .side { transition: padding .34s var(--ease-glide); }
     .brand { flex: none; transition: padding .34s var(--ease-glide), gap .34s var(--ease-glide); }
     .brand > span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; }
