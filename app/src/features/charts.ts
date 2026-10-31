@@ -160,6 +160,8 @@ function heatmapPanel(cur: Period, groups: Group[]) {
     const pct = v ? Math.round(18 + 82 * Math.sqrt(v / max)) : 0;
     cells = html`${cells}<button type="button" class="hm-cell${fut ? ' fut' : ''}${iso === t ? ' today' : ''}"${v ? html` style="--p:${pct}%"` : ''} data-tip="${fmtDay(iso) + (v ? ' · ' + money(v) + ' · ' + cnt[iso] + ' purchase' + (cnt[iso] === 1 ? '' : 's') : fut ? '' : ' · nothing spent')}"${v ? html` data-onclick="App.go('#/transactions?search=date_on:${iso}')"` : ' disabled'}><span>${d}</span></button>`;
   }
+  // Every month gets six week rows, so the calendar (and the card) is the same height whichever month it shows
+  for (let i = lead + dim; i < 42; i++) cells = html`${cells}<span class="hm-cell pad"></span>`;
   const top = Object.entries(by).sort((a, b) => b[1] - a[1])[0];
   const passed = cur.start.slice(0, 7) === t.slice(0, 7) ? +t.slice(8, 10) : dim, free = Math.max(0, passed - days);
   return html`<section class="panel"><h2>Daily spending</h2><p class="lead">Darker days cost more · tap one to see it</p><div class="hm"><div class="hm-dow">${htmlList(['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(x => html`<span>${x}</span>`))}</div><div class="hm-grid">${cells}</div></div><div class="hm-foot"><span>${top ? html`Biggest day: <strong class="num">${money0(top[1])}</strong> on ${fmtDay(top[0])}` : 'No spending yet'}</span><span>${free} no-spend day${free === 1 ? '' : 's'}</span></div></section>`;
@@ -197,7 +199,11 @@ function fitText(t: string, px: number, weight = 500) {
   while (n > 1 && skCtx.measureText(t.slice(0, n).trimEnd() + '…').width > px) n--;
   return t.slice(0, n).trimEnd() + '…';
 }
-function sankeySvg(d: Flow, W: number, fill = 0) {
+// The most rows a side can have: six categories, one for the rest, and Kept (sankeyPanel caps them)
+const SK_ROWS = 8;
+// minRows: lay the chart out as if it had at least this many rows, so a bento card is as tall in a month with
+// three categories as in one with eight
+function sankeySvg(d: Flow, W: number, fill = 0, minRows = 0) {
   const { inc, spend } = d;
   // Copies, so laying the nodes out leaves the chart's data as it was
   const left = d.left.map(n => ({ ...n }) as LaidNode), right = d.right.map(n => ({ ...n }) as LaidNode);
@@ -206,9 +212,13 @@ function sankeySvg(d: Flow, W: number, fill = 0) {
   const CW = Math.min(W, 1100), ox = (W - CW) / 2;
   const total = Math.max(inc, spend), narrow = CW < 560, rows = Math.max(left.length, right.length);
   const NW = 12, GAP = 10, LINE = 34, PAD = 7, LW = narrow ? 0 : Math.min(230, Math.max(160, Math.round(CW * .2)));
-  const H0 = Math.max(220, (LINE + 8) * rows + 24, Math.round(fill));     // fill: the height a bento card has for it
-  const k = (H0 - 20 - GAP * (rows - 1)) / total;
-  // Each side node gets at least a label's height of room, so its label can sit right beside it
+  const H0 = Math.max(220, (LINE + 8) * Math.max(rows, minRows) + 24, Math.round(fill));     // fill: the height a bento card has for it
+  // Each side node gets at least a label's height of room, so its label can sit right beside it. When small nodes'
+  // labels would push a side past the chart's height, the bands get thinner rather than the chart taller.
+  const need = (ns: LaidNode[], k: number) => ns.reduce((s, n) => s + Math.max(Math.max(2, n.v * k) + GAP, LINE), 0) - GAP;
+  const over = (k: number) => Math.max(need(left, k), need(right, k)) > H0 - 20;
+  let k = (H0 - 20 - GAP * (rows - 1)) / total;
+  if (over(k) && !over(0)) { let lo = 0, hi = k; for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; if (over(m)) hi = m; else lo = m; } k = lo; }
   left.concat(right).forEach(n => { n.h = Math.max(2, n.v * k); n.slot = Math.max(n.h + GAP, LINE); });
   const tall = (nodes: LaidNode[]) => nodes.reduce((s, n) => s + n.slot, 0) - GAP;
   const H = Math.max(H0, Math.ceil(Math.max(tall(left), tall(right))) + 20);
@@ -249,8 +259,8 @@ function fitSankey1(sec: HTMLElement) {
   const svg = sec.querySelector('svg'), box = sec.querySelector<HTMLElement>('.sk-box'), w = Math.round(sec.clientWidth - parseFloat(getComputedStyle(sec).paddingLeft) - parseFloat(getComputedStyle(sec).paddingRight));
   if (!svg || !box || !sec.isConnected || w <= 0) return;
   try {
-    const d = JSON.parse(sec.dataset.sk!), own = sankeySvg(d, w), ownH = Number(/viewBox="0 0 \d+ (\d+)"/.exec(String(own))![1]);
     const tall = !!sec.closest('.cards.bento');
+    const d = JSON.parse(sec.dataset.sk!), own = sankeySvg(d, w, 0, tall ? SK_ROWS : 0), ownH = Number(/viewBox="0 0 \d+ (\d+)"/.exec(String(own))![1]);
     if (tall) box.style.setProperty('--sk-h', ownH + 'px');
     const h = tall ? Math.round(box.clientHeight) : 0, fill = h > ownH + 4 ? h : 0;
     if (Math.abs(w - Number(svg.dataset.w)) < 2 && Math.abs(fill - Number(svg.dataset.h || 0)) < 2) return;

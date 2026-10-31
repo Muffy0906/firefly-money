@@ -1667,6 +1667,8 @@
   .cards.bento .sankey .sk-box > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
   .cards.bento .w[data-w="spending"] .share { flex: 1; align-items: center; }
   .cards.bento .w[data-w="spending"] .share .parts { align-self: stretch; display: flex; flex-direction: column; justify-content: space-evenly; }
+  /* room for its most rows (seven), so the card doesn't change height with the month's number of categories */
+  .cards.bento .w[data-w="spending"] .share .parts { min-height: calc(7 * 2.7em + 60px); }
   /* a list spreads down the card rather than leaving its bottom empty */
   .cards.bento .w:is([data-w="cash"], [data-w="cards"], [data-w="bills"]) .list, .cards.bento .w[data-w="loans"] .loan-rows { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; }
   /* the ring grows into a tall card too */
