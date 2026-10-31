@@ -1,6 +1,6 @@
 import { type Html, html, htmlList } from '../core/html';
 import { api, getAll } from '../core/api';
-import { App, PAGE_SIZE, type Period, S, absDiff, arr, el, money, money0, period, sumDiff, todayIso } from '../core/base';
+import { App, PAGE_SIZE, type Period, S, absDiff, arr, el, money, money0, sumDiff, todayIso, viewPeriod } from '../core/base';
 import { head, icon, monthNav, toast } from '../core/dom';
 import { catColor, normGroup, rankCats, txRows } from '../core/feed';
 import { addDays, daysBetween } from '../core/helpers';
@@ -13,7 +13,7 @@ import { VIEWS, hashWith } from '../core/router';
 VIEWS.transactions = async (r, paint) => {
   const L = await lists();
   const q = r.q, page = Math.max(1, +q.page || 1), type = q.type || 'all', search = (q.search || '').trim();
-  const cur = period();
+  const cur = viewPeriod(r);
   let endpoint = '/transactions', scope = '';
   const find = (list: { id: string, name: string }[], id: string) => (list.find(x => x.id === id) || {}).name || '#' + id;
   if (q.budget) { endpoint = '/budgets/' + q.budget + '/transactions'; scope = 'Budget: ' + find(L.budgets, q.budget); }
@@ -25,8 +25,10 @@ VIEWS.transactions = async (r, paint) => {
     : api(endpoint, { params: { start: cur.start, end: cur.end, type, page: pg, limit: PAGE_SIZE } });
   // The month strip loads on its own and is filled in when it's ready, so it never holds up the list
   const stripOn = !search && !scope && !cur.all, stripKey = cur.start + '|' + cur.end;
-  const strip = !stripOn ? '' : lastStrip && lastStrip.key === stripKey ? lastStrip.html : html`<section class="panel txsum" id="txsum"></section>`;
+  const strip = !stripOn ? '' : STRIPS.get(stripKey)?.html || html`<section class="panel txsum" id="txsum" data-k="${stripKey}"></section>`;
   const res = await load(page);
+  // loading a month ahead: keep its strip ready too (without touching the colours of the month on screen)
+  if (r.at) { if (stripOn) await monthStrip(cur, stripKey, false).then(h => keepStrip(stripKey, h)).catch(() => {}); return; }
   const groups = arr(res).map(normGroup), pg = (res && res.meta && res.meta.pagination) || {};
   if (paint.live) S.txPage = groups;
   const pages = pg.total_pages || 1, total = pg.total ?? groups.length;
@@ -36,28 +38,39 @@ VIEWS.transactions = async (r, paint) => {
     html`${head(scope || 'Transactions', search ? 'Search results across all dates' : total + ' transaction' + (total === 1 ? '' : 's') + (cur.all ? ' in total' : ' in ' + cur.label) +
       (scope ? html` · <a class="link" href="#/transactions">Show all</a>` : ''),
       html`${search ? '' : monthNav()}<button class="btn primary new-tx" data-onclick="App.newTx()">+ New transaction</button>`)}${strip}<div class="txbar${search ? ' searching' : ''}"><form class="search" data-onsubmit="event.preventDefault();App.search(this.q.value)">${icon('search')}<input type="search" name="q" placeholder="Search, e.g. amazon or category:Gas" title="Search all transactions — try: amazon, category:Gas, amount_more:100" value="${search}" aria-label="Search transactions"></form><div class="tabs">${tab('all', 'All')}${tab('withdrawal', 'Expenses')}${tab('deposit', 'Income')}${tab('transfer', 'Transfers')}</div>${search ? html`<button class="link" data-onclick="App.search('')">Clear</button>` : ''}${groups.length ? html`<label class="check selall"><input type="checkbox" data-onchange="App.selAll(this.checked)"> Select all</label>` : ''}</div><div id="bulkbar" class="bulkbar" hidden></div>${search || scope || page > 1 ? '' : draftsPanel()}<section class="daycards">${txRows(groups, { select: true, empty: search ? 'Nothing matches that search.' : (cur.all ? 'No transactions yet.' : 'No transactions this month.') })}${page < pages ? html`<div class="more" id="feedMore"><span class="spin"></span>Loading older transactions…</div>` : ''}</section>`);
-  if (stripOn) monthStrip(cur).then(h => {
-    lastStrip = { key: stripKey, html: h };
-    const box = el('txsum');
-    if (!box) return;
-    box.outerHTML = String(h);
-    // the month's ranking can change the category colours of rows already drawn
-    document.querySelectorAll<HTMLElement>('#view tr[data-gid]').forEach(tr => {
-      const m = S.txMeta[tr.dataset.gid!], c = m && m.g.splits.map(x => x.category).find(Boolean);
-      if (c) tr.style.setProperty('--cat', catColor(c));
-    });
-  }).catch(() => { el('txsum')?.remove(); });
+  if (stripOn) monthStrip(cur, stripKey).then(h => { keepStrip(stripKey, h); fillStrip(); }).catch(() => { const box = el('txsum'); if (box && box.dataset.k === stripKey && !box.childElementCount) box.remove(); });
 };
-let lastStrip: { key: string, html: Html } | null = null;
+// The month strips drawn so far (by period), so going back to a month shows its strip straight away
+const STRIPS = new Map<string, { n: number, html: Html }>();
+let stripN = 0;
+function keepStrip(key: string, h: { n: number, html: Html }) {
+  STRIPS.delete(key); STRIPS.set(key, h);
+  while (STRIPS.size > 24) STRIPS.delete(STRIPS.keys().next().value!);
+}
+// Puts the strip into the page on screen once it's ready. It's matched to its month by data-k, never just to whatever
+// #txsum is there: the page may not be on screen yet when the numbers come (a month change slides the old page out
+// first), the page may have been put away before they came (a quick month change, or a tap to another tab, keeps
+// that page as it was, empty strip and all, to bring back later), or it may be another month's page by then.
+// So this also runs after every paint and every page brought back (polish.ts).
+function fillStrip() {
+  const box = el('txsum'), s = box && box.dataset.k ? STRIPS.get(box.dataset.k) : null;
+  if (!box || !s || box.dataset.n === String(s.n)) return;
+  box.outerHTML = String(s.html);
+  // the month's ranking can change the category colours of rows already drawn
+  document.querySelectorAll<HTMLElement>('#view tr[data-gid]').forEach(tr => {
+    const m = S.txMeta[tr.dataset.gid!], c = m && m.g.splits.map(x => x.category).find(Boolean);
+    if (c) tr.style.setProperty('--cat', catColor(c));
+  });
+}
 
 // The month at a glance: spent, earned and what's left, and a bar for each day's spending (tap one to go to that day).
 // Its category totals also set the feed's category colours, the same as the overview's donut.
-async function monthStrip(cur: Period) {
+async function monthStrip(cur: Period, key: string, rank = true) {
   const p = { start: cur.start, end: cur.end }, rs = refundsIn(cur.start, cur.end), days = daysBetween(cur.start, cur.end) + 1;
   const [inc, exp, cats, noCat, spends] = await Promise.all([insight('/insight/income/total', p, rs), insight('/insight/expense/total', p, rs),
     insight('/insight/expense/category', p, rs), insight('/insight/expense/no-category', p, rs).catch(() => []),
     days <= 45 ? getAll('/transactions', { ...p, type: 'withdrawal' }).catch(() => []) : []]);
-  rankCats([...arr(cats).map(x => ({ name: String(x.name), v: absDiff(x) })), { name: 'Uncategorized', v: sumDiff(noCat) }]);
+  if (rank) rankCats([...arr(cats).map(x => ({ name: String(x.name), v: absDiff(x) })), { name: 'Uncategorized', v: sumDiff(noCat) }]);
   const earned = sumDiff(inc), spent = sumDiff(exp), net = earned - spent;
   const byDay: Record<string, number> = {}, nDay: Record<string, number> = {};
   arr(spends).map(normGroup).forEach(g => { const d = String(g.date).slice(0, 10); byDay[d] = (byDay[d] || 0) + g.total; nDay[d] = (nDay[d] || 0) + 1; });
@@ -71,7 +84,7 @@ async function monthStrip(cur: Period) {
       ? html`<button type="button" class="db fut" style="--v:0" aria-label="${fmt(d)}" disabled><i></i></button>`
       : html`<button type="button" class="db${d === today ? ' now' : ''}" data-day="${d}" data-onclick="App.txDay(this.dataset.day)" style="--v:${(v / most).toFixed(3)}" data-tip="${tip}" aria-label="${label}"><i></i></button>`;
   }));
-  return html`<section class="panel txsum" id="txsum"><div class="ts-k"><div><span class="eyebrow">Spent</span><strong class="num">${money0(spent)}</strong></div><div><span class="eyebrow">Earned</span><strong class="num pos">${money0(earned)}</strong></div><div><span class="eyebrow">Net</span><strong class="num${net < 0 ? ' neg' : ''}">${net > 0 ? '+' : ''}${money0(net)}</strong></div></div>${list.length ? html`<div class="dbars" role="group" aria-label="Spending each day">${bars}</div>` : ''}</section>`;
+  return { n: ++stripN, html: html`<section class="panel txsum" id="txsum" data-k="${key}" data-n="${stripN}"><div class="ts-k"><div><span class="eyebrow">Spent</span><strong class="num">${money0(spent)}</strong></div><div><span class="eyebrow">Earned</span><strong class="num pos">${money0(earned)}</strong></div><div><span class="eyebrow">Net</span><strong class="num${net < 0 ? ' neg' : ''}">${net > 0 ? '+' : ''}${money0(net)}</strong></div></div>${list.length ? html`<div class="dbars" role="group" aria-label="Spending each day">${bars}</div>` : ''}</section>` };
 }
 
 // On a phone the first tap on a day's bar shows its tip (see polish.ts) and a second tap on it goes to the day, since
@@ -105,6 +118,7 @@ async function txDay(day: string) {
 // The methods markup handlers call (see events.ts), added to App and to its type
 const methods = {
   txDay,
+  fillStrip,
 };
 Object.assign(App, methods);
 type Methods = typeof methods;

@@ -107,8 +107,13 @@
   .head .sub { color: var(--muted); margin: 2px 0 0; font-size: 13.5px; }
   .head .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .month { display: flex; align-items: center; gap: 4px; }
-  .month span { min-width: 132px; text-align: center; font-weight: 500; }
+  .month span { min-width: 132px; white-space: nowrap; text-align: center; font-weight: 500; }
   .month .today-gap { visibility: hidden; }
+  /* the label in full ("September 2026"), or short ("Sep 2026") where Overview's header row is tight on a phone */
+  .month i { font-style: normal; } .month .ms { display: none; }
+  @media (max-width: 440px) { .head .actions:has(.dash-edit) .month :is(.ml, .ms) { display: none; } .head .actions:has(.dash-edit) .month .ms { display: inline; } }
+  @media (max-width: 360px) { .head .actions:has(.dash-edit) .month { gap: 4px; } .head .actions:has(.dash-edit) .month .round { width: 30px; height: 30px; }
+    .head .actions:has(.dash-edit) .month .btn { padding-inline: 9px; font-size: 13px; } }
   .month span small.cycle { display: block; font-size: 11px; font-weight: 400; color: var(--muted); line-height: 1.2; }
   .round { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); cursor: pointer; font-size: 15px; line-height: 1; }
   .round:disabled { opacity: .35; cursor: default; }
@@ -246,6 +251,8 @@
   .stat .val { font-size: 25px; letter-spacing: -.02em; }
   .stat .sub, .sub-s { font-size: 12.5px; color: var(--muted); }
   .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-bottom: 22px; }
+  /* two to a row on a phone: an odd one out at the end takes the whole row instead of sitting alone on the left */
+  @media (max-width: 573px) { .kpis > .kpi:last-child:nth-child(odd) { grid-column: 1 / -1; } }
   .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; }
   .kpi .val { font-size: 22px; letter-spacing: -.02em; }
   .total { font-size: 28px; font-weight: 300; letter-spacing: -.02em; margin-bottom: 14px; }
@@ -637,6 +644,14 @@
   .insight:hover .x, .insight .x:focus-visible { opacity: 1; }
   .insight .x:hover { background: var(--faint); color: var(--text); }
   @media (hover: none) { .insight .x { opacity: .7; } }
+  /* drawn icons (ICON_X / ICON_PREV / ICON_NEXT) in the small glyph buttons: centred in a box, sized to the old glyph */
+  :is(.tagcloud .chip, .saved-reports .chip) button, .editor-row .x, .calpop .ch button, .insight .x { display: inline-grid; place-items: center; line-height: 0; }
+  :is(.tagcloud .chip, .saved-reports .chip) button { width: 20px; height: 20px; padding: 0; border-radius: 50%; }
+  :is(.tagcloud .chip, .saved-reports .chip) button svg { width: 10px; height: 10px; }
+  .editor-row .x { width: 28px; height: 28px; padding: 0; border-radius: 50%; } .editor-row .x svg { width: 13px; height: 13px; }
+  .calpop .ch button { width: 32px; height: 28px; padding: 0; } .calpop .ch button svg { width: 14px; height: 14px; }
+  .insight .x { padding: 0; } .insight .x svg { width: 11px; height: 11px; }
+  .round svg { width: 14px; height: 14px; } .month .round svg { width: 15px; height: 15px; }
   /* ---------- Part 2: widgets, sheets, pickers, charts ---------- */
   .cards .w { break-inside: avoid; display: inline-block; width: 100%; margin-bottom: 20px; vertical-align: top; }
   .cards .w > .panel { contain: layout paint; }
@@ -1324,6 +1339,9 @@
   form.ask { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 6px 14px; margin-bottom: 16px; }
   form.ask svg { width: 18px; height: 18px; color: var(--muted); flex: none; }
   form.ask input { border: 0; background: none; flex: 1; font-size: 16px; padding: 8px 0; outline: none; box-shadow: none; }
+  /* the themes' input fill and focus ring (html[data-theme] :is(input[type=text], …)) would draw a second box inside the bar */
+  html form.ask input[type], html form.ask input[type]:focus { background: none; border: 0; box-shadow: none; }
+  html .pickpop input[type], html .pickpop input[type]:focus { background: transparent; box-shadow: none; border-color: var(--line); }
   .ask-answer .ask-title { font-size: 18px; line-height: 1.45; margin: 6px 0 12px; }
   .ask-answer .list button.row { width: 100%; text-align: left; font: inherit; color: inherit; background: none; border: 0; border-top: 1px solid var(--line); border-radius: 0; padding-left: 0; padding-right: 0; cursor: pointer; }
   .ask-answer { margin-bottom: 16px; }
@@ -1593,9 +1611,12 @@
     html.side-mini .side .foot > :is(#ffLink, button) { max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; visibility: hidden; transition: max-height .34s var(--ease-glide), padding .34s var(--ease-glide), opacity .1s ease, visibility 0s .34s; }
   }
   @media (max-width: 520px) {
-    .head .actions:has(.dash-edit) { gap: 8px; flex-wrap: nowrap; }
-    .head .actions:has(.dash-edit) .month span { min-width: 0; padding: 0 4px; }
-    .head .actions:has(.dash-edit) .month .btn { padding-inline: 12px; }
+    .head .actions:has(.dash-edit) { gap: 6px; row-gap: 8px; flex: 1 1 100%; }
+    /* the row under the title is clear of the search button, so only the title keeps out of its way */
+    html:not(.shell) #view > .head:first-child:has(.dash-edit) { padding-right: 0; }
+    html:not(.shell) #view > .head:first-child:has(.dash-edit) > :first-child { padding-right: 52px; }
+    .head .actions:has(.dash-edit) .month span { min-width: 0; padding: 0 2px; }
+    .head .actions:has(.dash-edit) .month .btn { padding-inline: 11px; margin-left: 0 !important; }
     .month .today-gap { display: none; }
   }
   /* a narrow tile: bills put the amount under the name rather than cutting the name short; budget rings two to a row */
@@ -1667,6 +1688,8 @@
   .cards.bento .sankey .sk-box > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
   .cards.bento .w[data-w="spending"] .share { flex: 1; align-items: center; }
   .cards.bento .w[data-w="spending"] .share .parts { align-self: stretch; display: flex; flex-direction: column; justify-content: space-evenly; }
+  /* room for its most rows (seven), so the card doesn't change height with the month's number of categories */
+  .cards.bento .w[data-w="spending"] .share .parts { min-height: calc(7 * 2.7em + 60px); }
   /* a list spreads down the card rather than leaving its bottom empty */
   .cards.bento .w:is([data-w="cash"], [data-w="cards"], [data-w="bills"]) .list, .cards.bento .w[data-w="loans"] .loan-rows { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; }
   /* the ring grows into a tall card too */

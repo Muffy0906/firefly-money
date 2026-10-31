@@ -1,4 +1,4 @@
-import { Html, html, htmlList } from '../core/html';
+import { Html, html, htmlList, raw } from '../core/html';
 import { getAll } from '../core/api';
 import { App, absDiff, fmtDay, money, money0, pad, todayIso, type ApiData, type Period } from '../core/base';
 import { SERIES, normGroup, signed, type Group } from '../core/feed';
@@ -74,6 +74,8 @@ export function ring(pct: number, cls = '', sub = '', mid = '') {
 export type LinePoint = { label: string, a: number, b: number };
 const short$ = (v: number) => v >= 1e6 ? '$' + +(v / 1e6).toFixed(1) + 'm' : v >= 1e3 ? '$' + +(v / 1e3).toFixed(1) + 'k' : '$' + Math.round(v);
 function niceMax(v: number) { const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; }
+// The hover/tap strip around one point, a step wide but kept inside the plot (the first and last would stick out half a step)
+const hitBox = (cx: number, step: number, lo: number, hi: number) => { const a = Math.max(lo, cx - step / 2), b = Math.min(hi, cx + step / 2); return raw(`x="${a.toFixed(1)}" width="${(b - a).toFixed(1)}"`); };
 export function twoLines(pts: LinePoint[], names: [string, string], colors: [string, string], label: string) {
   const W = innerWidth < 600 ? 360 : 640, H = innerWidth < 600 ? 220 : 280, pl = 46, pr = 8, pt = 10, pb = 26, n = pts.length, base = H - pb;
   const max = niceMax(Math.max(1, ...pts.flatMap(p => [p.a, p.b])) / 4) * 4;     // four even steps
@@ -82,7 +84,7 @@ export function twoLines(pts: LinePoint[], names: [string, string], colors: [str
   const area = la + ' L' + x(n - 1).toFixed(1) + ' ' + base + ' L' + x(0).toFixed(1) + ' ' + base + ' Z';
   const grid = htmlList([0, 1, 2, 3, 4].map(k => { const v = max * k / 4, yy = y(v).toFixed(1); return html`<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 8}" y="${(+yy + 4).toFixed(1)}" text-anchor="end">${short$(v)}</text>`; }));
   const every = Math.max(1, Math.ceil(n / 6)), ticks = htmlList(pts.map((p, i) => (i % every || x(n - 1) - x(i) < 50) && i !== n - 1 ? '' : html`<text x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}">${p.label}</text>`));
-  const hits = htmlList(pts.map((p, i) => html`<rect x="${(x(i) - (W - pl - pr) / Math.max(1, n - 1) / 2).toFixed(1)}" y="0" width="${((W - pl - pr) / Math.max(1, n - 1)).toFixed(1)}" height="${base}" fill="transparent" data-tip="${p.label + '\n' + names[0] + ' ' + money0(p.a) + '\n' + names[1] + ' ' + money0(p.b)}"/>`));
+  const hits = htmlList(pts.map((p, i) => html`<rect ${hitBox(x(i), (W - pl - pr) / Math.max(1, n - 1), pl, W - pr)} y="0" height="${base}" fill="transparent" data-tip="${p.label + '\n' + names[0] + ' ' + money0(p.a) + '\n' + names[1] + ' ' + money0(p.b)}"/>`));
   return html`<svg class="lines" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}"><defs><linearGradient id="lg-a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${colors[0]}" stop-opacity=".32"/><stop offset="1" stop-color="${colors[0]}" stop-opacity="0"/></linearGradient></defs><g class="grid">${grid}</g><path class="area" d="${area}" fill="url(#lg-a)" style="color:${colors[0]}"/><path class="draw" pathLength="1" d="${la}" fill="none" stroke="${colors[0]}" stroke-width="2.6" stroke-linecap="round"/><path class="draw late" pathLength="1" d="${lb}" fill="none" stroke="${colors[1]}" stroke-width="2.2" stroke-linecap="round"/>${ticks}${hits}</svg><div class="legend"><span><i style="background:${colors[0]}"></i>${names[0]}</span><span><i style="background:${colors[1]}"></i>${names[1]}</span></div>`;
 }
 
@@ -99,7 +101,7 @@ export function paceChart(days: number[], before: number[], dim: number, label: 
   const grid = htmlList([0, 1, 2, 3, 4].map(k => { const v = max * k / 4, yy = y(v).toFixed(1); return html`<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 8}" y="${(+yy + 4).toFixed(1)}" text-anchor="end">${short$(v)}</text>`; }));
   const ticks = htmlList([1, 8, 15, 22, n].filter((d, i, l) => d <= n && l.indexOf(d) === i).map(d => html`<text x="${x(d - 1).toFixed(1)}" y="${H - 6}" text-anchor="${d === 1 ? 'start' : d === n ? 'end' : 'middle'}">${d}</text>`));
   const i = a.length - 1, dot = i >= 0 ? html`<circle class="pace-dot" cx="${x(i).toFixed(1)}" cy="${y(a[i]).toFixed(1)}" r="4.5" fill="var(--accent)"/>` : '';
-  const hits = htmlList([...Array(n)].map((_, d) => html`<rect x="${(x(d) - (W - pl - pr) / Math.max(1, n - 1) / 2).toFixed(1)}" y="0" width="${((W - pl - pr) / Math.max(1, n - 1)).toFixed(1)}" height="${base}" fill="transparent" data-tip="${'Day ' + (d + 1) + (d < a.length ? '\n' + label[0] + ' ' + money0(a[d]) : '') + (d < b.length ? '\n' + label[1] + ' ' + money0(b[d]) : '')}"/>`));
+  const hits = htmlList([...Array(n)].map((_, d) => html`<rect ${hitBox(x(d), (W - pl - pr) / Math.max(1, n - 1), pl, W - pr)} y="0" height="${base}" fill="transparent" data-tip="${'Day ' + (d + 1) + (d < a.length ? '\n' + label[0] + ' ' + money0(a[d]) : '') + (d < b.length ? '\n' + label[1] + ' ' + money0(b[d]) : '')}"/>`));
   return html`<svg class="lines" viewBox="0 0 ${W} ${H}" role="img" aria-label="Spending this month against last month"><defs><linearGradient id="lg-pace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".28"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs><g class="grid">${grid}</g>${lb ? html`<path class="draw" pathLength="1" d="${lb}" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="1" stroke-linecap="round" opacity=".7"/>` : ''}${area ? html`<path class="area" d="${area}" fill="url(#lg-pace)" style="color:var(--accent)"/>` : ''}${la ? html`<path class="draw late" pathLength="1" d="${la}" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linecap="round"/>` : ''}${dot}${ticks}${hits}</svg><div class="legend"><span><i style="background:var(--accent)"></i>${label[0]}</span><span><i style="background:var(--muted)"></i>${label[1]}</span></div>`;
 }
 
@@ -160,6 +162,8 @@ function heatmapPanel(cur: Period, groups: Group[]) {
     const pct = v ? Math.round(18 + 82 * Math.sqrt(v / max)) : 0;
     cells = html`${cells}<button type="button" class="hm-cell${fut ? ' fut' : ''}${iso === t ? ' today' : ''}"${v ? html` style="--p:${pct}%"` : ''} data-tip="${fmtDay(iso) + (v ? ' · ' + money(v) + ' · ' + cnt[iso] + ' purchase' + (cnt[iso] === 1 ? '' : 's') : fut ? '' : ' · nothing spent')}"${v ? html` data-onclick="App.go('#/transactions?search=date_on:${iso}')"` : ' disabled'}><span>${d}</span></button>`;
   }
+  // Every month gets six week rows, so the calendar (and the card) is the same height whichever month it shows
+  for (let i = lead + dim; i < 42; i++) cells = html`${cells}<span class="hm-cell pad"></span>`;
   const top = Object.entries(by).sort((a, b) => b[1] - a[1])[0];
   const passed = cur.start.slice(0, 7) === t.slice(0, 7) ? +t.slice(8, 10) : dim, free = Math.max(0, passed - days);
   return html`<section class="panel"><h2>Daily spending</h2><p class="lead">Darker days cost more · tap one to see it</p><div class="hm"><div class="hm-dow">${htmlList(['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(x => html`<span>${x}</span>`))}</div><div class="hm-grid">${cells}</div></div><div class="hm-foot"><span>${top ? html`Biggest day: <strong class="num">${money0(top[1])}</strong> on ${fmtDay(top[0])}` : 'No spending yet'}</span><span>${free} no-spend day${free === 1 ? '' : 's'}</span></div></section>`;
@@ -197,7 +201,11 @@ function fitText(t: string, px: number, weight = 500) {
   while (n > 1 && skCtx.measureText(t.slice(0, n).trimEnd() + '…').width > px) n--;
   return t.slice(0, n).trimEnd() + '…';
 }
-function sankeySvg(d: Flow, W: number, fill = 0) {
+// The most rows a side can have: six categories, one for the rest, and Kept (sankeyPanel caps them)
+const SK_ROWS = 8;
+// minRows: lay the chart out as if it had at least this many rows, so a bento card is as tall in a month with
+// three categories as in one with eight
+function sankeySvg(d: Flow, W: number, fill = 0, minRows = 0) {
   const { inc, spend } = d;
   // Copies, so laying the nodes out leaves the chart's data as it was
   const left = d.left.map(n => ({ ...n }) as LaidNode), right = d.right.map(n => ({ ...n }) as LaidNode);
@@ -206,9 +214,13 @@ function sankeySvg(d: Flow, W: number, fill = 0) {
   const CW = Math.min(W, 1100), ox = (W - CW) / 2;
   const total = Math.max(inc, spend), narrow = CW < 560, rows = Math.max(left.length, right.length);
   const NW = 12, GAP = 10, LINE = 34, PAD = 7, LW = narrow ? 0 : Math.min(230, Math.max(160, Math.round(CW * .2)));
-  const H0 = Math.max(220, (LINE + 8) * rows + 24, Math.round(fill));     // fill: the height a bento card has for it
-  const k = (H0 - 20 - GAP * (rows - 1)) / total;
-  // Each side node gets at least a label's height of room, so its label can sit right beside it
+  const H0 = Math.max(220, (LINE + 8) * Math.max(rows, minRows) + 24, Math.round(fill));     // fill: the height a bento card has for it
+  // Each side node gets at least a label's height of room, so its label can sit right beside it. When small nodes'
+  // labels would push a side past the chart's height, the bands get thinner rather than the chart taller.
+  const need = (ns: LaidNode[], k: number) => ns.reduce((s, n) => s + Math.max(Math.max(2, n.v * k) + GAP, LINE), 0) - GAP;
+  const over = (k: number) => Math.max(need(left, k), need(right, k)) > H0 - 20;
+  let k = (H0 - 20 - GAP * (rows - 1)) / total;
+  if (over(k) && !over(0)) { let lo = 0, hi = k; for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; if (over(m)) hi = m; else lo = m; } k = lo; }
   left.concat(right).forEach(n => { n.h = Math.max(2, n.v * k); n.slot = Math.max(n.h + GAP, LINE); });
   const tall = (nodes: LaidNode[]) => nodes.reduce((s, n) => s + n.slot, 0) - GAP;
   const H = Math.max(H0, Math.ceil(Math.max(tall(left), tall(right))) + 20);
@@ -249,8 +261,8 @@ function fitSankey1(sec: HTMLElement) {
   const svg = sec.querySelector('svg'), box = sec.querySelector<HTMLElement>('.sk-box'), w = Math.round(sec.clientWidth - parseFloat(getComputedStyle(sec).paddingLeft) - parseFloat(getComputedStyle(sec).paddingRight));
   if (!svg || !box || !sec.isConnected || w <= 0) return;
   try {
-    const d = JSON.parse(sec.dataset.sk!), own = sankeySvg(d, w), ownH = Number(/viewBox="0 0 \d+ (\d+)"/.exec(String(own))![1]);
     const tall = !!sec.closest('.cards.bento');
+    const d = JSON.parse(sec.dataset.sk!), own = sankeySvg(d, w, 0, tall ? SK_ROWS : 0), ownH = Number(/viewBox="0 0 \d+ (\d+)"/.exec(String(own))![1]);
     if (tall) box.style.setProperty('--sk-h', ownH + 'px');
     const h = tall ? Math.round(box.clientHeight) : 0, fill = h > ownH + 4 ? h : 0;
     if (Math.abs(w - Number(svg.dataset.w)) < 2 && Math.abs(fill - Number(svg.dataset.h || 0)) < 2) return;

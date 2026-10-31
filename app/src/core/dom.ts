@@ -1,4 +1,4 @@
-import { type Html, html, htmlList } from './html';
+import { type Html, html, htmlList, raw } from './html';
 import { App, S, type State, el, fmtDate, fmtDay, monthRange, nowMonth } from './base';
 import { BUZZ_DELETE, buzz } from './haptics';
 
@@ -109,10 +109,10 @@ export function openDrawer(title: string, bodyHtml: Html | string, footHtml?: Ht
     d.insertAdjacentHTML('beforeend', String(html`<div class="body" id="drawerBody">${bodyHtml}</div>${footHtml ? html`<footer>${footHtml}</footer>` : ''}`));
     return;
   }
-  d.innerHTML = String(html`<div class="grab" aria-hidden="true"></div><header>${h ? drawerHeroHtml({ ...h, kicker: title === 'Loading…' ? h.kicker : title }) : html`<h2>${title}</h2>`}<button class="round" type="button" data-onclick="App.closeDrawer()" aria-label="Close">×</button></header><div class="body" id="drawerBody">${bodyHtml}</div>${footHtml ? html`<footer>${footHtml}</footer>` : ''}`);
+  d.innerHTML = String(html`<div class="grab" aria-hidden="true"></div><header>${h ? drawerHeroHtml({ ...h, kicker: title === 'Loading…' ? h.kicker : title }) : html`<h2>${title}</h2>`}<button class="round" type="button" data-onclick="App.closeDrawer()" aria-label="Close">${ICON_X}</button></header><div class="body" id="drawerBody">${bodyHtml}</div>${footHtml ? html`<footer>${footHtml}</footer>` : ''}`);
   if (!wasOpen) S.drawerReturn = document.activeElement as HTMLElement | null;
   d.setAttribute('aria-label', String(title === 'Loading…' && h ? h.name : title));
-  d.classList.add('open'); d.setAttribute('aria-hidden', 'false'); el('scrim').classList.add('open');
+  d.classList.add('open'); d.setAttribute('aria-hidden', 'false'); d.inert = false; el('scrim').classList.add('open');
   if (!wasOpen) setTimeout(() => { const f = d.querySelector<HTMLElement>('input:not([type=hidden]):not([type=checkbox]):not([type=date]), select'); if (f && innerWidth > 900) f.focus(); }, 280);
 }
 export function closeDrawer() {
@@ -125,6 +125,7 @@ export function closeDrawer() {
     d.classList.remove('open'); d.setAttribute('aria-hidden', 'true'); el('scrim').classList.remove('open');
     const back = S.drawerReturn; S.drawerReturn = null;
     if (back && back.isConnected && back.focus && d.contains(document.activeElement)) back.focus({ preventScroll: true });
+    d.inert = true;   // off screen, so Tab skips its buttons
   };
   if (!row) return shut();
   // Morph the drawer's avatar back into its row while the drawer slides away
@@ -141,13 +142,19 @@ export function formError(msg: string) {
   if (!e) { e = document.createElement('div'); e.className = 'form-err'; b.prepend(e); }
   e.textContent = msg; b.scrollTop = 0;
 }
+// Icons for small round buttons: drawn, not text glyphs (× ‹ › sit on the font's baseline, so they land a pixel or two
+// low, by an amount that depends on the system font)
+const svgIcon = (d: string, w = 1.8) => raw(`<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`);
+export const ICON_X = svgIcon('M3.5 3.5l9 9M12.5 3.5l-9 9');
+export const ICON_PREV = svgIcon('M10 3L5 8l5 5');
+export const ICON_NEXT = svgIcon('M6 3l5 5-5 5');
 // Today keeps its place (hidden) in the current month, so the arrows don't jump when you step to another month
 export function monthNav() {
   if (S.all) return html`<div class="month"><span>All time</span><button class="btn small" style="margin-left:6px" data-onclick="App.thisMonth()">By month</button></div>`;
   const r = monthRange(S.y, S.m), [ny, nm] = nowMonth();
   const ahead = (S.y - ny) * 12 + (S.m - nm);
   const isNow = ahead >= 12;   // allow planning up to a year ahead
-  return html`<div class="month"><button class="round" data-onclick="App.shiftMonth(-1)" aria-label="Previous month">‹</button><span title="${fmtDate(r.start)} – ${fmtDate(r.end)}">${r.label}${r.start.endsWith('-01') ? '' : html`<small class="cycle">${fmtDay(r.start)} – ${fmtDay(r.end)}</small>`}</span><button class="round" data-onclick="App.shiftMonth(1)" aria-label="Next month"${isNow ? ' disabled' : ''}>›</button>${ahead !== 0 ? html`<button class="btn small" style="margin-left:6px" data-onclick="App.thisMonth()">Today</button>` : html`<button class="btn small today-gap" style="margin-left:6px" aria-hidden="true" tabindex="-1" disabled>Today</button>`}<button class="btn small" style="margin-left:6px" data-onclick="App.allTime()">All time</button></div>`;
+  return html`<div class="month"><button class="round" data-onclick="App.shiftMonth(-1)" aria-label="Previous month">${ICON_PREV}</button><span title="${fmtDate(r.start)} – ${fmtDate(r.end)}"><i class="ml">${r.label}</i><i class="ms">${r.short} ${r.y}</i>${r.start.endsWith('-01') ? '' : html`<small class="cycle">${fmtDay(r.start)} – ${fmtDay(r.end)}</small>`}</span><button class="round" data-onclick="App.shiftMonth(1)" aria-label="Next month"${isNow ? ' disabled' : ''}>${ICON_NEXT}</button>${ahead !== 0 ? html`<button class="btn small" style="margin-left:6px" data-onclick="App.thisMonth()">Today</button>` : html`<button class="btn small today-gap" style="margin-left:6px" aria-hidden="true" tabindex="-1" disabled>Today</button>`}<button class="btn small" style="margin-left:6px" data-onclick="App.allTime()">All time</button></div>`;
 }
 export function head(title: string | Html, sub: string | Html, actions?: string | Html) {
   return html`<div class="head"><div><h1>${title}</h1>${sub ? html`<p class="sub">${sub}</p>` : ''}</div><div class="actions">${actions || ''}</div></div>`;

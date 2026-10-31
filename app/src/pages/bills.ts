@@ -1,7 +1,7 @@
 import { Html, html, htmlList } from '../core/html';
 import { api, getAll } from '../core/api';
 import { busy } from '../core/auth';
-import { App, S, el, fmtDate, fmtDay, money, money0, monthOf, monthRange, nowMonth, num, todayIso, type ApiData, type Field, type Period } from '../core/base';
+import { App, S, el, fmtDate, fmtDay, money, money0, monthOf, monthRange, nowMonth, num, todayIso, type ApiData, type Field, type Period, viewYM } from '../core/base';
 import { closeDrawer, formError, head, monthNav, openDrawer, opt, toast } from '../core/dom';
 import { normGroup } from '../core/feed';
 import { LS, addDays } from '../core/helpers';
@@ -15,8 +15,9 @@ export const billAmount = (at: ApiData) => at.amount_avg != null ? num(at.amount
 VIEWS.bills = async (r, paint) => {
   await lists();
   // Bills are a schedule, so All time shows this month's due and paid status
-  const cur = S.all ? monthRange(...nowMonth()) : monthRange(S.y, S.m);
+  const cur = S.all && !r.at ? monthRange(...nowMonth()) : monthRange(...viewYM(r));
   const bills = await getAll('/bills', { start: cur.start, end: cur.end });
+  if (r.at) return;     // loading a month ahead
   const active = bills.filter(b => b.attributes.active !== false);
   const monthly = active.reduce((s, b) => s + billAmount(b.attributes) * (FREQ[b.attributes.repeat_freq] || ['', 1])[1] / ((b.attributes.skip || 0) + 1), 0);
   const grp = (b: ApiData) => b.attributes.object_group_title || '';

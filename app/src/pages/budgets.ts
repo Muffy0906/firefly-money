@@ -1,7 +1,7 @@
 import { html, htmlList } from '../core/html';
 import { AuthError, api, getAll } from '../core/api';
 import { busy, showLogin } from '../core/auth';
-import { App, S, arr, el, fmtDay, money, money0, monthRange, num, period, sumDiff, todayIso, type ApiData, type Period } from '../core/base';
+import { App, S, arr, el, fmtDay, money, money0, monthRange, num, sumDiff, todayIso, type ApiData, type Period, viewPeriod } from '../core/base';
 import { addDays, budgetAlert, daysBetween } from '../core/helpers';
 import { closeDrawer, formError, head, monthNav, openDrawer, opt, toast } from '../core/dom';
 import { invalidate, lists, type Lists } from '../core/lists';
@@ -44,13 +44,14 @@ export async function budgetLimits(cur: Period, L: Lists) {
 }
 VIEWS.budgets = async (r, paint) => {
   const L = await lists();
-  const cur = period(), all = !!cur.all;   // All time shows what was spent; amounts are set per month
+  const cur = viewPeriod(r), all = !!cur.all;   // All time shows what was spent; amounts are set per month
   const rs = refundsIn(cur.start, cur.end);   // refunds of purchases on a budget come off what it spent (see refunds.ts)
   const [res, limits, noBudget, avail] = await Promise.all([
     Promise.all([api('/budgets', { params: { start: cur.start, end: cur.end } }), rs]).then(([b, x]) => budgetsLessRefunds(arr(b), x)), all ? {} as Record<string, BudgetLimit> : budgetLimits(cur, L),
     insight('/insight/expense/no-budget', { start: cur.start, end: cur.end }, rs).catch(() => []),
     all ? { data: [] } : api('/available-budgets', { params: { start: cur.start, end: cur.end } }).catch(() => ({ data: [] })),
   ]);
+  if (r.at) return;     // loading a month ahead
   const available = arr(avail).reduce((s, x) => s + num(x.attributes.amount), 0);
   const showInactive = r.q.inactive === '1';
   const bs = arr(res).map(b => ({ id: String(b.id), name: b.attributes.name, active: b.attributes.active !== false, notes: b.attributes.notes || '',

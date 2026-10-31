@@ -27,6 +27,7 @@ function afterPaint(r: RouteInfo, o: { quiet?: boolean } = {}) {
   if (!o.quiet) { countUp(); playIn(); }
   bindChart();
   bindSwipe();
+  if (App.fillStrip) App.fillStrip();       // Transactions: a month strip that came before its page was on screen
   if (App.afterPaint2) App.afterPaint2(r);
 }
 // A tab you've seen before comes back from memory without a paint: play its entrance all the same

@@ -77,6 +77,10 @@ export function monthRange(y: number, m: number) {
 // The period the month selector shows: one month, or everything up to today when "All time" is picked.
 const ALL_START = '1970-01-01';
 export const period = (): Period => S.all ? { start: ALL_START, end: todayIso(), label: 'all time', short: 'all time', all: true } : monthRange(S.y, S.m);
+// The month a page loads. Usually the one picked at the top; `at` asks for another month (the one before or after),
+// which the router loads ahead of time so stepping to it is instant. A view given `at` only fetches, it draws nothing.
+export const viewYM = (r: { at?: [number, number] }): [number, number] => r.at || [S.y, S.m];
+export const viewPeriod = (r: { at?: [number, number] }): Period => r.at ? monthRange(...r.at) : period();
 // A number from Firefly's strings ("12.50"); anything that isn't one counts as 0
 export const num = (v: unknown) => { const n = parseFloat(v as string); return isNaN(n) ? 0 : n; };
 // The list in a response: either the response itself or its data

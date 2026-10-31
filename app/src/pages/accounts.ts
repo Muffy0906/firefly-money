@@ -1,7 +1,7 @@
 import { Html, html, htmlList } from '../core/html';
 import { api, getAll } from '../core/api';
 import { busy } from '../core/auth';
-import { App, S, absDiff, arr, el, fmtDate, fmtDay, money, money0, monthRange, num, period, today, todayIso, type Field } from '../core/base';
+import { App, S, absDiff, arr, el, fmtDate, fmtDay, money, money0, monthRange, num, period, today, todayIso, type Field, viewYM } from '../core/base';
 import { closeDrawer, confirmBox, formError, head, monthNav, openDrawer, opt, toast } from '../core/dom';
 import { type Group, nameAvatar, normGroup, signed, txRows } from '../core/feed';
 import { logoDomain, setLogoSite } from '../core/logo';
@@ -54,8 +54,8 @@ VIEWS.account = async (r, paint) => {
   const accRes = await api('/accounts/' + r.id);
   const a = normAccount(accRes.data);
   let range = ['month', 'year', 'all'].includes(r.q.range) ? r.q.range : (isLiab(a) ? 'all' : 'month');
-  if (range === 'month' && S.all) range = 'all';   // "All time" picked in the month selector
-  const cur = monthRange(S.y, S.m);
+  if (range === 'month' && S.all && !r.at) range = 'all';   // "All time" picked in the month selector
+  const cur = monthRange(...viewYM(r));
   const period = range === 'month' ? { start: cur.start, end: cur.end, label: cur.label, short: cur.short }
     : range === 'year' ? { start: addDays(todayIso(), -365), end: todayIso(), label: 'the last 12 months', short: '12 mo' }
     : { label: 'all time', short: 'all time' };
@@ -63,6 +63,7 @@ VIEWS.account = async (r, paint) => {
   const yearAgo = monthRange(today.getFullYear(), today.getMonth() - 11).start;
   const [txs, year] = await Promise.all([getAll('/accounts/' + r.id + '/transactions', period.start ? { start: period.start, end: period.end } : {}),
     isAsset(a) || isLiab(a) ? null : getAll('/accounts/' + r.id + '/transactions', { start: yearAgo, end: todayIso() }).catch(() => null)]);
+  if (r.at) return;     // loading a month ahead
   const groups = txs.map(normGroup).sort((x, y) => String(y.date).localeCompare(String(x.date)));
   const kind = isCard(a) ? 'card' : isLiab(a) ? 'liability' : a.type;
   const own = isAsset(a) || isLiab(a);
