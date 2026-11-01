@@ -2,9 +2,9 @@ import { type Html, html, htmlList } from './html';
 import { type ApiError, AuthError, CACHE, INFLIGHT, PAGES, dropSavedCopies, netBusy, sleep } from './api';
 import { showLogin } from './auth';
 import { App, S, type State, el, monthOf, nowMonth, setToday, today } from './base';
-import { VT_OK, drawNav, toast, vt, vtName } from './dom';
+import { VT_OK, drawNav, monthNav, toast, vt, vtName } from './dom';
 import { lists } from './lists';
-import { monthLabel, morph, morphOk, sameLayout, slideLabel, snapshot } from './morph';
+import { labelHtml, monthLabel, morph, morphOk, sameLayout, slideLabel, snapshot } from './morph';
 
 /* ================= Router ================= */
 function skeleton() {
@@ -34,6 +34,7 @@ export const VIEWS: Record<string, View> = {};
 const CACHEABLE = new Set(['', 'transactions', 'budgets', 'accounts', 'account', 'categories', 'bills', 'piggy', 'forecast', 'reports', 'recurring', 'loans', 'recap', 'timeline']);
 function stashPage(feed: State['feed']) {
   const v = el('view');
+  unstepLabel(v);
   if (!S.pageLive || !S.pageKey || !S.pageCacheable || !v.firstChild) return;
   const scroll = scrollY, frag = document.createDocumentFragment();
   while (v.firstChild) frag.appendChild(v.firstChild);
@@ -49,6 +50,42 @@ function syncToday() {
   const was = monthOf(today);
   if (S.y === was[0] && S.m === was[1]) [S.y, S.m] = monthOf(now);
   setToday(now); S.freshAfter = Date.now(); PAGES.clear();
+}
+// The month picker on screen shows the month just picked, its name sliding the way you went (the page's data
+// follows when it comes; its own picker then already says the same, so it doesn't slide twice)
+let stepped: { s: HTMLElement, html: string, title: string, next: HTMLButtonElement | null, off: boolean, today?: [Element, Element] } | null = null;
+function stepLabel(v: HTMLElement, dir: string) {
+  const s = v.querySelector<HTMLElement>('.month > span'), was = monthLabel(v);
+  if (!s || was == null) return;
+  const next = v.querySelector<HTMLButtonElement>('.month button[aria-label="Next month"]');
+  if (!stepped || stepped.s !== s) stepped = { s, html: was, title: s.title, next, off: !!next && next.disabled };
+  const tpl = document.createElement('template'); tpl.innerHTML = String(monthNav());
+  const now = tpl.content.querySelector('.month > span'); if (!now) return;
+  s.querySelectorAll('.mghost').forEach(g => g.remove());
+  s.innerHTML = now.innerHTML; s.title = now.getAttribute('title') || '';
+  const nb = tpl.content.querySelector('button[aria-label="Next month"]');
+  if (next && nb) next.disabled = nb.hasAttribute('disabled');
+  // Today shows up (or steps aside) with it
+  const today = v.querySelector('.month > .btn.small'), tb = tpl.content.querySelector('.month > .btn.small');
+  if (today && tb && today.outerHTML !== tb.outerHTML && !today.contains(document.activeElement)) { today.replaceWith(tb); stepped.today = [stepped.today ? stepped.today[0] : today, tb]; }
+  slideLabel(v, was, dir);
+}
+// A page put away keeps the month it shows: its picker goes back to that month's name. The name on screen (maybe
+// still sliding) moves over to the page that replaces it (keepLabel), so a quick answer doesn't cut its slide short.
+let liveLab: HTMLElement | null = null;
+function unstepLabel(v: HTMLElement) {
+  if (!stepped) return;
+  const { s, html: h, title, next, off, today } = stepped; stepped = null;
+  if (!v.contains(s)) return;
+  if (today && v.contains(today[1])) today[1].replaceWith(today[0]);
+  const old = s.cloneNode(false) as HTMLElement; old.classList.remove('msliding'); old.innerHTML = h; old.title = title;
+  s.replaceWith(old); if (next) next.disabled = off;
+  liveLab = s.classList.contains('msliding') ? s : null;
+}
+function keepLabel(v: HTMLElement) {
+  const s = liveLab; liveLab = null;
+  const n = s && v.querySelector<HTMLElement>('.month > span');
+  if (s && n && s.classList.contains('msliding') && labelHtml(n) === labelHtml(s)) { s.title = n.title; n.replaceWith(s); }
 }
 const IN_PLACE = new Set(['', 'reports', 'forecast', 'budgets', 'categories', 'bills', 'recap']);
 export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: boolean } = {}) {
@@ -83,11 +120,11 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
     const dir = S.vtDir; S.vtDir = '';
     // another month of a page that keeps its layout: redraw in place from what's on screen (see paint below)
     const snap = (dir === 'next' || dir === 'prev' || (!dir && sameRoute)) && !instant && morphOk() && S.pageLive && v.firstElementChild ? snapshot(v) : null;
-    const inPlace = !!snap && sameLayout(snap, saved.frag);
+    const inPlace = !!snap && sameLayout(snap, saved.frag, dir);
     const swap = () => {
       const at = scrollY, lab = monthLabel(v);
       stashPage(S.feed);
-      v.replaceChildren(saved.frag); if (!instant) slideLabel(v, lab, dir); v.classList.remove('enter', ...(inPlace ? ['anim'] : []));
+      v.replaceChildren(saved.frag); keepLabel(v); if (!instant) slideLabel(v, lab, dir); v.classList.remove('enter', ...(inPlace ? ['anim'] : []));
       if (!instant && !inPlace && (!dir || !VT_OK)) { void v.offsetWidth; v.classList.add('enter'); }     // the same entrance as a first visit
       S.pageKey = key; S.pageHtml = saved.html; S.pageCacheable = true; S.pageLive = true;
       S.feed = saved.feed; S.kIdx = -1; if (saved.chart) S.chartData = saved.chart;
@@ -99,7 +136,8 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
       if (saved.stale) setTimeout(revalidate, 50);
       warmMonths(r, tok, stepped);
     };
-    if (instant || !dir || inPlace) return swap();     // a tab you've seen comes straight back, like a native tab bar
+    // a tab you've seen comes straight back, like a native tab bar; another month never slides (only its name does)
+    if (instant || !dir || inPlace || dir === 'next' || dir === 'prev') return swap();
     const t = vt('page', swap, () => { document.documentElement.dataset.vtdir = dir || ''; });
     if (t) t.kind = 'page';
     return;
@@ -111,8 +149,11 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
   // Another month: keep this one up (dimmed) a little longer, so the page can redraw in place when the data comes
   const month = (S.vtDir === 'next' || S.vtDir === 'prev') && !instant && morphOk();
   let painted = false;
+  // The month's name changes as soon as you press, so the picker answers at once even when the data takes a moment
+  if (month && !opts.quiet) stepLabel(v, S.vtDir || '');
   if (month && !opts.quiet) S.dimT = setTimeout(() => { if (tok === S.tok && !painted) v.classList.add('stale'); }, 140);
-  if (!opts.quiet) S.skelT = setTimeout(() => {
+  // (another month never swaps the page for a placeholder: it stays up, dimmed, and changes in place when the data comes)
+  if (!opts.quiet && !month) S.skelT = setTimeout(() => {
     if (tok !== S.tok) return;
     v.classList.remove('stale');
     // a skipped slide still runs its update later, so the placeholder must not land on top of a page that already painted
@@ -133,12 +174,12 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
     const dir = S.vtDir; S.vtDir = '';
     // What's on screen now, so a redraw in the same layout can move from it: a refresh or edit of this page, or a
     // month change on a page whose cards don't depend on the month (Overview, Budgets…), which then redraws in place
-    // instead of sliding (Transactions, a different list each month, still slides)
+    // instead of sliding (Transactions too: the title, strip and filters stay, and the new rows fill in from the arrow)
     const snap = morphOk() && S.painted && S.pageLive && !instant && v.firstElementChild && (!fresh || dir === 'next' || dir === 'prev' || (!dir && sameRoute)) ? snapshot(v) : null;
     let frag: DocumentFragment | null = null, inPlace = false;
     if (snap && fresh) {
       const tpl = document.createElement('template'); tpl.innerHTML = String(markup); frag = tpl.content;
-      inPlace = sameLayout(snap, frag);
+      inPlace = sameLayout(snap, frag, dir);
     }
     const swap = () => {
       painted = true; clearTimeout(S.dimT); v.classList.remove('stale');
@@ -146,6 +187,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
       const lab = monthLabel(v);           // (before the page is put away)
       if (fresh) stashPage(prevFeed);
       if (frag) v.replaceChildren(frag); else v.innerHTML = String(markup);
+      keepLabel(v);
       if (!instant) slideLabel(v, lab, dir);
       S.sel = new Set();          // the new rows start unticked
       S.pageKey = key; S.pageHtml = markup; S.pageCacheable = cacheable && !v.querySelector(':scope > .error'); S.pageLive = true;
@@ -158,10 +200,10 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
       if (S.bootStale) { S.bootStale = false; S.warmed = true; setTimeout(() => refreshAll(), 60); }     // opened from saved data: update quietly (and then warm the tabs)
       else if (!S.warmed) { S.warmed = true; warmTabs(); }    // first page after signing in: get the other tabs ready too
     };
-    // Only moves with a direction (into an account, back out, to another month) slide the page. A plain switch to
+    // Only moves with a direction (into an account, back out) slide the page. A plain switch to
     // another page lets its cards rise in instead: snapshotting the whole page for a fade costs the phone a frame or
     // more right as you tap, and the two motions on top of each other look like a stutter.
-    if (!fresh || !S.painted || opts.quiet || instant || !dir || inPlace) { S.painted = true; return swap(); }
+    if (!fresh || !S.painted || opts.quiet || instant || !dir || inPlace || dir === 'next' || dir === 'prev') { S.painted = true; return swap(); }
     const t = vt('page', swap, () => { document.documentElement.dataset.vtdir = dir || ''; vtName(from, 'ptitle'); });
     if (t) t.kind = 'page';
   };
