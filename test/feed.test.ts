@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { type Group, SERIES, catColor, dayLabel, groupUpdate, monogram, payeeOf, rankCats } from '../app/src/core/feed';
+import { type Group, SERIES, catColor, dayLabel, groupUpdate, monogram, payeeOf, rankCats, xferLabel } from '../app/src/core/feed';
 
 describe('payeeOf', () => {
   const g = (type: string, splits: unknown[], title = '') => ({ type, title, splits }) as unknown as Group;
@@ -70,5 +70,20 @@ describe('catColor', () => {
     expect(catColor('Pets')).toMatch(/^hsl\(\d+ 50% 55%\)$/);
     expect(catColor('Pets')).toBe(catColor('Pets'));
     expect(catColor('')).toBe('');
+  });
+});
+
+describe('xferLabel', () => {
+  const g = (splits: unknown[]) => ({ type: 'transfer', title: '', splits }) as unknown as Group;
+  const x = g([{ source_id: '1', source_name: 'Checking', destination_id: '2', destination_name: 'Savings' }]);
+  it('names both accounts in the all-accounts list', () => {
+    expect(xferLabel(x)).toBe('Checking → Savings');
+  });
+  it('names the other account with one in view', () => {
+    expect(xferLabel(x, '1')).toBe('→ Savings');
+    expect(xferLabel(x, '2')).toBe('← Checking');
+  });
+  it('falls back to Transfer when splits go to different accounts', () => {
+    expect(xferLabel(g([{ source_name: 'A', destination_name: 'B' }, { source_name: 'A', destination_name: 'C' }]))).toBe('Transfer');
   });
 });

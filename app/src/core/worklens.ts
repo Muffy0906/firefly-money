@@ -1,4 +1,4 @@
-import { App, monthRange, nowMonth, sumDiff } from './base';
+import { App, fmtNum, monthRange, nowMonth, sumDiff } from './base';
 import { LS } from './helpers';
 import { api } from './api';
 
@@ -17,7 +17,7 @@ export function hourlyRate() {
 export function hoursText(amount: number, short = false, rate = hourlyRate()) {
   if (!rate || !amount) return '';
   const h = Math.abs(amount) / rate, day = workHours() / 5;
-  const n = (x: number) => x < 10 ? String(Math.round(x * 10) / 10) : Math.round(x).toLocaleString('en-US');
+  const n = (x: number) => x < 10 ? fmtNum(x, 1) : fmtNum(x);
   if (Math.round(h * 60) < 60) return Math.max(1, Math.round(h * 60)) + ' min';
   if (h >= day * 2) { const d = n(h / day); return short ? d + ' d' : d + ' workdays'; }
   return short ? n(h) + ' h' : n(h) + (n(h) === '1' ? ' hour' : ' hours');

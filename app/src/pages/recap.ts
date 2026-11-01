@@ -1,6 +1,6 @@
 import { Html, html, htmlList } from '../core/html';
 import { getAll } from '../core/api';
-import { App, S, absDiff, arr, fmtDay, money, money0, monthRange, nowMonth, sumDiff, todayIso } from '../core/base';
+import { App, S, absDiff, arr, fmtDay, money, money0, monthRange, nowMonth, sumDiff, todayIso, txHref, noneHref } from '../core/base';
 import { head, monthNav } from '../core/dom';
 import { nameAvatar, normGroup } from '../core/feed';
 import { addDays } from '../core/helpers';
@@ -68,8 +68,8 @@ VIEWS.recap = async (r, paint) => {
   const catHtml = shareChart(catRows.map(x => {
     const u = usualCat.get(x.name) || 0, d = x.v - u, big = Math.abs(d) >= 20 && (!u || Math.abs(d) / u >= 0.15);
     const vs = !u ? ' · new' : big ? html` · <span class="${d > 0 ? 'up' : 'down'}">${money0(Math.abs(d))} ${d > 0 ? 'over' : 'under'}</span>` : ' · usual';
-    return { name: x.name, v: x.v, href: x.id ? '#/transactions?category=' + x.id : undefined, sub: html`${money0(x.v)}${vs}` };
-  }), html`<span class="eyebrow">Spent</span><strong class="num">${money0(spent)}</strong>`, 'Spending by category', { limit: 8, ring: pageOpt('recap', 'share') !== 'bars' });
+    return { name: x.name, v: x.v, href: x.id ? '#/transactions?category=' + x.id : x.name === 'Uncategorized' ? noneHref('category', cur) : undefined, sub: html`${money0(x.v)}${vs}` };
+  }), html`<span class="eyebrow">Spent</span><strong class="num">${money0(spent)}</strong>`, 'Spending by category', { limit: 8, ring: pageOpt('recap', 'share') !== 'bars', go: txHref({ type: 'withdrawal' }) });
 
   // Biggest single purchases, and the day you spent the most
   const splits = spends.map(normGroup).flatMap(gr => gr.splits.filter(s => s.type === 'withdrawal').map(s => ({ ...s, gid: gr.id })));
@@ -86,7 +86,7 @@ VIEWS.recap = async (r, paint) => {
   // What went out each week of the month (the last one runs to the month's end)
   const wk = [1, 8, 15, 22, 29].filter(d => d <= dim).map((d, i, l) => ({ from: d, to: (l[i + 1] || dim + 1) - 1, v: 0 }));
   splits.forEach(s => { const d = +String(s.date).slice(8, 10), w = wk.find(x => d >= x.from && d <= x.to); if (w) w.v += s.amount; });
-  const mon = cur.short.replace(/\s.*$/, ''), weeksHtml = splits.length ? barChart(wk.filter(w => cur.start.slice(0, 8) + String(w.from).padStart(2, '0') <= end).map(w => ({ label: mon + ' ' + w.from + '–' + w.to, v: w.v })), v => money0(v), 'Spending by week', { w: 380, h: 190 }) : '';
+  const mon = cur.short.replace(/\s.*$/, ''), weeksHtml = splits.length ? barChart(wk.filter(w => cur.start.slice(0, 8) + String(w.from).padStart(2, '0') <= end).map(w => ({ label: mon + ' ' + w.from + '–' + w.to, v: w.v, go: txHref({ type: 'withdrawal' }, { start: cur.start.slice(0, 8) + String(w.from).padStart(2, '0'), end: cur.start.slice(0, 8) + String(w.to).padStart(2, '0') }) })), v => money0(v), 'Spending by week', { w: 380, h: 190 }) : '';
   const { days: billOn, sum: billSum } = billDays(bills, t);
   const billList = Object.values<any>(billOn).flat(), late = billList.filter(x => x.state === 'late');
 

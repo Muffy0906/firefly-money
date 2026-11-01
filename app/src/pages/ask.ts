@@ -153,7 +153,7 @@ VIEWS.ask = async (r, paint) => {
       out = html`<section class="panel ask-answer"><div class="eyebrow">${text}</div><p class="ask-title">${a.title}</p>${a.lines && a.lines.length ? html`<div class="list">${htmlList(a.lines)}</div>` : ''}<p class="sub-s" style="margin-top:12px"><strong>How this was worked out:</strong> ${a.how}</p>${a.more ? html`<a class="btn small" href="${a.more.href}" style="margin-top:6px">${a.more.label} →</a>` : ''}</section>`;
     } catch (e) { out = html`<section class="panel"><p class="form-err">${(e as Error).message}</p></section>`; }
   }
-  paint(html`${head('Ask', 'Plain questions, answered from your Firefly data')}<form class="ask" data-onsubmit="event.preventDefault();App.ask(this.q.value)">${icon('spark')}<input type="text" name="q" value="${text}" placeholder="Ask about your money, e.g. why did I spend more this month?" autocomplete="off" enterkeyhint="go"></form>${out}<div class="ask-examples">${htmlList(EXAMPLES.map(x => html`<button type="button" class="chip" data-onclick="App.ask(this.textContent)">${x}</button>`))}</div>`);
+  paint(html`${head('Ask', 'Plain questions, answered from your Firefly data')}<form class="ask" data-onsubmit="event.preventDefault();App.ask(this.q.value)">${icon('spark')}<input type="text" id="askQ" name="q" value="${text}" placeholder="Ask about your money, e.g. why did I spend more this month?" autocomplete="off" enterkeyhint="go"></form>${out}<div class="ask-examples">${htmlList(EXAMPLES.map(x => html`<button type="button" class="chip" data-onclick="App.ask(this.textContent)">${x}</button>`))}</div>`);
 };
 function ask(q: string) { const t = String(q || '').trim(); if (t) location.hash = '#/ask?q=' + encodeURIComponent(t); }
 

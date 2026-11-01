@@ -1,10 +1,10 @@
-import { AuthError, CACHE, PAGES, PDB } from './api';
+import { AuthError, CACHE, PAGES, dropSavedCopies } from './api';
 import { S, el } from './base';
 import { closeDrawer, formError, toast } from './dom';
 
 /* Signing in and out, and what happens when Firefly or the session check says no.
    The server keeps the session in an HttpOnly cookie that scripts can't read (see app/session.js), so the page
-   only remembers whether you ticked "Keep me signed in", which decides whether data is saved on this device. */
+   only remembers whether you ticked "Keep me signed in", which decides how long the session lasts. */
 
 const SESSION = '/api/money-session', FLAG = 'moneySignedIn';
 export function rememberedSignIn() { try { return localStorage.getItem(FLAG) === '1'; } catch (e) { return false; } }
@@ -29,10 +29,9 @@ export async function migrateSavedPassword() {
   try { await signIn(k, kept); } catch (e) { if (!(e instanceof AuthError)) return; }
   try { localStorage.removeItem('moneyKey'); sessionStorage.removeItem('moneyKey'); } catch (e) { /* ignore */ }
 }
-// Everything this device saved (in memory, IndexedDB and the offline cache) goes when the sign-in screen shows.
+// Everything this tab knows (and any copy an earlier version saved) goes when the sign-in screen shows.
 function forgetDeviceData() {
-  CACHE.clear(); PAGES.clear(); PDB.clear(); S.signedIn = false; setRemembered(false);
-  try { if (window.caches) caches.open('money-v1').then(c => c.keys().then(ks => ks.forEach(k => { if (new URL(k.url).pathname.startsWith('/api/')) c.delete(k); }))).catch(() => {}); } catch (e) { /* no Cache Storage */ }
+  CACHE.clear(); PAGES.clear(); dropSavedCopies(); S.signedIn = false; setRemembered(false);
 }
 export function showLogin(msg?: string) {
   closeDrawer(); S.lists = null; forgetDeviceData();
