@@ -1968,6 +1968,16 @@
       color-mix(in srgb, var(--bg) 46%, transparent) calc(var(--f0) + (100% - var(--f0)) * .4),
       color-mix(in srgb, var(--bg) 25%, transparent) calc(var(--f0) + (100% - var(--f0)) * .6),
       color-mix(in srgb, var(--bg) 9%, transparent) calc(var(--f0) + (100% - var(--f0)) * .8), transparent); }
+  /* Beside the sidebar the layers would start with a hard vertical edge in the gap between it and the page, so there they
+     fade in from the left across that gap (the ::before blur keeps its fade at the bottom too). */
+  @media (min-width: 901px) {
+    html.pinhead #view > .head::after { --hx: linear-gradient(to right, transparent, rgba(0, 0, 0, .5) calc(var(--head-l) * .45), #000 var(--head-l));
+      -webkit-mask-image: var(--hx); mask-image: var(--hx); }
+    html.pinhead #view > .head::before { --hx: linear-gradient(to right, transparent, rgba(0, 0, 0, .5) calc(var(--head-l) * .45), #000 var(--head-l));
+      -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent), var(--hx);
+      mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent), var(--hx);
+      -webkit-mask-composite: source-in; mask-composite: intersect; }
+  }
   html.head-pinned #view > .head::before, html.head-pinned #view > .head::after { opacity: 1; visibility: visible; transition: opacity .2s ease, visibility 0s; }
   /* the day headings on Transactions and the bulk bar stick just below it */
   html.pinhead .tbl.feed tr.dayhead { top: calc(var(--head-top) + var(--head-h, 0px) + 4px) !important; z-index: 13; }
