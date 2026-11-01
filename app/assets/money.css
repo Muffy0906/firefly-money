@@ -1986,26 +1986,35 @@
 
   /* ---------- Edge glow (glass themes, mouse and trackpad only): rims near the pointer light up (features/edge.ts) ---------- */
   /* edge.ts writes the pointer's spot inside the element as --ex/--ey. They don't inherit, so moving the mouse restyles only
-     the lit element and its ring, not everything inside the card. */
+     the lit element and its ring, not everything inside the card. Every rim gets the same 1px line, the same reach and the
+     same falloff, whatever its size. */
   @property --ex { syntax: '<length>'; inherits: false; initial-value: -9999px; }
   @property --ey { syntax: '<length>'; inherits: false; initial-value: -9999px; }
+  @property --es { syntax: '<length>'; inherits: false; initial-value: 0px; }
+  @property --edge-in { syntax: '<length>'; inherits: false; initial-value: -1px; }
   @media (hover: hover) and (pointer: fine) {
-    html:is([data-theme="glass"], [data-theme="frosted"]) { --edge-r: 170px; }
-    html[data-theme="glass"] { --edge-c: color-mix(in srgb, var(--accent) 75%, #fff); --edge-c2: color-mix(in srgb, var(--accent) 40%, transparent); }
+    html:is([data-theme="glass"], [data-theme="frosted"]) { --edge-r: 140px; }
+    html[data-theme="glass"] { --edge-c: color-mix(in srgb, color-mix(in srgb, var(--accent) 65%, #fff) 60%, transparent); --edge-c2: color-mix(in srgb, var(--accent) 18%, transparent); }
     /* white vanishes on the pale frosted cards, so a warm light in the theme's accent */
-    html[data-theme="frosted"] { --edge-c: color-mix(in srgb, var(--accent) 80%, #fff); --edge-c2: color-mix(in srgb, var(--accent) 40%, transparent); }
+    html[data-theme="frosted"] { --edge-c: color-mix(in srgb, var(--accent) 45%, transparent); --edge-c2: color-mix(in srgb, var(--accent) 14%, transparent); }
     /* :where() so any rule that already places the element (absolute, fixed, sticky) wins */
     :where(html:is([data-theme="glass"], [data-theme="frosted"]) .edge) { position: relative; }
-    /* The ring lies on the element's own 1px border. Cards on the Overview and other card pages keep their painting inside
-       (contain: paint), which would cut that off, so a lit card lets its painting reach the border (overflow-clip-margin).
-       Where that isn't supported (Safari) the ring sits just inside the border instead. */
+    /* The ring lies on the element's own 1px border. Card grids keep their painting inside (contain: paint) and day cards clip
+       (overflow: clip), which would cut that off, so a lit element lets its painting reach the border (overflow-clip-margin).
+       edge.ts sets --edge-in: minus the border width, or 0 where the ring has to sit just inside (boxes that scroll, like the
+       sidebar, and clipping boxes in Safari). */
     html:is([data-theme="glass"], [data-theme="frosted"]) .edge { overflow-clip-margin: border-box; }
-    html:is([data-theme="glass"], [data-theme="frosted"]) .edge::before { content: ''; position: absolute; inset: var(--edge-in, -1px); z-index: 1; border-radius: inherit; padding: 1.5px; pointer-events: none;
-      --ex: inherit; --ey: inherit;
-      background: radial-gradient(var(--edge-r) circle at calc(var(--ex) - var(--edge-in, -1px) - 1px) calc(var(--ey) - var(--edge-in, -1px) - 1px), var(--edge-c), var(--edge-c) 15%, var(--edge-c2) 50%, transparent) border-box;
+    /* overflow: hidden ignores overflow-clip-margin; clip looks the same and honours it (edge.ts only does this where it's supported) */
+    html:is([data-theme="glass"], [data-theme="frosted"]) .edge.edge-h { overflow: clip; }
+    html:is([data-theme="glass"], [data-theme="frosted"]) .edge::before { content: ''; position: absolute; z-index: 1; border-radius: inherit; padding: 1px; pointer-events: none;
+      --ex: inherit; --ey: inherit; --es: inherit; --edge-in: inherit;
+      /* in a box that scrolls, the ring is held in place against the scroll (--es) */
+      left: var(--edge-in, -1px); right: var(--edge-in, -1px); top: calc(var(--es) + var(--edge-in, -1px)); bottom: calc(var(--edge-in, -1px) - var(--es));
+      background: radial-gradient(var(--edge-r) circle at calc(var(--ex) - var(--edge-in, -1px) - 1px) calc(var(--ey) - var(--edge-in, -1px) - 1px),
+        var(--edge-c), var(--edge-c) 15%, var(--edge-c2) 50%, transparent) border-box;
       -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
       mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
-    @supports not (overflow-clip-margin: border-box) { :is(.cards, .flow) > .panel, .cards .w > .panel { --edge-in: 0px; } }
-    /* buttons are small: a tighter spot so one doesn't light all the way round */
-    html:is([data-theme="glass"], [data-theme="frosted"]) :is(.btn, .round, .seg, .tabs).edge::before { --edge-r: 90px; padding: 1px; }
+    /* form fields can't hold the ring: their border brightens as a whole, by the same falloff (--eg), drawn as an outline
+       over the border so the field's own focus look is untouched */
+    html:is([data-theme="glass"], [data-theme="frosted"]) .edge-f:not(:focus) { outline: 1px solid color-mix(in srgb, var(--edge-c) calc(var(--eg, 0) * 65%), transparent); outline-offset: -1px; }
   }
