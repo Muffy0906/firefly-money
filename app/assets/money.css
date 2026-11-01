@@ -1952,3 +1952,34 @@
   html.pinhead .bulkbar { top: calc(var(--head-top) + var(--head-h, 0px) + 10px) !important; z-index: 13; }
   html.pinhead.shell .tbl.feed tr.dayhead, html.pinhead.shell .bulkbar { transition: top .3s cubic-bezier(.2, .8, .2, 1); }
   @media print { html.pinhead #view > .head { position: static; } html.pinhead #view > .head::before { display: none; } }
+
+  /* ---------- Scrollbars: thin, themed pills on a clear track (mouse and trackpad only; touch keeps its own) ---------- */
+  /* The ::-webkit-scrollbar rules are not behind @supports selector(): Safari answers that test "no" and then drew its default bar.
+     Firefox ignores them and gets its own block below. Nothing here sets scrollbar-width or scrollbar-color for Chrome or Safari,
+     because either one makes them ignore ::-webkit-scrollbar. */
+  @media (hover: hover) and (pointer: fine) {
+    :root { --sb-thumb: color-mix(in srgb, var(--text) 22%, transparent); --sb-thumb-hover: color-mix(in srgb, var(--text) 40%, transparent); }
+    ::-webkit-scrollbar { width: 10px; height: 10px; background: transparent; }
+    ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--sb-thumb); background-clip: padding-box; border: 2px solid transparent; border-radius: 99px; min-height: 40px; }
+    ::-webkit-scrollbar-thumb:hover { background-color: var(--sb-thumb-hover); }
+    ::-webkit-scrollbar-button { display: none; }
+    /* Chrome and Safari: the sidebar always keeps its slot (6px padding + 10px slot = the 16px on the left), so a long nav never
+       pushes the rows sideways; its pill is softer and stays clear of the rounded corners */
+    @supports not (-moz-appearance: none) {
+      @media (min-width: 901px) {
+        .side { overflow-y: scroll; padding-right: 6px; }
+        .side::-webkit-scrollbar-track { margin-block: 22px; }
+        .side::-webkit-scrollbar-thumb { background-color: color-mix(in srgb, var(--text) 14%, transparent); }
+        .side::-webkit-scrollbar-thumb:hover { background-color: var(--sb-thumb-hover); }
+        /* folded to its icons there is no room for a slot: it still scrolls with the wheel */
+        html.side-mini .side { padding-right: 7px; scrollbar-width: none; }
+        html.side-mini .side::-webkit-scrollbar { display: none; }
+      }
+    }
+    /* Firefox */
+    @supports (-moz-appearance: none) {
+      html { scrollbar-width: thin; scrollbar-color: var(--sb-thumb) transparent; }
+      html.side-mini .side { scrollbar-width: none; }
+    }
+  }
