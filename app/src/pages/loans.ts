@@ -1,7 +1,7 @@
 import { html, htmlList } from '../core/html';
 import { api, getAll } from '../core/api';
 import { withAuth } from '../core/auth';
-import { App, S, fmtDay, isoDate, money, money0, num, todayIso } from '../core/base';
+import { App, fmtD, fmtDay, isoDate, money, money0, num, S, todayIso } from '../core/base';
 import { head, toast } from '../core/dom';
 import { normGroup } from '../core/feed';
 import { LS, daysBetween } from '../core/helpers';
@@ -63,7 +63,7 @@ function simulate(loans: LoanModel[], extra: number, strategy: string) {
   }
   return { loans: st, months: st.every(l => l.paidOff !== null) ? Math.max(...st.map(l => l.paidOff!)) : null, interest: st.reduce((s, l) => s + l.accrued, 0), totals };
 }
-const monthLabel = (n: number) => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + n); return d.toLocaleString('en-US', { month: 'short', year: 'numeric' }); };
+const monthLabel = (n: number) => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + n); return fmtD(d, { month: 'short', year: 'numeric' }); };
 VIEWS.loans = async (r, paint) => {
   const L = await lists();
   const loans = L.own.filter(a => isLiab(a) && a.debt > 0);

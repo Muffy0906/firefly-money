@@ -28,6 +28,7 @@ const SETTINGS: [string, string, string][] = [
   ['Month start day (payday)', 'cycle pay period month starts budget period', '#set-months'],
   ['Budget warning', 'alert warn threshold 80% percent budget full', '#set-months'],
   ['Appearance', 'theme dark light color look', '#set-look'],
+  ['Number & date format', 'locale region language format currency decimal comma date week monday sunday euro', '#set-look'],
   ['Customize theme colors', 'theme color colour background accent liquid glass frosted blur tint frost glow light custom scene background wallpaper photo', 'theme-custom'],
   ['Payee and bank logos', 'logos icons images duckduckgo merchant', '#set-look'],
   ['About logos', 'logos duckduckgo privacy', 'logos'],

@@ -1,6 +1,6 @@
 import { type Html, html, htmlList } from '../core/html';
 import { getAll } from '../core/api';
-import { App, absDiff, arr, fmtDate, fmtDay, isoDate, money, money0, sumDiff, todayIso } from '../core/base';
+import { absDiff, App, arr, fmtD, fmtDate, fmtDay, fmtNum, isoDate, money, money0, sumDiff, todayIso } from '../core/base';
 import { toast } from '../core/dom';
 import { nameAvatar, normGroup } from '../core/feed';
 import { buzz } from '../core/haptics';
@@ -42,7 +42,7 @@ export function yearStats(splits: YearSplit[], start: string, end: string) {
 }
 
 // A number that counts up when its card comes on screen (see play below)
-const count = (v: number, fmt: 'money' | 'int' | 'pct' = 'money') => html`<span class="st-count num" data-v="${v}" data-f="${fmt}">${fmt === 'money' ? money0(v) : fmt === 'pct' ? Math.round(v) + '%' : Math.round(v).toLocaleString('en-US')}</span>`;
+const count = (v: number, fmt: 'money' | 'int' | 'pct' = 'money') => html`<span class="st-count num" data-v="${v}" data-f="${fmt}">${fmt === 'money' ? money0(v) : fmt === 'pct' ? Math.round(v) + '%' : fmtNum(v)}</span>`;
 const card = (body: Html) => html`<section class="st-card">${body}</section>`;
 const line = (i: number, body: unknown, cls = '') => html`<div class="st-in ${cls}" style="--d:${i}">${body}</div>`;
 
@@ -78,7 +78,7 @@ VIEWS.year = async (r, paint) => {
     if (earned > 0 && spent > 0) {
       const day = workHours() / 5, share = Math.min(1, spent / earned), hrs = share * day;
       const worked = workHours() * st.days / 7, paid = share * worked;
-      cards.push(card(html`${line(0, html`<div class="st-kick">Your workday</div>`)}${line(1, html`<p class="st-p">Of every ${Math.round(day * 10) / 10}-hour workday,</p><div class="st-num">${count(Math.round(hrs * 10) / 10, 'int')}<small> hours</small></div><p class="st-p">${share >= 1 ? 'and more went to what you bought.' : 'went to what you bought.'}</p>`)}${line(2, html`<div class="st-day" style="--p:${(share * 100).toFixed(1)}%"><i></i></div>`)}${line(3, html`<p class="st-p">That’s about <strong>${Math.round(paid).toLocaleString('en-US')} hours</strong> of work, at ${workHours()} a week.</p>`)}`));
+      cards.push(card(html`${line(0, html`<div class="st-kick">Your workday</div>`)}${line(1, html`<p class="st-p">Of every ${Math.round(day * 10) / 10}-hour workday,</p><div class="st-num">${count(Math.round(hrs * 10) / 10, 'int')}<small> hours</small></div><p class="st-p">${share >= 1 ? 'and more went to what you bought.' : 'went to what you bought.'}</p>`)}${line(2, html`<div class="st-day" style="--p:${(share * 100).toFixed(1)}%"><i></i></div>`)}${line(3, html`<p class="st-p">That’s about <strong>${fmtNum(paid)} hours</strong> of work, at ${workHours()} a week.</p>`)}`));
     }
     if (catRows.length) {
       const c0 = catRows[0], max = c0.v;
@@ -88,10 +88,10 @@ VIEWS.year = async (r, paint) => {
     const full = perMonth.map((v, i) => ({ v, i })).filter(m => m.v > 0);
     if (full.length >= 2) {
       const hi = full.reduce((a, b) => b.v > a.v ? b : a), done12 = full.filter(m => months[m.i].end < end || done), lo = done12.length >= 2 ? done12.reduce((a, b) => b.v < a.v ? b : a) : null;
-      const name = (i: number) => new Date(y, i, 1).toLocaleString('en-US', { month: 'long' }), max = hi.v;
+      const name = (i: number) => fmtD(new Date(y, i, 1), { month: 'long' }), max = hi.v;
       cards.push(card(html`${line(0, html`<div class="st-kick">Month by month</div>`)}${line(1, html`<h2 class="st-h">${name(hi.i)}</h2><p class="st-p">was your biggest month: ${money0(hi.v)}</p>`)}${line(2, html`<div class="st-months">${htmlList([...Array(12)].map((_, i) => { const v = perMonth[i] || 0; return html`<div class="${i === hi.i ? 'hi' : ''}${i >= perMonth.length ? ' fut' : ''}" style="--v:${(v / max * 100).toFixed(1)}%;--j:${i}"><i></i><span>${name(i)[0]}</span></div>`; }))}</div>`)}${lo && lo.i !== hi.i ? line(3, html`<p class="st-p">The calmest was ${name(lo.i)}, at ${money0(lo.v)}.</p>`) : ''}`));
     }
-    if (st.biggest) cards.push(card(html`${line(0, html`<div class="st-kick">Biggest purchase</div>`)}${line(1, html`<div class="st-num">${count(st.biggest.amount)}</div><h2 class="st-h">${st.biggest.description}</h2><p class="st-p">${st.biggest.payee !== st.biggest.description ? st.biggest.payee + ', ' : ''}${fmtDate(st.biggest.date)}</p>`)}${line(2, html`<p class="st-p">One of ${st.count.toLocaleString('en-US')} purchases, ${money(spent / Math.max(1, st.count))} on average.</p>`)}`));
+    if (st.biggest) cards.push(card(html`${line(0, html`<div class="st-kick">Biggest purchase</div>`)}${line(1, html`<div class="st-num">${count(st.biggest.amount)}</div><h2 class="st-h">${st.biggest.description}</h2><p class="st-p">${st.biggest.payee !== st.biggest.description ? st.biggest.payee + ', ' : ''}${fmtDate(st.biggest.date)}</p>`)}${line(2, html`<p class="st-p">One of ${fmtNum(st.count)} purchases, ${money(spent / Math.max(1, st.count))} on average.</p>`)}`));
     if (st.count) cards.push(card(html`${line(0, html`<div class="st-kick">Days off</div>`)}${line(1, html`<div class="st-num">${count(st.free, 'int')}</div><p class="st-p">days you didn’t buy a thing</p>`)}${st.streak >= 2 ? line(2, html`<p class="st-p">Your longest run was <strong>${st.streak} days</strong>, up to ${fmtDay(st.streakEnd)}.</p>`) : ''}${st.weekday ? line(3, html`<p class="st-p">You spend the most on <strong>${st.weekday}</strong>.</p>`) : ''}`));
     if (nwStart != null && nwEnd != null && (nwStart || nwEnd)) {
       const d = nwEnd - nwStart;
@@ -124,7 +124,7 @@ function play(i: number) {
 function countUp(c: HTMLElement) {
   cancelAnimationFrame(raf);
   const ns = [...c.querySelectorAll<HTMLElement>('.st-count')]; if (!ns.length || still()) return;
-  const t0 = performance.now() + 250, fmt = (n: HTMLElement, v: number) => n.dataset.f === 'money' ? money0(v) : n.dataset.f === 'pct' ? Math.round(v) + '%' : (n.dataset.f === 'int' && +n.dataset.v! % 1 ? v.toFixed(1) : Math.round(v).toLocaleString('en-US'));
+  const t0 = performance.now() + 250, fmt = (n: HTMLElement, v: number) => n.dataset.f === 'money' ? money0(v) : n.dataset.f === 'pct' ? Math.round(v) + '%' : (n.dataset.f === 'int' && +n.dataset.v! % 1 ? v.toFixed(1) : fmtNum(v));
   const tick = (now: number) => {
     const k = Math.min(1, Math.max(0, (now - t0) / 900)), e = 1 - Math.pow(1 - k, 3);
     ns.forEach(n => { n.textContent = fmt(n, +n.dataset.v! * e); });

@@ -1,6 +1,6 @@
 import { Html, html, htmlList, raw } from '../core/html';
 import { getAll } from '../core/api';
-import { App, absDiff, fmtDay, money, money0, pad, todayIso, type ApiData, type Period } from '../core/base';
+import { absDiff, type ApiData, App, fmtDay, leadDays, money, money0, pad, type Period, todayIso, weekOrder } from '../core/base';
 import { SERIES, normGroup, signed, type Group } from '../core/feed';
 import { addDays } from '../core/helpers';
 import type { Account } from '../core/lists';
@@ -178,7 +178,7 @@ function sparkline(vals: number[], owed: boolean) {
 function heatmapPanel(cur: Period, groups: Group[]) {
   const by: Record<string, number> = {}, cnt: Record<string, number> = {};
   groups.forEach(g => { const d = String(g.date).slice(0, 10); by[d] = (by[d] || 0) + g.total; cnt[d] = (cnt[d] || 0) + 1; });
-  const dim = new Date(cur.y!, cur.m! + 1, 0).getDate(), lead = new Date(cur.y!, cur.m!, 1).getDay(), t = todayIso();
+  const dim = new Date(cur.y!, cur.m! + 1, 0).getDate(), lead = leadDays(new Date(cur.y!, cur.m!, 1)), t = todayIso();
   const max = Math.max(1, ...Object.values(by)), days = Object.keys(by).length;
   let cells: Html | string = '';
   for (let i = 0; i < lead; i++) cells = html`${cells}<span class="hm-cell pad"></span>`;
@@ -191,7 +191,7 @@ function heatmapPanel(cur: Period, groups: Group[]) {
   for (let i = lead + dim; i < 42; i++) cells = html`${cells}<span class="hm-cell pad"></span>`;
   const top = Object.entries(by).sort((a, b) => b[1] - a[1])[0];
   const passed = cur.start.slice(0, 7) === t.slice(0, 7) ? +t.slice(8, 10) : dim, free = Math.max(0, passed - days);
-  return html`<section class="panel"><h2>Daily spending</h2><p class="lead">Darker days cost more · tap one to see it</p><div class="hm"><div class="hm-dow">${htmlList(['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(x => html`<span>${x}</span>`))}</div><div class="hm-grid">${cells}</div></div><div class="hm-foot"><span>${top ? html`Biggest day: <strong class="num">${money0(top[1])}</strong> on ${fmtDay(top[0])}` : 'No spending yet'}</span><span>${free} no-spend day${free === 1 ? '' : 's'}</span></div></section>`;
+  return html`<section class="panel"><h2>Daily spending</h2><p class="lead">Darker days cost more · tap one to see it</p><div class="hm"><div class="hm-dow">${htmlList(weekOrder(['S', 'M', 'T', 'W', 'T', 'F', 'S']).map(x => html`<span>${x}</span>`))}</div><div class="hm-grid">${cells}</div></div><div class="hm-foot"><span>${top ? html`Biggest day: <strong class="num">${money0(top[1])}</strong> on ${fmtDay(top[0])}` : 'No spending yet'}</span><span>${free} no-spend day${free === 1 ? '' : 's'}</span></div></section>`;
 }
 
 /* ---------- Money flow (income → spending categories + kept) ---------- */

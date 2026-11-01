@@ -1,4 +1,4 @@
-import { App, el } from '../core/base';
+import { App, el, fmtD } from '../core/base';
 import { FF, type FfState, api, ffSeen, ffSeenResponse, sleep } from '../core/api';
 import { refreshAll } from '../core/router';
 import { html, htmlList } from '../core/html';
@@ -60,7 +60,7 @@ const chainHtml = () => html`<ol class="ff-chain">${htmlList(chain().map(([name,
 function ago(t: number) {
   if (!t) return 'Not yet';
   const s = Math.round((Date.now() - t) / 1000);
-  return s < 5 ? 'Just now' : s < 90 ? s + 's ago' : s < 5400 ? Math.round(s / 60) + ' min ago' : new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return s < 5 ? 'Just now' : s < 90 ? s + 's ago' : s < 5400 ? Math.round(s / 60) + ' min ago' : fmtD(new Date(t), { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 function ffAddress() { const a = el('ffLink'), h = a.getAttribute('href') || ''; return !a.hidden && /^https?:\/\//.test(h) ? h : ''; }
 let popFor: HTMLElement | null = null;

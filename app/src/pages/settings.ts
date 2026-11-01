@@ -1,7 +1,7 @@
 import { html, htmlList, raw } from '../core/html';
 import { AuthError, PAGES, api, getAll, type ApiError } from '../core/api';
 import { withAuth } from '../core/auth';
-import { App, S, cycleDay, el, fmtDate, isoDate, money, monthRange, nowMonth, num, todayIso } from '../core/base';
+import { App, cycleDay, el, fmtD, fmtDate, isoDate, money, monthRange, nowMonth, num, S, todayIso, weekStart } from '../core/base';
 import { confirmBox, head, opt, toast } from '../core/dom';
 import { LS, budgetAlert, saveBlob } from '../core/helpers';
 import { buzz, hapticsOn } from '../core/haptics';
@@ -54,6 +54,7 @@ VIEWS.settings = async (r, paint) => {
   const look = group('look', 'Appearance', html`
     ${row('Theme', '', html`<div class="themes">${themeButtons()}</div>`)}
     ${more('theme-custom', 'Customize colors', html`<span class="tc-name">${themeName()}</span>`, html`<div class="theme-custom">${customizer()}</div>`)}
+    ${row('Number & date format', localeSample(), html`<select aria-label="Number and date format" data-onchange="App.setLocale(this.value)">${htmlList(localeOptions())}</select>`)}
     ${row('Hide amounts', 'Blur every amount. Press P to switch.', html`<input ${SWITCH} aria-label="Hide amounts" data-pref="privacy"${privacy ? ' checked' : ''} data-onchange="App.togglePrivacy()">`)}
     ${row('Compact view', 'Tighter spacing to fit more in', html`<input ${SWITCH} aria-label="Compact view" data-pref="compact"${compact ? ' checked' : ''} data-onchange="App.toggleDensity()">`)}
     ${row('Logos', 'Payees’ and banks’ logos instead of initials', html`<input ${SWITCH} aria-label="Show logos"${logosOn() ? ' checked' : ''} data-onchange="App.toggleLogos(this.checked)">`)}
@@ -63,11 +64,11 @@ VIEWS.settings = async (r, paint) => {
     ${lensOn() ? html`${row('Hours a week', 'How long you work', html`<select aria-label="Hours a week" data-onchange="App.setWorkHours(this.value)">${htmlList([10, 15, 20, 25, 30, 32, 35, 37.5, 40, 45, 50, 55, 60].map(h => opt(h, h + ' hours', workHours())))}</select>`)}
     ${row('Hourly take-home', +LS.get('workRate', 0) > 0 ? 'Yours. Clear it to work it out from your income.' : hourlyRate() ? 'Worked out from what came in over the last six months: ' + money(hourlyRate()) + ' an hour' : 'Working it out from your income…', html`<input type="number" inputmode="decimal" min="0" step="0.01" class="set-num" aria-label="Hourly take-home" placeholder="${hourlyRate() ? hourlyRate().toFixed(2) : 'Auto'}" value="${+LS.get('workRate', 0) > 0 ? String(LS.get('workRate', 0)) : ''}" data-onchange="App.setWorkRate(this.value)">`)}` : ''}
     ${more('logos', 'About logos', '', html`<p class="sub-s">Your Money server fetches each logo from DuckDuckGo’s icon service by the payee’s website (guessed from its name; change it in the account’s settings) and keeps it, so your browser never contacts another site.</p>`)}`,
-    'Theme, hide amounts, compact view, haptics and magnetic hover are saved on this device only. Hours of work and your colors for each theme sync like your other settings.');
+    'Theme, hide amounts, compact view, haptics and magnetic hover are saved on this device only. Number & date format, hours of work and your colors for each theme sync like your other settings.');
 
   const syncOff = !!LS.get('syncOff', false), syncAt = LS.get('syncAt', 0);
   const syncStatus = syncOff ? 'Off: this device keeps its own settings.' : S.syncError ? html`<span class="up">Couldn’t sync: ${S.syncError}</span>`
-    : syncAt ? 'Last synced ' + fmtDate(isoDate(new Date(syncAt))) + ' at ' + new Date(syncAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + '.' : 'Nothing synced yet.';
+    : syncAt ? 'Last synced ' + fmtDate(isoDate(new Date(syncAt))) + ' at ' + fmtD(new Date(syncAt), { hour: 'numeric', minute: '2-digit' }) + '.' : 'Nothing synced yet.';
   const sync = group('sync', 'Sync', html`
     ${row('Sync between devices', syncStatus, html`<input ${SWITCH} aria-label="Sync this device’s settings"${syncOff ? '' : ' checked'} data-onchange="App.toggleSync(this.checked)">`)}
     ${syncOff ? '' : row('Sync now', '', html`<button class="btn small" type="button" data-onclick="App.syncNow()">Sync now</button>`)}`,
@@ -378,6 +379,18 @@ function toggleHaptics(on: boolean) { LS.set('haptics', !!on); if (on) buzz(); t
 function setCycleDay(v: string) { LS.set('cycleDay', Math.min(28, Math.max(1, Math.floor(num(v)) || 1))); S.all = false; [S.y, S.m] = nowMonth(); PAGES.clear(); toast('Months now start on the ' + ordinal(cycleDay())); route(); }
 // Hours of work (core/worklens.ts): every amount list is drawn again with or without the hours
 function toggleWorkLens(on: boolean) { LS.set('workLens', !!on); PAGES.clear(); toast(on ? 'Purchases show the hours of work they cost' : 'Hours of work off'); if (on) learnRate(); route({ quiet: true }); }
+/* ---------- Number & date format ----------
+   Automatic follows the browser's language; the others are the common ways of writing amounts and dates. */
+const LOCALES = ['en-US', 'en-GB', 'en-CA', 'en-AU', 'en-IN', 'de-DE', 'de-CH', 'fr-FR', 'fr-CA', 'es-ES', 'es-MX', 'it-IT', 'nl-NL', 'pt-PT', 'pt-BR', 'sv-SE', 'da-DK', 'nb-NO', 'fi-FI', 'pl-PL', 'cs-CZ', 'ja-JP', 'zh-CN', 'ko-KR'];
+const langName = (tag: string) => { try { return new Intl.DisplayNames(['en'], { type: 'language' }).of(tag) || tag; } catch (e) { return tag; } };
+function localeOptions() {
+  const pick = String(LS.get('locale', '') || '');
+  const list = pick && !LOCALES.includes(pick) ? [...LOCALES, pick] : LOCALES;
+  return [opt('', 'Automatic', pick), ...list.map(t => opt(t, langName(t), pick))];
+}
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const localeSample = () => money(1234.56) + ' · ' + fmtDate(todayIso()) + ' · weeks start on ' + DAYS[weekStart()];
+function setLocale(v: string) { LS.set('locale', v); PAGES.clear(); S.pageKey = ''; toast('Amounts and dates now look like ' + money(1234.56) + ' and ' + fmtDate(todayIso())); route({ quiet: true }); }
 function setWorkHours(v: string) { LS.set('workHours', num(v) || 40); PAGES.clear(); route({ quiet: true }); }
 function setWorkRate(v: string) { LS.set('workRate', Math.max(0, Math.round(num(v) * 100) / 100)); PAGES.clear(); route({ quiet: true }); }
 function setBudgetAlert(v: string) { LS.set('budgetAlert', num(v)); PAGES.clear(); toast('Budget warnings at ' + budgetAlert() + '%'); }
@@ -388,6 +401,7 @@ const methods = {
   toggleLogos,
   toggleHaptics,
   toggleWorkLens,
+  setLocale,
   setWorkHours,
   setWorkRate,
   setCycleDay,

@@ -1,7 +1,7 @@
 import { Html, html, htmlList } from '../core/html';
 import { api, getAll } from '../core/api';
 import { busy } from '../core/auth';
-import { App, S, el, fmtDate, fmtDay, money, money0, monthOf, monthRange, nowMonth, num, todayIso, type ApiData, type Field, type Period, viewYM } from '../core/base';
+import { type ApiData, App, el, type Field, fmtDate, fmtDay, leadDays, money, money0, monthOf, monthRange, nowMonth, num, type Period, S, todayIso, viewYM, weekOrder } from '../core/base';
 import { closeDrawer, formError, head, monthNav, openDrawer, opt, toast } from '../core/dom';
 import { normGroup } from '../core/feed';
 import { LS, addDays } from '../core/helpers';
@@ -73,7 +73,7 @@ function billCalendar(bills: ApiData[], cur: Period) {
     const inner = html`<span class="name">${x.name} <span class="chip ${CAL_STATE[x.state][0]}">${CAL_STATE[x.state][1]}</span></span><span class="num">${money(x.amt)}</span>`;
     return x.gid ? html`<button type="button" class="row" data-onclick="App.editTx('${x.gid}')">${inner}</button>` : html`<button type="button" class="row" data-onclick="App.billForm('${x.id}')">${inner}</button>`;
   };
-  const lead = new Date(cur.y!, cur.m!, 1).getDay(), n = new Date(cur.y!, cur.m! + 1, 0).getDate();
+  const lead = leadDays(new Date(cur.y!, cur.m!, 1)), n = new Date(cur.y!, cur.m! + 1, 0).getDate();
   const cells: Html[] = [];
   for (let i = 0; i < lead; i++) cells.push(html`<div class="bcal-day pad"></div>`);
   for (let d = 1; d <= n; d++) {
@@ -83,7 +83,7 @@ function billCalendar(bills: ApiData[], cur: Period) {
   // On a phone the grid is too narrow for names, so the same month shows as a list of days
   const agenda = htmlList(Object.keys(days).sort().map(d => html`<div class="bcal-agenda-day"><div class="eyebrow">${fmtDay(d)}${d === t ? ' · today' : ''}</div>${htmlList(days[d].map(row))}</div>`));
   const kpi = (label: string, v: number, cls = '') => html`<div class="kpi"><div class="eyebrow">${label}</div><div class="val num ${cls}">${money0(v)}</div></div>`;
-  return html`<div class="kpis">${kpi('Paid', sum.paid, 'pos')}${kpi('Still due', sum.due)}${sum.late ? kpi('Overdue', sum.late, 'neg') : ''}</div><section class="panel bcal"><div class="bcal-dow">${htmlList(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => html`<span>${d}</span>`))}</div><div class="bcal-grid">${htmlList(cells)}</div></section><section class="panel bcal-agenda">${agenda ? html`<div class="list">${agenda}</div>` : html`<p class="empty">Nothing due in ${cur.label}.</p>`}</section><p class="sub-s" style="margin-top:10px">Amounts are each bill’s expected amount. Tap a paid bill to open the charge that paid it.</p>`;
+  return html`<div class="kpis">${kpi('Paid', sum.paid, 'pos')}${kpi('Still due', sum.due)}${sum.late ? kpi('Overdue', sum.late, 'neg') : ''}</div><section class="panel bcal"><div class="bcal-dow">${htmlList(weekOrder(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']).map(d => html`<span>${d}</span>`))}</div><div class="bcal-grid">${htmlList(cells)}</div></section><section class="panel bcal-agenda">${agenda ? html`<div class="list">${agenda}</div>` : html`<p class="empty">Nothing due in ${cur.label}.</p>`}</section><p class="sub-s" style="margin-top:10px">Amounts are each bill’s expected amount. Tap a paid bill to open the charge that paid it.</p>`;
 }
 function billsView(v: string) { LS.set('billsView', v); location.hash = hashWith({ view: v }); }
 
