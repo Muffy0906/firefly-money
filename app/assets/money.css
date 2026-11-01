@@ -856,7 +856,7 @@
     background: var(--glass), color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent); border: 1px solid rgba(255, 255, 255, .14);
     box-shadow: var(--glass-edge), 0 12px 40px rgba(0, 0, 0, .35);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(170%); backdrop-filter: blur(var(--glass-blur)) saturate(170%); }
-  html[data-theme="glass"] :is(.drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar) {
+  html[data-theme="glass"] :is(.drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar, .ff-pop) {
     background: var(--glass), rgba(14, 11, 30, .72); border-color: rgba(255, 255, 255, .16);
     -webkit-backdrop-filter: blur(34px) saturate(180%); backdrop-filter: blur(34px) saturate(180%); }
   html[data-theme="glass"] .drawer { box-shadow: var(--glass-edge), -20px 0 80px rgba(0, 0, 0, .5); }
@@ -974,7 +974,7 @@
     background: linear-gradient(160deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, .18)), color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent);
     border: 1px solid rgba(255, 255, 255, .6); box-shadow: var(--frost-edge), 0 10px 30px rgba(70, 40, 20, .12);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%); backdrop-filter: blur(var(--glass-blur)) saturate(150%); }
-  html[data-theme="frosted"] :is(.drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar) {
+  html[data-theme="frosted"] :is(.drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar, .ff-pop) {
     background: rgba(250, 243, 235, .8); border-color: rgba(255, 255, 255, .7);
     -webkit-backdrop-filter: blur(36px) saturate(160%); backdrop-filter: blur(36px) saturate(160%); }
   html[data-theme="frosted"] .drawer footer { background: transparent; border-top-color: rgba(255, 255, 255, .6); }
@@ -1057,7 +1057,7 @@
   html[data-theme="frosted"][data-scene="night"] :is(.panel, .daycards tbody.day, .daycards > .center-empty, .kpi, .insight, .extra, .split, .login form, .dash-bar) {
     background: linear-gradient(160deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .03)), color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent);
     border-color: rgba(255, 255, 255, .13); box-shadow: var(--frost-edge), 0 12px 40px rgba(0, 0, 0, .35); }
-  html[data-theme="frosted"][data-scene="night"] :is(.drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar) { background: rgba(26, 21, 36, .82); border-color: rgba(255, 255, 255, .14); }
+  html[data-theme="frosted"][data-scene="night"] :is(.drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar, .ff-pop) { background: rgba(26, 21, 36, .82); border-color: rgba(255, 255, 255, .14); }
   html[data-theme="frosted"][data-scene="night"] :is(input[type=text], input[type=number], input[type=date], input[type=password], input[type=search], select, textarea, .round, .wctl button, .btn, .seg, .tabs) {
     background: rgba(255, 255, 255, .07); border-color: rgba(255, 255, 255, .14); box-shadow: none; }
   html[data-theme="frosted"][data-scene="night"] select option { background: #1d1828; }
@@ -1844,11 +1844,11 @@
   /* ---------- Firefly III connection pill (ffstatus.ts): under "Money" in the sidebar, atop the phone's More menu,
      and "connected again" floating at the bottom for a moment once Firefly is back ---------- */
   .ff-slot { display: none; }
-  .ff-pill, .ff-alert { --ff: var(--muted); }
-  :is(.ff-pill, .ff-alert)[data-ff="ok"] { --ff: var(--good); }
-  :is(.ff-pill, .ff-alert)[data-ff="down"] { --ff: var(--spend); }
-  :is(.ff-pill, .ff-alert)[data-ff="auth"] { --ff: var(--warn); }
-  :is(.ff-pill, .ff-alert) > i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--ff); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ff) 22%, transparent); }
+  .ff-pill, .ff-alert, .ff-badge { --ff: var(--muted); }
+  :is(.ff-pill, .ff-alert, .ff-badge)[data-ff="ok"] { --ff: var(--good); }
+  :is(.ff-pill, .ff-alert, .ff-badge)[data-ff="down"] { --ff: var(--spend); }
+  :is(.ff-pill, .ff-alert, .ff-badge)[data-ff="auth"] { --ff: var(--warn); }
+  :is(.ff-pill, .ff-alert, .ff-badge) > i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--ff); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ff) 22%, transparent); }
   .ff-pill { display: inline-flex; align-items: center; gap: 7px; flex: none; align-self: flex-start; box-sizing: border-box; height: 24px; max-width: 100%; padding: 0 10px 0 8.5px; margin: 0;
     border: 1px solid color-mix(in srgb, var(--ff) 30%, transparent); border-radius: 99px; background: color-mix(in srgb, var(--ff) 11%, transparent);
     color: var(--ff); font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1; letter-spacing: 0; white-space: nowrap; overflow: hidden; cursor: pointer; }
@@ -1890,4 +1890,30 @@
   .ff-out-card p { margin: 0; color: var(--muted); font-size: 14.5px; line-height: 1.55; }
   .ff-out-card .btn { margin-top: 22px; }
   .ff-out-card .ff-out-note { margin-top: 12px; font-size: 12.5px; }
-  @media print { .ff-alert, .ff-pill { display: none !important; } }
+  /* The pill's popover: which part is down, the server, version, last answer and token */
+  .ff-pop { position: fixed; z-index: 64; width: 300px; max-width: calc(100vw - 24px); box-sizing: border-box; padding: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); color: var(--text); font-size: 13.5px; animation: fadeUp .12s ease both; }
+  .ff-pop[hidden] { display: none; }
+  .ff-pop-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+  .ff-pop-head > b { font-size: 15px; font-weight: 600; }
+  .ff-badge { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px 0 8px; border-radius: 99px; box-sizing: border-box; border: 1px solid color-mix(in srgb, var(--ff) 30%, transparent);
+    background: color-mix(in srgb, var(--ff) 11%, transparent); color: var(--ff); font-size: 11.5px; font-weight: 600; line-height: 1; white-space: nowrap; }
+  /* the chain: three steps joined by a line, each with a dot coloured by how it's doing */
+  .ff-chain { --ok: var(--good); --bad: var(--spend); list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+  .ff-chain li { --k: var(--muted); position: relative; display: grid; grid-template-columns: 18px 1fr auto; align-items: center; column-gap: 10px; min-height: 30px; }
+  .ff-chain li[data-k="ok"] { --k: var(--ok); } .ff-chain li[data-k="bad"] { --k: var(--bad); }
+  .ff-chain li > i { justify-self: center; width: 9px; height: 9px; border-radius: 50%; box-sizing: border-box; background: var(--k); box-shadow: 0 0 0 3px color-mix(in srgb, var(--k) 22%, transparent); }
+  .ff-chain li[data-k="unknown"] > i { background: transparent; border: 1.5px solid var(--k); box-shadow: none; }
+  .ff-chain li + li::before { content: ""; position: absolute; left: 8.25px; top: -10.5px; width: 1.5px; height: 21px; background: var(--line); }
+  .ff-chain li > b { font-weight: 500; }
+  .ff-chain li > span { color: var(--k); font-weight: 600; font-size: 12.5px; }
+  .ff-chain li[data-k="unknown"] > span { color: var(--muted); font-weight: 500; }
+  .ff-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 14px; margin: 14px 0 0; padding: 14px 0 0; border-top: 1px solid var(--line); }
+  .ff-facts dt { color: var(--muted); }
+  .ff-facts dd { margin: 0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .ff-facts dd a { color: inherit; }
+  .ff-facts dd[data-k="ok"] { color: var(--good); font-weight: 600; } .ff-facts dd[data-k="bad"] { color: var(--warn); font-weight: 600; }
+  .ff-pop-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 16px; }
+  .ff-pop-foot > span { color: var(--muted); font-size: 12px; }
+  /* on the "can't reach" screen: the same chain, as a small card under the text */
+  .ff-out-card .ff-chain { width: 100%; max-width: 300px; margin-top: 22px; padding: 10px 16px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--panel) 70%, transparent); text-align: left; font-size: 13.5px; }
+  @media print { .ff-alert, .ff-pill, .ff-pop { display: none !important; } }

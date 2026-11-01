@@ -75,9 +75,10 @@ async function netSlot<T>(fn: () => Promise<T>): Promise<T> {
 // sign-in header means Firefly turned the token down, anything else means it's there. Losing the connection to
 // this server altogether ('money') says nothing about Firefly itself, but its data can't be reached either way.
 export type FfState = 'checking' | 'ok' | 'down' | 'auth' | 'offline';
-export const FF = { state: 'checking' as FfState, why: '', at: 0 };
+export const FF = { state: 'checking' as FfState, why: '', at: 0, okAt: 0, ms: 0 };      // okAt: Firefly last answered; ms: how fast (the ping)
 export function ffSeen(state: FfState, why = '') {
   FF.at = Date.now();
+  if (state === 'ok' || state === 'auth') FF.okAt = FF.at;
   if (FF.state === state && FF.why === why) return;
   FF.state = state; FF.why = why;
   dispatchEvent(new Event('money-ff'));
