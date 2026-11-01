@@ -202,7 +202,7 @@ type FlowNode = { name: string, v: number, id?: string, kind?: string };
 type LaidNode = FlowNode & { h: number, slot: number, x: number, y: number, ly: number };
 type Flow = { left: FlowNode[], right: FlowNode[], inc: number, spend: number };
 function sankeyPanel(sources: ApiData[], income: number, cats: { name: string, amt: number, id?: string }[], cur: Period) {
-  let left: FlowNode[] = sources.map(x => ({ name: x.name, v: absDiff(x) })).filter(x => x.v > 0).sort((a, b) => b.v - a.v);
+  let left: FlowNode[] = sources.map(x => ({ name: x.name, v: absDiff(x), id: x.id ? String(x.id) : undefined })).filter(x => x.v > 0).sort((a, b) => b.v - a.v);
   if (!left.length && income > 0) left = [{ name: 'Income', v: income }];
   if (left.length > 4) { const rest = left.slice(3); left = left.slice(0, 3); left.push({ name: rest.length + ' other sources', v: rest.reduce((s, x) => s + x.v, 0) }); }
   let right: FlowNode[] = cats.map(c => ({ name: c.name, v: c.amt, id: c.id })).sort((a, b) => b.v - a.v);
@@ -214,7 +214,7 @@ function sankeyPanel(sources: ApiData[], income: number, cats: { name: string, a
   if (spend > inc) left.push({ name: 'From savings', v: spend - inc, kind: 'save' });
   if (inc > spend) right.push({ name: 'Kept', v: inc - spend, kind: 'kept' });
   const d: Flow = { left, right, inc, spend };
-  return html`<section class="panel chart sankey" data-sk="${JSON.stringify(d)}"><h2>Money flow</h2><p class="lead">Where ${cur.all ? 'all your' : cur.label + '’s'} income went · ${matchMedia?.('(hover: none)').matches ? 'tap a category to see its transactions' : 'hover a band for details'}</p><div class="sk-box">${sankeySvg(d, innerWidth < 900 ? innerWidth - 72 : 900)}</div></section>`;
+  return html`<section class="panel chart sankey" data-sk="${JSON.stringify(d)}"><h2>Money flow</h2><p class="lead">Where ${cur.all ? 'all your' : cur.label + '’s'} income went · ${matchMedia?.('(hover: none)').matches ? 'tap a band to see its transactions' : 'hover a band for details'}</p><div class="sk-box">${sankeySvg(d, innerWidth < 900 ? innerWidth - 72 : 900)}</div></section>`;
 }
 // Shorten a label with … until it fits in px at the chart's label font
 let skCtx: CanvasRenderingContext2D | null = null;
@@ -257,8 +257,15 @@ function sankeySvg(d: Flow, W: number, fill = 0, minRows = 0) {
   const band = (x0: number, y0: number, x1: number, y1: number, h: number) => { const c = (x0 + x1) / 2; return 'M' + x0 + ',' + y0 + 'C' + c + ',' + y0 + ' ' + c + ',' + y1 + ' ' + x1 + ',' + y1 + 'L' + x1 + ',' + (y1 + h) + 'C' + c + ',' + (y1 + h) + ' ' + c + ',' + (y0 + h) + ' ' + x0 + ',' + (y0 + h) + 'Z'; };
   let links: Html | string = '', nodes: Html | string = '', my1 = my, my2 = my;
   const share = (n: LaidNode, of: number) => of ? ' (' + Math.round(n.v / of * 100) + '%)' : '';
-  left.forEach(n => { links = html`${links}<path class="lk" d="${band(xl + NW, n.y, xm, my1, n.h)}" fill="${col(n)}" data-tip="${n.name + ' → ' + money0(n.v) + share(n, total)}"/>`; my1 += n.h; });
-  right.forEach(n => { links = html`${links}<path class="lk" d="${band(xm + NW, my2, xr, n.y, n.h)}" fill="${col(n)}" data-tip="${n.name + ' · ' + money0(n.v) + share(n, n.kind === 'kept' ? inc : spend) + (n.kind === 'kept' ? ' of income' : n.kind === 'out' ? ' of spending' : '')}"${n.id ? html` style="cursor:pointer" data-onclick="App.go('#/transactions?category=${n.id}')"` : ''}/>`; my2 += n.h; });
+  // Where a band (and its bar) goes when clicked: an income source opens its account, a category its transactions,
+  // the grouped rows the month's Income or Expenses list, and Kept / From savings the accounts the money sits in
+  const href = (n: LaidNode) => n.kind === 'in' ? (n.id ? '#/account/' + n.id : '#/transactions?type=deposit')
+    : n.kind === 'out' ? (n.id ? '#/transactions?category=' + n.id : '#/transactions?type=withdrawal') : '#/accounts';
+  const tip = (n: LaidNode) => n.kind === 'in' ? n.name + ' → ' + money0(n.v) + share(n, total)
+    : n.name + ' · ' + money0(n.v) + share(n, n.kind === 'kept' ? inc : spend) + (n.kind === 'kept' ? ' of income' : ' of spending');
+  const act = (n: LaidNode) => html` data-tip="${tip(n)}" data-onclick="App.go('${href(n)}')"`;
+  left.forEach(n => { links = html`${links}<path class="lk" d="${band(xl + NW, n.y, xm, my1, n.h)}" fill="${col(n)}"${act(n)}/>`; my1 += n.h; });
+  right.forEach(n => { links = html`${links}<path class="lk" d="${band(xm + NW, my2, xr, n.y, n.h)}" fill="${col(n)}"${act(n)}/>`; my2 += n.h; });
   // Room for a label: beside the chart on a wide card; inside, between its bar and the middle one, on a narrow one
   const room = narrow ? xm - (xl + NW) - 2 * PAD : LW - 14;
   const label = (n: LaidNode, anchor: string, x: number, nm = fitText(n.name, room, narrow ? 600 : 500)) => html`<text x="${x}" y="${n.ly - 2}" text-anchor="${anchor}" class="sk-name">${nm !== n.name ? html`<title>${n.name}</title>` : ''}${nm}</text><text x="${x}" y="${n.ly + 12}" text-anchor="${anchor}" class="sk-amt amtx">${money0(n.v)}</text>`;
@@ -272,8 +279,8 @@ function sankeySvg(d: Flow, W: number, fill = 0, minRows = 0) {
   };
   spread(left); spread(right);
   let labels: Html | string = '';
-  left.forEach(n => { nodes = html`${nodes}<rect x="${n.x}" y="${n.y}" width="${NW}" height="${n.h}" rx="3" fill="${col(n)}"/>`; labels = html`${labels}${narrow ? label(n, 'start', xl + NW + PAD) : label(n, 'end', xl - 8)}`; });
-  right.forEach(n => { nodes = html`${nodes}<rect x="${n.x}" y="${n.y}" width="${NW}" height="${n.h}" rx="3" fill="${col(n)}"/>`; labels = html`${labels}${narrow ? label(n, 'end', xr - PAD) : label(n, 'start', xr + NW + 8)}`; });
+  left.forEach(n => { nodes = html`${nodes}<rect class="sk-node" x="${n.x}" y="${n.y}" width="${NW}" height="${n.h}" rx="3" fill="${col(n)}"${act(n)}/>`; labels = html`${labels}${narrow ? label(n, 'start', xl + NW + PAD) : label(n, 'end', xl - 8)}`; });
+  right.forEach(n => { nodes = html`${nodes}<rect class="sk-node" x="${n.x}" y="${n.y}" width="${NW}" height="${n.h}" rx="3" fill="${col(n)}"${act(n)}/>`; labels = html`${labels}${narrow ? label(n, 'end', xr - PAD) : label(n, 'start', xr + NW + 8)}`; });
   nodes = html`${nodes}<rect x="${xm}" y="${my}" width="${NW}" height="${mh}" rx="3" fill="var(--text)" opacity=".75"/>`;
   return html`<svg viewBox="0 0 ${W} ${H}" data-w="${W}" data-h="${Math.round(fill)}" class="${narrow ? 'sk-in' : ''}" role="img" aria-label="Income flowing into spending categories">${links}${nodes}${labels}</svg>`;
 }
