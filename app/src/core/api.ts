@@ -90,11 +90,24 @@ async function netSlot<T>(fn: () => Promise<T>): Promise<T> {
   netActive++;
   try { return await fn(); } finally { netActive--; const next = netQueue.shift(); if (next) next(); }
 }
+/* ---------- Is Firefly III reachable? (the status pill, features/ffstatus.ts) ---------- */
+// Every answer says something: a 502/503/504 from the proxy means Firefly didn't answer, a 401 without the
+// sign-in header means Firefly turned the token down, anything else means it's there. Losing the connection to
+// this server altogether ('money') says nothing about Firefly itself, but its data can't be reached either way.
+export type FfState = 'checking' | 'ok' | 'down' | 'auth' | 'offline';
+export const FF = { state: 'checking' as FfState, why: '', at: 0 };
+export function ffSeen(state: FfState, why = '') {
+  FF.at = Date.now();
+  if (FF.state === state && FF.why === why) return;
+  FF.state = state; FF.why = why;
+  dispatchEvent(new Event('money-ff'));
+}
 export const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
 // The browser couldn't reach this server at all (connection dropped, laptop waking up, app restarting):
 // fetch only says "Failed to fetch", so say what that means and mark it so the page can retry by itself.
 function unreachable(e: unknown): unknown {
   if (!(e instanceof TypeError)) return e;
+  ffSeen(navigator.onLine ? 'down' : 'offline', 'money');
   const err: ApiError = new Error('Couldn’t reach Money. The connection dropped or the app is restarting.'); err.network = true; return err;
 }
 // Returns { r, body }: the slot is held until the whole response has arrived, not just its headers.
@@ -117,6 +130,7 @@ async function apiRaw(u: URL, opt: ApiOpts): Promise<ApiData> {
     body: opt.raw ? opt.raw : opt.body ? JSON.stringify(opt.body) : undefined,
   }, opt.as === 'blob');
   if (r.status === 401 && r.headers.get('X-Dash-Auth')) throw new AuthError('Please sign in again.');
+  ffSeen(r.status === 401 ? 'auth' : r.status >= 502 && r.status <= 504 ? 'down' : 'ok');
   if (r.status === 204) return null;
   if (opt.as === 'blob' && r.ok) return body;
   const txt = body as string;

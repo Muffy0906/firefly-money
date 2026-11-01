@@ -55,6 +55,7 @@ import './pages/ask';
 import './pages/inbox';
 import './pages/review';
 import './features/pwa';
+import './features/ffstatus';
 import './features/insights';
 import './features/prefs';
 import './features/sync';
