@@ -30,7 +30,7 @@ VIEWS.transactions = async (r, paint) => {
   // Another month's strip that isn't ready yet: keep showing the one on screen (dimmed) so it can change in place
   const prev = paint.live && shown ? STRIPS.get(shown.k) : null;
   const strip = !stripOn ? '' : STRIPS.get(stripKey)?.html || (prev ? raw(String(prev.html).replace(/ data-k="[^"]*" data-n="\d+"/, ` data-k="${stripKey}" data-n="0"`).replace('class="panel txsum"', 'class="panel txsum wait"'))
-    : html`<section class="panel txsum" id="txsum" data-k="${stripKey}"></section>`);
+    : html`<section class="panel txsum" id="txsum" data-selfmorph data-k="${stripKey}"></section>`);
   const res = await load(page);
   // loading a month ahead: keep its strip ready too (without touching the colours of the month on screen)
   if (r.at) { if (stripOn) await monthStrip(cur, stripKey, false).then(h => keepStrip(stripKey, h)).catch(() => {}); return; }
@@ -122,7 +122,7 @@ async function monthStrip(cur: Period, key: string, rank = true) {
       ? html`<button type="button" class="db fut" style="--v:0" aria-label="${fmt(d)}" disabled><i></i></button>`
       : html`<button type="button" class="db${d === today ? ' now' : ''}" data-day="${d}" data-onclick="App.txDay(this.dataset.day)" style="--v:${((running ? cum[d] : v) / most).toFixed(3)}" data-tip="${tip}" aria-label="${label}"><i></i></button>`;
   }));
-  return { n: ++stripN, html: html`<section class="panel txsum" id="txsum" data-k="${key}" data-n="${stripN}"><div class="ts-k"><div><span class="eyebrow">Spent</span><strong class="num">${money0(spent)}</strong></div><div><span class="eyebrow">Earned</span><strong class="num pos">${money0(earned)}</strong></div><div><span class="eyebrow">Net</span><strong class="num${net < 0 ? ' neg' : ''}">${net > 0 ? '+' : ''}${money0(net)}</strong></div></div>${list.length ? html`<div class="dbars" role="group" aria-label="Spending each day">${bars}</div>` : ''}</section>` };
+  return { n: ++stripN, html: html`<section class="panel txsum" id="txsum" data-selfmorph data-k="${key}" data-n="${stripN}"><div class="ts-k"><div><span class="eyebrow">Spent</span><strong class="num">${money0(spent)}</strong></div><div><span class="eyebrow">Earned</span><strong class="num pos">${money0(earned)}</strong></div><div><span class="eyebrow">Net</span><strong class="num${net < 0 ? ' neg' : ''}">${net > 0 ? '+' : ''}${money0(net)}</strong></div></div>${list.length ? html`<div class="dbars" role="group" aria-label="Spending each day">${bars}</div>` : ''}</section>` };
 }
 
 // On a phone the first tap on a day's bar shows its tip (see polish.ts) and a second tap on it goes to the day, since

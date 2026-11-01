@@ -510,7 +510,9 @@
     -webkit-mask-image: linear-gradient(transparent, #000 var(--odo-f, 0px), #000 calc(100% - var(--odo-f, 0px)), transparent);
     mask-image: linear-gradient(transparent, #000 var(--odo-f, 0px), #000 calc(100% - var(--odo-f, 0px)), transparent); }
   /* Waiting for another month's numbers: the page stays and dims, then redraws in place */
-  #view.stale { opacity: .55; transition: opacity .25s ease; }
+  /* Another month taking a moment: only the month's figures dim (amounts, charts, bars, lists). Titles, headings
+     and card frames stay as they are, and the month picker already shows the new month */
+  #view.stale > :not(.head) :is(.num, svg, .fill, .dbars, .hm-cell, .tbl tbody, .list, .empty, .center-empty) { opacity: .5; transition: opacity .25s ease; }
   /* ---------- Overview: Add cards (Customize), the newer charts ---------- */
   .dash-add { flex-basis: 100%; margin-top: 6px; }
   .dash-add .eyebrow { margin-bottom: 8px; }
@@ -1169,23 +1171,7 @@
   ::view-transition-old(tabbar) { display: none; }
   ::view-transition-old(page) { animation: vtFadeOut .14s ease both; }
   ::view-transition-new(page) { animation: vtFadeUp .26s cubic-bezier(.2,.8,.2,1) both; }
-  /* Another month: the page title and month picker stay put (only the month name cross-fades) while the content
-     below slides, so the control you're pressing doesn't slide away under your finger */
-  html.vt-page:is([data-vtdir="next"], [data-vtdir="prev"]) #view > .head { view-transition-name: phead; }
-  ::view-transition-group(phead) { animation: none; z-index: 1; }
-  ::view-transition-old(phead) { animation: vtFadeOut .12s ease both; }
-  ::view-transition-new(phead) { animation: fadeIn .2s ease both; }
-  /* Transactions: the month strip and the search/filter row stay put and change in place (transactions.ts fillStrip);
-     only the list slides */
-  html.vt-page:is([data-vtdir="next"], [data-vtdir="prev"]) #view > #txsum { view-transition-name: txsum; }
-  html.vt-page:is([data-vtdir="next"], [data-vtdir="prev"]) #view > .txbar { view-transition-name: txbar; }
-  ::view-transition-group(txsum), ::view-transition-group(txbar) { animation: none; z-index: 1; }
-  ::view-transition-old(txsum), ::view-transition-old(txbar) { display: none; }
-  ::view-transition-new(txsum), ::view-transition-new(txbar) { animation: none; }
-  html[data-vtdir="next"]::view-transition-old(page) { animation: vtOutLeft .2s ease both; }
-  html[data-vtdir="next"]::view-transition-new(page) { animation: vtInRight .3s cubic-bezier(.2,.8,.2,1) both; }
-  html[data-vtdir="prev"]::view-transition-old(page) { animation: vtOutRight .2s ease both; }
-  html[data-vtdir="prev"]::view-transition-new(page) { animation: vtInLeft .3s cubic-bezier(.2,.8,.2,1) both; }
+  /* (Another month never slides the page: it changes in place, see core/morph.ts. Only the month's name slides.) */
   ::view-transition-old(ptitle), ::view-transition-new(ptitle) { height: 100%; width: auto; object-fit: contain; object-position: left center; }
   ::view-transition-group(ptitle) { animation-duration: .36s; z-index: 2; }
   html.vt-drawer-open .drawer, html.vt-drawer-close .drawer { view-transition-name: drawer; transition: none; }
@@ -1210,10 +1196,6 @@
   html.vt-theme::view-transition-group(root) { animation-duration: .52s; }
   @keyframes vtFadeOut { to { opacity: 0; } }
   @keyframes vtFadeUp { from { opacity: 0; transform: translateY(10px); } }
-  @keyframes vtOutLeft { to { opacity: 0; transform: translateX(-28px); } }
-  @keyframes vtInRight { from { opacity: 0; transform: translateX(36px); } }
-  @keyframes vtOutRight { to { opacity: 0; transform: translateX(28px); } }
-  @keyframes vtInLeft { from { opacity: 0; transform: translateX(-36px); } }
   @keyframes vtInDrawer { from { transform: translateX(100%); } }
   @keyframes vtOutDrawer { to { transform: translateX(100%); } }
   @keyframes vtInSheet { from { transform: translateY(100%); } }

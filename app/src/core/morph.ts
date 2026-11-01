@@ -47,6 +47,7 @@ function keyOf(e: Element, root: Node) {
     const d = (n as HTMLElement).dataset || {};
     if (d.w) { parts.push('w:' + d.w); break; }
     if (d.gid) { parts.push('g:' + d.gid); break; }
+    if (d.day && n.tagName === 'TR') { parts.push('d:' + d.day); break; }     // a day's heading in a list
     if (n.id) { parts.push('#' + n.id); break; }
     // a card is known by its heading, so a card added above it (a longer report has one more chart) doesn't make it
     // look like a different card
@@ -64,8 +65,16 @@ const textOf = (e: HTMLElement) => e.dataset.odo ?? e.textContent ?? '';
 type SvgSnap = { n: number, kids: [string, Record<string, string>][] };
 export type Snap = {
   nums: Map<string, string>, fills: Map<string, number>, svgs: Map<string, SvgSnap>, tints: Map<string, string>,
-  rows: Map<string, number>, layout: Set<string>, feed: boolean
+  texts: Map<string, string>, cards: Set<string>, rows: Map<string, number>, layout: Set<string>, feed: boolean
 };
+// A part that changes itself into place when its own data comes (the Transactions month strip: transactions.ts
+// fillStrip) is left alone here, or it would change twice
+const SELF = '[data-selfmorph]';
+const ours = (e: Element, root: Node) => { const o = e.closest(SELF); return !o || o === root; };
+// Words that can differ from month to month (a page's subtitle, a card's heading or lead line): when they do, the
+// new words fade in as the wave reaches them; when they don't, they stay exactly as they were
+const TEXT = '.head h1, .head .sub, h2, .lead, .center-empty, .empty';
+const topCards = (root: Element | DocumentFragment) => [...root.querySelectorAll(CARD)].filter(c => !c.parentElement?.closest(CARD));
 // The parts of a page that frame the layout: if most of them are the same in both drawings, it can redraw in place
 const LAYOUT = '[data-w], .kpi, section.panel, .hero';
 function layoutKeys(root: Element | DocumentFragment) {
@@ -75,14 +84,16 @@ function layoutKeys(root: Element | DocumentFragment) {
 }
 
 export function snapshot(root: HTMLElement): Snap {
-  const s: Snap = { nums: new Map(), fills: new Map(), svgs: new Map(), tints: new Map(), rows: new Map(), layout: layoutKeys(root), feed: !!root.querySelector('.tbl.feed tr[data-gid]') };
+  const s: Snap = { nums: new Map(), fills: new Map(), svgs: new Map(), tints: new Map(), texts: new Map(), cards: new Set(), rows: new Map(), layout: layoutKeys(root), feed: !!root.querySelector('.tbl.feed tr[data-gid]') };
   if (RM) return s;
   let c = 0;
-  root.querySelectorAll<HTMLElement>(NUM).forEach(e => { if (c < 80 && (!e.children.length || e.dataset.odo) && near(e.getBoundingClientRect())) { s.nums.set(keyOf(e, root), textOf(e)); c++; } });
-  root.querySelectorAll<HTMLElement>('.fill').forEach(e => { const w = parseFloat(e.style.width); if (isFinite(w) && near(e.getBoundingClientRect())) s.fills.set(keyOf(e, root), w); });
+  root.querySelectorAll<HTMLElement>(NUM).forEach(e => { if (c < 80 && (!e.children.length || e.dataset.odo) && ours(e, root) && near(e.getBoundingClientRect())) { s.nums.set(keyOf(e, root), textOf(e)); c++; } });
+  root.querySelectorAll<HTMLElement>('.fill').forEach(e => { const w = parseFloat(e.style.width); if (isFinite(w) && ours(e, root) && near(e.getBoundingClientRect())) s.fills.set(keyOf(e, root), w); });
+  root.querySelectorAll<HTMLElement>(TEXT).forEach(e => { if (ours(e, root)) s.texts.set(keyOf(e, root), e.textContent || ''); });
+  topCards(root).forEach(e => s.cards.add(keyOf(e, root)));
   c = 0;
   root.querySelectorAll<SVGSVGElement>('svg').forEach(v => {
-    if (c >= 24 || !near(v.getBoundingClientRect())) return;
+    if (c >= 24 || !ours(v, root) || !near(v.getBoundingClientRect())) return;
     const kids = [...v.querySelectorAll(GEO)];
     if (!kids.length || kids.length > 600) return;
     c++;
@@ -104,10 +115,14 @@ export function rowTops(root: HTMLElement) {
   return m;
 }
 
-// Can a month change redraw this page in place? Same page, mostly the same tiles and cards, and not a list of
-// transactions (a different month's list is a different list: that one slides)
-export function sameLayout(old: Snap, next: DocumentFragment) {
-  if (RM || old.feed || next.querySelector('.tbl.feed tr[data-gid]')) return false;
+// Can this redraw happen in place? Another month always does (nothing slides on a month change but the month's
+// name: what doesn't depend on the month stays put, and the rest changes into the new month as the wave passes).
+// The same page with other options does when it has mostly the same tiles and cards, and isn't a list of
+// transactions (a different list: that one comes in fresh)
+export function sameLayout(old: Snap, next: DocumentFragment, dir = '') {
+  if (RM) return false;
+  if (dir === 'next' || dir === 'prev') return true;
+  if (old.feed || next.querySelector('.tbl.feed tr[data-gid]')) return false;
   const k = layoutKeys(next); if (!k.size || !old.layout.size) return false;
   let both = 0; k.forEach(x => { if (old.layout.has(x)) both++; });
   return both / Math.max(k.size, old.layout.size) >= .7;
@@ -225,13 +240,18 @@ function morphSvg(v: SVGSVGElement, old: SvgSnap, delay = 0, dur = 560) {
 
 /* ---------- Rows ---------- */
 // Rows move from where they were (tops from snapshot) to where they are now, in whole pixels; new ones fade in
-export function glideRows(root: HTMLElement, old: Map<string, number>) {
-  if (RM || !old.size) return;
+// (another month's rows, with at: each as the wave reaches it, day headings too)
+export function glideRows(root: HTMLElement, old: Map<string, number>, at?: (e: Element) => number) {
+  if (RM || (!old.size && !at)) return;
   const moves: [HTMLElement, number][] = [];
   root.querySelectorAll<HTMLElement>(ROWS).forEach(r => {
     const b = r.getBoundingClientRect(); if (!near(b, 300)) return;
     const was = old.get(rowKey(r));
-    if (was == null) { if (r.dataset.gid) r.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320, delay: 120, easing: 'ease', fill: 'backwards' }); return; }
+    if (was == null) {
+      if (at) r.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: at(r), easing: 'ease', fill: 'backwards' });
+      else if (r.dataset.gid) r.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320, delay: 120, easing: 'ease', fill: 'backwards' });
+      return;
+    }
     const dy = was - b.top; if (Math.abs(dy) >= 1 && Math.abs(dy) < innerHeight * 1.5) moves.push([r, dy]);
   });
   if (!moves.length) return;
@@ -284,22 +304,35 @@ function waveDelays(root: HTMLElement, dir: string) {
     c.animate([{ transform: 'none' }, { transform: push, offset: .35 }, { transform: 'none' }],
       { duration: 460, delay: Math.round(d / far * spread), easing: 'cubic-bezier(.3,.7,.3,1)', composite: 'add' });
   });
+  // Outside any card (a list of transactions): by the element's own distance, over the same time the cards take,
+  // so a long list fills in from the arrow down without its far rows waiting long
+  const span = Math.hypot(innerWidth, innerHeight), rowSpread = Math.max(spread, 260);
   return (e: Element) => {
     let c: Element | null = e.closest(CARD);
     while (c && c.parentElement?.closest(CARD)) c = c.parentElement.closest(CARD);
     const d = c ? dist.get(c) : undefined;
-    return d == null ? 0 : Math.round(d / far * spread);
+    if (d != null) return Math.round(d / far * spread);
+    if (c) return 0;
+    const r = e.getBoundingClientRect();
+    const dx = Math.max(r.left - o.x, 0, o.x - r.right), dy = Math.max(r.top - o.y, 0, o.y - r.bottom);
+    return Math.round(Math.min(1, Math.hypot(dx, dy) / span) * rowSpread);
   };
 }
 
 /* ---------- The month label ---------- */
 // The month's name slides out one way and the new one in from the other, the way the month went. Both are copies
 // laid over the real label (kept in place, hidden), so its width and the arrows beside it don't move mid-slide.
-export const monthLabel = (root: Element) => root.querySelector('.month > span')?.innerHTML ?? null;
+export const monthLabel = (root: Element) => { const s = root.querySelector('.month > span'); return s ? labelHtml(s) : null; };
+export function labelHtml(s: Element) {
+  if (!s.querySelector('.mghost')) return s.innerHTML;
+  const c = s.cloneNode(true) as Element; c.querySelectorAll('.mghost').forEach(g => g.remove());     // (mid-slide)
+  return c.innerHTML;
+}
 export function slideLabel(root: Element, was: string | null, dir?: string) {
   if (RM || was == null || (dir !== 'next' && dir !== 'prev')) return;
   const s = root.querySelector<HTMLElement>('.month > span');
-  if (!s || s.innerHTML === was) return;
+  if (!s || monthLabel(root) === was) return;
+  s.querySelectorAll('.mghost').forEach(g => g.remove());
   const k = dir === 'next' ? 1 : -1, d = 22, now = s.innerHTML;
   const ghost = (h: string) => { const g = document.createElement('span'); g.className = 'mghost'; g.setAttribute('aria-hidden', 'true'); g.innerHTML = h; s.appendChild(g); return g; };
   const out = ghost(was), inn = ghost(now);
@@ -314,9 +347,21 @@ export function slideLabel(root: Element, was: string | null, dir?: string) {
 // month), the changes ripple out from the month arrows.
 export function morph(root: HTMLElement, s: Snap, dir = '') {
   if (RM) return;
-  glideRows(root, s.rows);
   const wave = dir === 'next' || dir === 'prev' ? waveDelays(root, dir) : null;
   const at = (e: Element) => wave ? wave(e) : 0;
+  glideRows(root, s.rows, wave || undefined);
+  if (wave) {
+    // a card this month has that the last one didn't (a budget, a recap note) grows in when the wave reaches it
+    topCards(root).forEach(c => {
+      if (s.cards.has(keyOf(c, root)) || c.matches(SELF) || !near(c.getBoundingClientRect())) return;
+      c.animate([{ opacity: 0, transform: 'scale(.97)' }, { opacity: 1, transform: 'none' }], { duration: 360, delay: at(c), easing: 'cubic-bezier(.32,.72,0,1)', fill: 'backwards' });
+    });
+    root.querySelectorAll<HTMLElement>(TEXT).forEach(e => {
+      const was = s.texts.get(keyOf(e, root));
+      if (was == null || was === e.textContent || !ours(e, root) || !near(e.getBoundingClientRect())) return;
+      e.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: at(e), easing: 'ease', fill: 'backwards' });
+    });
+  }
   // in a wave each card's move is a little quicker, so the last one settles soon after the first
   const D = wave ? .8 : 1;
   let c = 0;
