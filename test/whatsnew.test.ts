@@ -8,8 +8,8 @@ describe('appVersion', () => {
     expect(appVersion('v2.2.0-beta.1 (abc1234 · 2026-12-01)')).toBe('2.2.0');
   });
   it('falls back to the newest release with notes for main and local builds', () => {
-    expect(appVersion('c78fd51 · 2026-10-29')).toBe('2.1.0');
-    expect(appVersion('${MONEY_VERSION}')).toBe('2.1.0');
-    expect(appVersion('')).toBe('2.1.0');
+    expect(appVersion('c78fd51 · 2026-10-29')).toBe('2.2.0');
+    expect(appVersion('${MONEY_VERSION}')).toBe('2.2.0');
+    expect(appVersion('')).toBe('2.2.0');
   });
 });

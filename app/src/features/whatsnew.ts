@@ -20,9 +20,19 @@ const ICONS: Record<string, Html> = {
   hover: html`<path d="M6 4l11 6.5-4.8 1.2-2 4.6z"/><path d="M15 15l3.5 3.5"/>`,
   sliders: html`<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>`,
   print: html`<path d="M7 9V3.5h10V9"/><rect x="3.5" y="9" width="17" height="8" rx="2"/><path d="M7 14.5h10v6H7z"/>`,
+  pulse: html`<path d="M3 12h4l2.5-6 5 12 2.5-6h4"/>`,
+  calendar: html`<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M10 15h4M12.5 13.2L14.3 15l-1.8 1.8"/>`,
+  globe: html`<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.2 3.6 8.5s-1.2 6.1-3.6 8.5c-2.4-2.4-3.6-5.2-3.6-8.5s1.2-6.1 3.6-8.5z"/>`,
 };
 type Notes = { lead: string, items: [string, string, string][] };
 const NOTES: Record<string, Notes> = {
+  '2.2.0': { lead: 'Months change in place, every page gets its own Customize options, and Money tells you plainly when Firefly is down.', items: [
+    ['pulse', 'Know when Firefly is down', 'A status pill shows whether Firefly is reachable. When Firefly or Money is down, Money says so instead of showing old numbers.'],
+    ['calendar', 'Months change in place', 'Cards keep their place and height, numbers roll and charts glide to the new month, with no flash of the old one.'],
+    ['sliders', 'Customize every page', 'Reports, Budgets, Categories, Transactions and more have their own Customize sheet with extra charts to pick from.'],
+    ['globe', 'Your number and date format', 'Pick how amounts and dates are written in Settings → Appearance, or let your browser decide.'],
+    ['print', 'Print in your theme', 'Print and Save as PDF keep your theme’s colours and background.'],
+  ] },
   '2.1.0': { lead: 'Split transactions stay whole, the desktop comes alive under your mouse, and Settings is easier to find your way around.', items: [
     ['split', 'Split transactions stay whole', 'Categorizing, reconciling or bulk editing one part of a split no longer deletes the other parts. Thanks to GeorgeBark for the report.'],
     ['hover', 'Hover that feels alive', 'Sidebar icons swell like the Dock, buttons and cards lean toward your mouse, and text stays sharp while they move.'],
