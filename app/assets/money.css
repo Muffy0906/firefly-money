@@ -1681,6 +1681,9 @@
     /* the row under the title is clear of the search button, so only the title keeps out of its way */
     html:not(.shell) #view > .head:first-child:has(.dash-edit) { padding-right: 0; }
     html:not(.shell) #view > .head:first-child:has(.dash-edit) > :first-child { padding-right: 52px; }
+    /* the same in the iPhone app's pages without a title bar row, where search sits beside the title (46px) */
+    html.shell:not(.ab-row) #view > .head:has(.dash-edit) { padding-right: 0; }
+    html.shell:not(.ab-row) #view > .head:has(.dash-edit) > :first-child { padding-right: 46px; }
     .head .actions:has(.dash-edit) .month span { min-width: 0; padding: 0 2px; }
     .head .actions:has(.dash-edit) .month .btn { padding-inline: 11px; margin-left: 0 !important; }
     .month .today-gap { display: none; }
