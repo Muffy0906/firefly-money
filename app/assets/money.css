@@ -323,6 +323,8 @@
   .rulegroup summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; }
   .rulegroup summary::-webkit-details-marker { display: none; }
   .rulegroup[open] summary { border-bottom: 1px solid var(--line); }
+  /* on a phone the name and description get the full width; the buttons go on a row under them */
+  @media (max-width: 600px) { .rulegroup summary { flex-wrap: wrap; row-gap: 10px; } .rulegroup summary > :first-child { flex: 1 1 100%; } }
   .editor-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; margin-bottom: 8px; }
   .editor-row .x { border: 0; background: none; cursor: pointer; color: var(--muted); font-size: 18px; }
   .pager { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
@@ -832,7 +834,8 @@
   /* Compact density */
   html.compact body { font-size: 13.5px; }
   html.compact main { padding-top: 24px; }
-  html.compact .panel { padding: 18px 20px; }
+  html.compact .panel:not(.flush) { padding: 18px 20px; }   /* flush panels (tables, Rules groups) keep padding 0 */
+  html.compact .rulegroup summary { padding-block: 12px; }
   html.compact .cards { column-gap: 14px; } html.compact .cards:not(.free) .w { margin-bottom: 14px; } html.compact .dash-wrap { --gap: 14px; }
   html.compact .flow { column-gap: 14px; } html.compact .flow:not(.on) { row-gap: 14px; }
   html.compact .tbl.feed td { padding-top: 6px; padding-bottom: 6px; }
