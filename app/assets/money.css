@@ -458,6 +458,15 @@
   .part .track { margin: 0; height: 5px; }
   .part .track .fill { opacity: 1; }
   .part .num { text-align: right; color: var(--muted); font-size: 12.5px; }
+  /* a ring chart in a page card (Categories, Reports, Recap): once the card is wide enough the ring sits on the left
+     and its list on the right, the pair centred, so the card stays short and the bars stay close to their names.
+     The Overview tiles have their own rules (.cards .share). */
+  .panel:has(> .share):not(.cards .panel) { container-type: inline-size; }
+  @container (min-width: 520px) {
+    .panel:not(.cards .panel) > .share { display: grid; grid-template-columns: clamp(150px, 30%, 220px) minmax(0, 560px); justify-content: center; align-items: center; gap: clamp(28px, 6cqi, 72px); margin-top: 6px; }
+    .panel:not(.cards .panel) > .share .donut { width: 100%; margin: 0; }
+    .panel:not(.cards .panel) > .share .part { grid-template-columns: 10px minmax(0, 220px) minmax(0, 1fr) 38px; }
+  }
   /* Change bars (charts.ts changeBars): out from a middle line, less to the left, more to the right */
   .chg { display: flex; flex-direction: column; gap: 11px; }
   .chg-row { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 8fr) 76px; gap: 12px; align-items: center; font-size: 13.5px; }
