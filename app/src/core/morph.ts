@@ -378,8 +378,15 @@ export function morph(root: HTMLElement, s: Snap, dir = '') {
     if (was == null || !isFinite(now) || now <= 0 || Math.abs(was - now) < .2) return;
     e.animate([{ transform: 'scaleX(' + (was / now).toFixed(4) + ')', transformOrigin: 'left' }, { transform: 'none', transformOrigin: 'left' }], { duration: 620 * D, delay: at(e), fill: 'backwards', easing: 'cubic-bezier(.32,.72,0,1)' });
   });
-  if (s.tints.size) root.querySelectorAll<HTMLElement>(TINT).forEach(e => {
-    const was = s.tints.get(keyOf(e, root)), now = getComputedStyle(e).backgroundColor;
+  // Another month: the same square is another day (the month starts on another weekday), so taking over its old
+  // shade would show last month's pattern on this month's days for a moment. Each day's square starts as a day with
+  // nothing spent and darkens to its shade as the wave reaches it instead.
+  const cells = s.tints.size ? [...root.querySelectorAll<HTMLElement>(TINT)] : [];
+  const blank = wave ? cells.find(e => !e.style.getPropertyValue('--p') && !e.classList.contains('fut')) : null;
+  const base = blank ? getComputedStyle(blank).backgroundColor : '';
+  cells.forEach(e => {
+    const now = getComputedStyle(e).backgroundColor;
+    const was = wave ? (e.style.getPropertyValue('--p') ? base : '') : s.tints.get(keyOf(e, root));
     if (was && was !== now) e.animate([{ backgroundColor: was }, { backgroundColor: now }], { duration: 520 * D, delay: at(e), fill: 'backwards', easing: 'ease' });
   });
   if (s.svgs.size) root.querySelectorAll<SVGSVGElement>('svg').forEach(v => { const was = s.svgs.get(keyOf(v, root)); if (was && near(v.getBoundingClientRect())) morphSvg(v, was, at(v), 560 * D); });
