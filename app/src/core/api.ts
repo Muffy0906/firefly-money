@@ -83,22 +83,25 @@ export function ffSeen(state: FfState, why = '') {
   FF.state = state; FF.why = why;
   dispatchEvent(new Event('money-ff'));
 }
-// What a response says about Firefly. When this server can't be reached, the service worker answers reads with the
-// copy it saved (sent with its old Date) or, with nothing saved, a 503 of its own (no Date at all): neither means
-// Firefly answered, so a saved copy says nothing and the 503 means it's this server that's gone.
-export function ffSeenResponse(r: Response) {
+// What a response says about Firefly. An answer from Firefly (or its 401) is taken as it is. A failure is only a
+// suspicion: a busy Firefly drops the odd request, and blanking the page for one would be worse than the failed
+// card, so it asks the connection ping (features/ffstatus.ts) to check now, and only the ping says Firefly is down.
+// The old service worker answered reads with a saved copy (sent with its old Date): that says nothing at all.
+export const ffSuspect = () => dispatchEvent(new Event('money-ff-suspect'));
+export function ffSeenResponse(r: Response, ping = false) {
   const date = r.headers.get('Date'), age = date ? Date.now() - Date.parse(date) : NaN;
-  if (r.status === 503 && !date) ffSeen('down', 'money');
+  const failed = (r.status === 503 && !date) || (r.status >= 502 && r.status <= 504);
+  if (failed && !ping) ffSuspect();
+  else if (failed) ffSeen('down', r.status === 503 && !date ? 'money' : '');
   else if (r.status === 401) ffSeen('auth');
-  else if (r.status >= 502 && r.status <= 504) ffSeen('down');
-  else if (!(age > 12e4)) ffSeen('ok');      // a reply over two minutes old came from the saved copy
+  else if (!(age > 12e4)) ffSeen('ok');      // a reply over two minutes old came from a saved copy
 }
 export const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
 // The browser couldn't reach this server at all (connection dropped, laptop waking up, app restarting):
 // fetch only says "Failed to fetch", so say what that means and mark it so the page can retry by itself.
 function unreachable(e: unknown): unknown {
   if (!(e instanceof TypeError)) return e;
-  ffSeen(navigator.onLine ? 'down' : 'offline', 'money');
+  if (navigator.onLine) ffSuspect(); else ffSeen('offline');
   const err: ApiError = new Error('Couldn’t reach Money. The connection dropped or the app is restarting.'); err.network = true; return err;
 }
 // Returns { r, body }: the slot is held until the whole response has arrived, not just its headers.

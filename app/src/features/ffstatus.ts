@@ -1,5 +1,5 @@
 import { App, el } from '../core/base';
-import { FF, type FfState, api, ffSeen, ffSeenResponse } from '../core/api';
+import { FF, type FfState, api, ffSeen, ffSeenResponse, sleep } from '../core/api';
 import { refreshAll } from '../core/router';
 import { html, htmlList } from '../core/html';
 
@@ -152,19 +152,34 @@ addEventListener('money-ff', paint);
 
 const PING_OK = 5e3, PING_DOWN = 3e3, PING_WAIT = 4e3;
 let pingTimer: ReturnType<typeof setTimeout> | undefined;
-async function ping() {
+// One HEAD of /about: 'ok' | 'auth' from a Firefly answer, a failed Response, 'hang' (no answer in PING_WAIT),
+// 'gone' (this server can't be reached at all) or 'out' (signed out: says nothing about Firefly)
+async function pingOnce(): Promise<Response | 'hang' | 'gone' | 'out'> {
   const ctl = new AbortController(), give = setTimeout(() => ctl.abort(), PING_WAIT);
   try {
     const t0 = performance.now();
     const r = await fetch('/api/v1/about', { method: 'HEAD', cache: 'no-store', headers: { 'X-Money': '1' }, signal: ctl.signal });
     FF.ms = Math.round(performance.now() - t0);
-    if (r.status === 401 && r.headers.get('X-Dash-Auth')) return;      // signed out: that says nothing about Firefly
-    ffSeenResponse(r);
+    return r.status === 401 && r.headers.get('X-Dash-Auth') ? 'out' : r;
+  } catch (e) { return ctl.signal.aborted ? 'hang' : 'gone'; }
+  finally { clearTimeout(give); }
+}
+// A quick failure is tried again three times (a busy Firefly drops the odd request) before the page gives way to the
+// "can't reach" screen; a hang already waited PING_WAIT, so it counts at once.
+const PING_RETRY = [400, 1200, 3000];      // the same waits as a read that fails (core/api.ts NET_RETRY)
+async function ping() {
+  for (let k = 0; ; k++) {
+    const r = await pingOnce();
+    if (r === 'out') return;
+    const bad = r === 'hang' || r === 'gone' || r.status >= 502 && r.status <= 504 || (r.status === 503 && !r.headers.get('Date'));
+    if (bad && r !== 'hang' && k < PING_RETRY.length && navigator.onLine) { await sleep(PING_RETRY[k]); continue; }
+    if (!navigator.onLine) ffSeen('offline');
+    else if (r === 'hang') ffSeen('down');
+    else if (r === 'gone') ffSeen('down', 'money');
+    else ffSeenResponse(r, true);
     if (FF.state === 'ok' && !version) loadVersion();
-  } catch (e) {
-    // aborted after PING_WAIT: something along the way is hanging, so Firefly isn't answering; otherwise this server is gone
-    ffSeen(!navigator.onLine ? 'offline' : 'down', ctl.signal.aborted ? '' : 'money');
-  } finally { clearTimeout(give); }
+    return;
+  }
 }
 function loadVersion() {
   return api('/about').then(j => { const d = (j && j.data) || {}; version = d.version || ''; apiVersion = d.api_version || ''; }).catch(() => {});
@@ -186,6 +201,7 @@ setInterval(paint, 15e3);      // keeps "checked 20s ago" honest
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); else clearTimeout(pingTimer); });
 addEventListener('focus', () => { if (Date.now() - FF.at > 3e3) check(); });
 addEventListener('online', () => check());
+addEventListener('money-ff-suspect', () => { if (!busy) check(); });      // a request failed: check now
 addEventListener('offline', () => App.ffSet('offline'));
 // the app shows after sign-in or once saved data is on screen: start pinging then
 new MutationObserver(() => { if (!el('app').hidden) check(); }).observe(el('app'), { attributes: true, attributeFilter: ['hidden'] });
