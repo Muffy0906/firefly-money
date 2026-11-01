@@ -26,7 +26,7 @@ export function hashWith(changes: Record<string, string | null | undefined>) {
 }
 // Each page module registers its view here by route name. A view draws the page by calling paint with its markup.
 export type RouteInfo = ReturnType<typeof parseHash> & { at?: [number, number] };     // at: see viewYM
-export type Paint = ((markup: Html | string) => void) & { live?: boolean };
+export type Paint = ((markup: Html | string) => void) & { live?: boolean, month?: boolean };
 export type View = (r: RouteInfo, paint: Paint) => Promise<unknown> | void;
 export const VIEWS: Record<string, View> = {};
 
@@ -207,7 +207,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
     const t = vt('page', swap, () => { document.documentElement.dataset.vtdir = dir || ''; vtName(from, 'ptitle'); });
     if (t) t.kind = 'page';
   };
-  paint.live = true;
+  paint.live = true; paint.month = month;
   try {
     await (VIEWS[r.name] || VIEWS[''])(r, paint);
     netFails = 0;
