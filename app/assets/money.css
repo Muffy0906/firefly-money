@@ -1840,3 +1840,44 @@
   .side-tip::before { content: ""; position: absolute; left: -4px; top: 50%; width: 8px; height: 8px; margin-top: -4px; background: inherit; border-radius: 2px; transform: rotate(45deg); }
   .side-tip.on { opacity: 1; visibility: visible; }
   @media (prefers-reduced-motion: no-preference) { .side-tip.on { transition: opacity .12s ease .06s; } }
+
+  /* ---------- Firefly III connection pill (ffstatus.ts): under "Money" in the sidebar, atop the phone's More menu,
+     and floating at the bottom while Firefly can't be reached ---------- */
+  .ff-slot { display: none; }
+  .ff-pill, .ff-alert { --ff: var(--muted); }
+  :is(.ff-pill, .ff-alert)[data-ff="ok"] { --ff: var(--good); }
+  :is(.ff-pill, .ff-alert)[data-ff="down"] { --ff: var(--spend); }
+  :is(.ff-pill, .ff-alert)[data-ff="auth"] { --ff: var(--warn); }
+  :is(.ff-pill, .ff-alert) > i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--ff); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ff) 22%, transparent); }
+  .ff-pill { display: inline-flex; align-items: center; gap: 7px; flex: none; align-self: flex-start; box-sizing: border-box; height: 24px; max-width: 100%; padding: 0 10px 0 8.5px; margin: 0;
+    border: 1px solid color-mix(in srgb, var(--ff) 30%, transparent); border-radius: 99px; background: color-mix(in srgb, var(--ff) 11%, transparent);
+    color: var(--ff); font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1; letter-spacing: 0; white-space: nowrap; overflow: hidden; cursor: pointer; }
+  .ff-pill:hover { background: color-mix(in srgb, var(--ff) 18%, transparent); }
+  .ff-pill > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  :is(.ff-pill[data-ff="checking"], .ff-pill.busy) > i { animation: ff-pulse 1s ease-in-out infinite alternate; }
+  @keyframes ff-pulse { to { opacity: .3; } }
+  @media (prefers-reduced-motion: reduce) { :is(.ff-pill[data-ff="checking"], .ff-pill.busy) > i { animation: none; } }
+  .side > .ff-pill { margin: -10px 0 14px 12px; }
+  .ff-pill.wide { height: 32px; padding: 0 14px 0 12px; margin: 0 0 12px; gap: 9px; font-size: 14px; }
+  .ff-pill.wide > i { width: 8px; height: 8px; }
+  .ff-alert { position: fixed; z-index: 39; bottom: calc(28px + env(safe-area-inset-bottom, 0px)); left: 50%; display: flex; align-items: center; gap: 10px;
+    box-sizing: border-box; height: 42px; max-width: calc(100vw - 32px); padding: 0 5px 0 16px; border: 1px solid var(--line); border-radius: 99px;
+    background: color-mix(in srgb, var(--panel) 88%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
+    color: var(--text); box-shadow: var(--shadow); font-size: 13.5px; font-weight: 550; line-height: 1; white-space: nowrap;
+    opacity: 0; visibility: hidden; transform: translate(-50%, 10px); transition: opacity .2s ease, transform .32s var(--ease-glide), visibility 0s .32s; }
+  .ff-alert.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition: opacity .2s ease, transform .32s var(--ease-glide), visibility 0s; }
+  .ff-alert[data-ff="ok"] { padding-right: 16px; }
+  .ff-alert > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .ff-alert button { flex: none; height: 30px; padding: 0 14px; border: 0; border-radius: 99px; background: var(--faint); color: var(--text); font-family: inherit; font-size: 13px; font-weight: 600; line-height: 1; cursor: pointer; }
+  .ff-alert button:hover { background: var(--line); }
+  @media (max-width: 900px) { .ff-alert { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); } }      /* above the tab bar */
+  @media (min-width: 901px) {
+    .ff-alert { left: calc(50% + 112px); }      /* the middle of the page, beside the sidebar */
+    html.side-mini .ff-alert { left: calc(50% + 35px); }
+    /* Folding: the label fades and the pill narrows to its dot, which lines up with the icons below */
+    .side > .ff-pill { transition: padding .34s var(--ease-glide), margin .34s var(--ease-glide), gap .34s var(--ease-glide), background .12s; }
+    .side > .ff-pill > span { max-width: 160px; transition: opacity .2s ease .1s, max-width .34s var(--ease-glide); }
+    html.side-mini .side > .ff-pill { gap: 0; padding: 0 7.5px; margin-left: 8px; }
+    html.side-mini .side > .ff-pill > span { max-width: 0; opacity: 0; transition: opacity .1s ease, max-width .34s var(--ease-glide); }
+  }
+  @media print { .ff-alert, .ff-pill { display: none !important; } }
