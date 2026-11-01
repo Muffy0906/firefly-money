@@ -1154,6 +1154,13 @@
     html.shell :is(.tbl.feed tr.dayhead, .bulkbar) { transition: top .3s cubic-bezier(.2, .8, .2, 1); }
     html.shell.scroll-down .tbl.feed tr.dayhead { top: calc(env(safe-area-inset-top, 0px) + var(--edge)); }
     html.shell.scroll-down .bulkbar { top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 8px); }
+    /* Pages without a back button have no title bar row: the large title starts just under the status bar blur, with search
+       on its right (html.ab-row marks a back button, shell.ts). The title row's centre matches the search button's (top + 18px). */
+    html.shell:not(.ab-row) .appbar { display: none; }
+    html.shell:not(.ab-row) main#view { padding-top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 4px) !important; }
+    html.shell:not(.ab-row) #view > .head { padding-right: 46px; }
+    html.shell:not(.ab-row) :is(.tbl.feed tr.dayhead, .ptr) { top: calc(env(safe-area-inset-top, 0px) + var(--edge)); }
+    html.shell:not(.ab-row) .bulkbar { top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 8px); }
     /* Native tab bar in the iPhone app replaces the web one */
     html.native-tabs .tabbar { display: none !important; }
     html.native-tabs main#view { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 49px + 28px) !important; }
@@ -1930,28 +1937,40 @@
   /* ---------- Pinned page head (pinhead.ts): the title row and its controls (month, Today, Customize, + New…) stay at the top
      while the page scrolls. Once pinned, a blur behind it fades the content out as it slides under. --head-top is where it
      pins: under the iPhone app's title bar, and up to the edge while that bar is slid away. ---------- */
-  :root { --head-top: 14px; --head-fade: 26px; --head-l: 44px; --head-r: 44px; }
-  html.compact { --head-top: 10px; }
+  :root { --head-top: 14px; --head-fade: 28px; --head-hold: 8px; --head-l: 44px; --head-r: 44px; }
+  html.compact { --head-top: 10px; --head-fade: 18px; --head-hold: 4px; }
   @media (max-width: 900px) {
-    :root { --head-top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 4.5px); --head-fade: 18px;      /* the title row lines up with the search button */
+    :root { --head-top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 4.5px); --head-fade: 18px; --head-hold: 4px;      /* the title row lines up with the search button */
       --head-l: calc(16px + env(safe-area-inset-left, 0px)); --head-r: calc(16px + env(safe-area-inset-right, 0px)); }
     html.shell { --head-top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 44px); }
     html.shell.scroll-down { --head-top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 6px); }
+    html.shell:not(.ab-row) { --head-top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 4px); }
+    /* search sits on the pinned title row there, so it stays with it instead of sliding away */
+    html.shell.pinhead:not(.ab-row) .search-btn { transform: none; opacity: 1; pointer-events: auto; }
     html.shell.pinhead #view > .head { transition: top .3s cubic-bezier(.2, .8, .2, 1); }
   }
   html.pinhead #view > .head { position: sticky; top: var(--head-top); z-index: 12; }
-  html.pinhead #view > .head::before { content: ''; position: absolute; z-index: -1; pointer-events: none;
-    top: calc(-1 * var(--head-top) - 2px); bottom: calc(-1 * var(--head-fade)); left: calc(-1 * var(--head-l)); right: calc(-1 * var(--head-r));
-    background: color-mix(in srgb, var(--bg) 78%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
-    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--head-fade) - 6px), transparent);
-    mask-image: linear-gradient(to bottom, #000 calc(100% - var(--head-fade) - 6px), transparent);
+  /* Two layers so the fade reads clean: ::before blurs what's behind the title row and stops just below it, ::after lays the
+     page colour over it and dissolves it on an eased curve. A blur that fades out over the whole fade left a smeared, half-sharp
+     copy of the rows sliding under (and a hard-looking band where a card's top edge crossed it). */
+  html.pinhead #view > .head::before, html.pinhead #view > .head::after { content: ''; position: absolute; z-index: -1; pointer-events: none;
+    top: calc(-1 * var(--head-top) - 2px); left: calc(-1 * var(--head-l)); right: calc(-1 * var(--head-r));
     opacity: 0; visibility: hidden; transition: opacity .2s ease, visibility 0s .2s; }
-  html.head-pinned #view > .head::before { opacity: 1; visibility: visible; transition: opacity .2s ease, visibility 0s; }
+  html.pinhead #view > .head::before { bottom: -14px; -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent); }
+  html.pinhead #view > .head::after { --tint: color-mix(in srgb, var(--bg) 78%, transparent); --f0: calc(100% - var(--head-fade) + var(--head-hold));
+    bottom: calc(-1 * var(--head-fade));
+    background: linear-gradient(to bottom, var(--tint) var(--f0),
+      color-mix(in srgb, var(--bg) 66%, transparent) calc(var(--f0) + (100% - var(--f0)) * .2),
+      color-mix(in srgb, var(--bg) 46%, transparent) calc(var(--f0) + (100% - var(--f0)) * .4),
+      color-mix(in srgb, var(--bg) 25%, transparent) calc(var(--f0) + (100% - var(--f0)) * .6),
+      color-mix(in srgb, var(--bg) 9%, transparent) calc(var(--f0) + (100% - var(--f0)) * .8), transparent); }
+  html.head-pinned #view > .head::before, html.head-pinned #view > .head::after { opacity: 1; visibility: visible; transition: opacity .2s ease, visibility 0s; }
   /* the day headings on Transactions and the bulk bar stick just below it */
   html.pinhead .tbl.feed tr.dayhead { top: calc(var(--head-top) + var(--head-h, 0px) + 4px) !important; z-index: 13; }
   html.pinhead .bulkbar { top: calc(var(--head-top) + var(--head-h, 0px) + 10px) !important; z-index: 13; }
   html.pinhead.shell .tbl.feed tr.dayhead, html.pinhead.shell .bulkbar { transition: top .3s cubic-bezier(.2, .8, .2, 1); }
-  @media print { html.pinhead #view > .head { position: static; } html.pinhead #view > .head::before { display: none; } }
+  @media print { html.pinhead #view > .head { position: static; } html.pinhead #view > .head::before, html.pinhead #view > .head::after { display: none; } }
 
   /* ---------- Scrollbars: thin, themed pills on a clear track (mouse and trackpad only; touch keeps its own) ---------- */
   /* The ::-webkit-scrollbar rules are not behind @supports selector(): Safari answers that test "no" and then drew its default bar.

@@ -34,6 +34,7 @@ function updateAppbar() {
     btn.querySelector('span')!.textContent = a.textContent.replace(/^\s*←\s*/, '');
     backP.classList.add('shell-hide');
   } else btn.hidden = true;
+  document.documentElement.classList.toggle('ab-row', !!backP);   // no back button: no title bar row (money.css)
   appbarScroll();
 }
 if (SHELL) {
