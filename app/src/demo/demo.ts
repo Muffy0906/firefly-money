@@ -31,6 +31,7 @@ const json = { 'Content-Type': 'application/json' };
 window.fetch = async (input: RequestInfo | URL, init: RequestInit = {}) => {
   const u = new URL(input instanceof Request ? input.url : String(input), location.href);
   if (u.pathname.endsWith('/api/money-session')) return new Response(null, { status: 204 });   // sign in or out
+  if (u.pathname.endsWith('/api/money-alive')) return new Response(null, { status: 204, headers: { 'X-Money-Server': '1' } });   // the connection ping's "is Money there?"
   if (u.pathname.endsWith('/api/money-ingest')) return new Response(JSON.stringify({ key: 'demo-key' }), { status: 200, headers: json });   // Settings → Apple Pay
   const at = u.pathname.indexOf('/api/v1/');
   if (at < 0) return realFetch(input, init);

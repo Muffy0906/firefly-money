@@ -269,6 +269,8 @@ class H(BaseHTTPRequestHandler):
                 self.send_response(200); self.send_header('Content-Type', 'image/svg+xml'); self.end_headers(); self.wfile.write(body)
             else: self.send_response(404); self.end_headers()
             return
+        if u.path == '/api/money-alive':       # Money's own "I'm here" (default.conf.template): no Firefly, no sign-in
+            self.send_response(204); self.send_header('X-Money-Server', '1'); self.send_header('Cache-Control', 'no-store'); self.end_headers(); return
         if LATENCY: time.sleep(LATENCY)        # simulate a real Firefly server (set LATENCY=0.15)
         if FAIL_RATE and method == 'GET' and _flaky.random() < FAIL_RATE:
             self.send_response(502); self.send_header('Content-Type', 'text/html'); self.end_headers(); self.wfile.write(b'<html><body>502 Bad Gateway</body></html>'); return
