@@ -65,7 +65,7 @@ const textOf = (e: HTMLElement) => e.dataset.odo ?? e.textContent ?? '';
 type SvgSnap = { n: number, kids: [string, Record<string, string>][] };
 export type Snap = {
   nums: Map<string, string>, fills: Map<string, number>, svgs: Map<string, SvgSnap>, tints: Map<string, string>,
-  texts: Map<string, string>, cards: Set<string>, rows: Map<string, number>, layout: Set<string>, feed: boolean
+  texts: Map<string, string>, held: Map<string, Said>, cards: Set<string>, shapes: Map<string, number>, rows: Map<string, number>, layout: Set<string>, feed: boolean
 };
 // A part that changes itself into place when its own data comes (the Transactions month strip: transactions.ts
 // fillStrip) is left alone here, or it would change twice
@@ -74,6 +74,35 @@ const ours = (e: Element, root: Node) => { const o = e.closest(SELF); return !o 
 // Words that can differ from month to month (a page's subtitle, a card's heading or lead line): when they do, the
 // new words fade in as the wave reaches them; when they don't, they stay exactly as they were
 const TEXT = '.head h1, .head .sub, h2, .lead, .center-empty, .empty';
+// The words in a card (labels, legends, axis labels, captions): everything that isn't an amount (those roll) or a
+// day's square in the heatmap (those change colour). A line of text with a few words styled inside it ("$593 ·
+// <span>$144 more</span>") counts as one, by its markup.
+const INLINE = /^(SPAN|B|STRONG|SMALL|I|EM|A|ABBR|SUB|SUP|BR|MARK)$/;
+const isLine = (e: Element) => e.children.length > 0 && [...e.childNodes].some(n => n.nodeType === 3 && (n.textContent || '').trim()) &&
+  [...e.querySelectorAll('*')].every(k => INLINE.test(k.tagName) && !k.matches(NUM));
+// (an icon, which says something too: an arrow up or down, a tick, goes with its words)
+const ICON = 'svg[viewBox="0 0 24 24"]';
+const leaves = (card: Element, root: Node) => [...card.querySelectorAll('*')].filter(e => ours(e, root) && (e.matches(ICON) || ((e.textContent || '').trim() &&
+  (!e.children.length ? !e.matches(NUM) : isLine(e)))) && !e.parentElement?.closest(ICON) && !e.parentElement?.closest('[data-odo], .hm-cell, .mghost') && !e.matches('.hm-cell, .mghost, [data-odo]') &&
+  !(e.parentElement && isLine(e.parentElement)));
+// A card's build (its elements, in order): another month's words can only stand in for this one's when they sit in
+// the same places. A calendar (the month starts on another day, has 30 days, not 31) or a list with more rows is
+// built differently, and its new words just fade in.
+function shape(card: Element) {
+  let h = 0;
+  for (const e of card.querySelectorAll('*')) {
+    // (words styled inside a line, and a chart's parts, don't count: those change in place)
+    if (INLINE.test(e.tagName) || e.closest('svg')) continue;
+    const t = e.tagName; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; h = (h * 31 + 59) | 0;
+  }
+  return h;
+}
+// What a piece of text says: its words, or its markup when words inside it are styled
+// (compared by its markup; put back as copies of its own nodes, never by parsing that markup again)
+type Said = string | Element;
+const said = (e: Element) => e.children.length || e.matches(ICON) ? 'H:' + e.innerHTML : e.textContent || '';
+const grab = (e: Element): Said => e.children.length || e.matches(ICON) ? e.cloneNode(true) as Element : e.textContent || '';
+const say = (e: Element, v: Said) => { if (typeof v === 'string') e.textContent = v; else e.replaceChildren(...[...v.childNodes].map(n => n.cloneNode(true))); };
 const topCards = (root: Element | DocumentFragment) => [...root.querySelectorAll(CARD)].filter(c => !c.parentElement?.closest(CARD));
 // The parts of a page that frame the layout: if most of them are the same in both drawings, it can redraw in place
 const LAYOUT = '[data-w], .kpi, section.panel, .hero';
@@ -84,7 +113,7 @@ function layoutKeys(root: Element | DocumentFragment) {
 }
 
 export function snapshot(root: HTMLElement): Snap {
-  const s: Snap = { nums: new Map(), fills: new Map(), svgs: new Map(), tints: new Map(), texts: new Map(), cards: new Set(), rows: new Map(), layout: layoutKeys(root), feed: !!root.querySelector('.tbl.feed tr[data-gid]') };
+  const s: Snap = { nums: new Map(), fills: new Map(), svgs: new Map(), tints: new Map(), texts: new Map(), held: new Map(), cards: new Set(), shapes: new Map(), rows: new Map(), layout: layoutKeys(root), feed: !!root.querySelector('.tbl.feed tr[data-gid]') };
   if (RM) return s;
   let c = 0;
   root.querySelectorAll<HTMLElement>(NUM).forEach(e => { if (c < 80 && (!e.children.length || e.dataset.odo) && ours(e, root) && near(e.getBoundingClientRect())) { s.nums.set(keyOf(e, root), textOf(e)); c++; } });
@@ -92,8 +121,14 @@ export function snapshot(root: HTMLElement): Snap {
   root.querySelectorAll<HTMLElement>(TEXT).forEach(e => { if (ours(e, root)) s.texts.set(keyOf(e, root), e.textContent || ''); });
   topCards(root).forEach(e => s.cards.add(keyOf(e, root)));
   c = 0;
+  topCards(root).forEach(card => {
+    if (!near(card.getBoundingClientRect())) return;
+    s.shapes.set(keyOf(card, root), shape(card));
+    leaves(card, root).forEach(e => { if (c++ < 1500) { const k = keyOf(e, root); s.texts.set(k, said(e)); s.held.set(k, grab(e)); } });
+  });
+  c = 0;
   root.querySelectorAll<SVGSVGElement>('svg').forEach(v => {
-    if (c >= 24 || !ours(v, root) || !near(v.getBoundingClientRect())) return;
+    if (c >= 24 || !ours(v, root) || v.matches(ICON) || !near(v.getBoundingClientRect())) return;
     const kids = [...v.querySelectorAll(GEO)];
     if (!kids.length || kids.length > 600) return;
     c++;
@@ -132,6 +167,8 @@ export function sameLayout(old: Snap, next: DocumentFragment, dir = '') {
 const DIG = /\d/;
 function roll(e: HTMLElement, from: string, to: string, delay = 0, dur = 700): boolean {
   if (from === to || !DIG.test(to) || !DIG.test(from) || e.children.length) return false;
+  // Only between figures of the same shape ($1,334 → $1,076): from $1,000 to $778 the first frame would read $000
+  if (from.replace(/\d/g, '0') !== to.replace(/\d/g, '0')) return false;
   const cs = getComputedStyle(e);
   if (!/tabular/.test(cs.fontVariantNumeric) || cs.display === 'none') return false;
   const val = (s: string) => parseFloat(s.replace(/[^\d.-]/g, '')) || 0;
@@ -195,11 +232,17 @@ function roll(e: HTMLElement, from: string, to: string, delay = 0, dur = 700): b
   });
   return true;
 }
-// A number that can't roll (not in tabular figures) still changes when the wave reaches it
-function later(e: HTMLElement, from: string, to: string, delay: number) {
-  e.textContent = from; e.dataset.odo = to;
+// Text that can't roll (a word, a figure of another shape) keeps showing what it said until the wave reaches it,
+// then the new words fade in, so a card never shows this month's labels on last month's chart
+function later(e: Element, from: Said, to: Said, delay: number, kind = 'roll') {
+  say(e, from); if (e instanceof HTMLElement && kind === 'roll' && typeof to === 'string') e.dataset.odo = to;
   const t0 = performance.now() + delay;
-  own(e, 'roll', now => { if (now < t0 && e.isConnected) return true; e.textContent = to; delete e.dataset.odo; return false; });
+  own(e, kind, now => {
+    if (now < t0 && e.isConnected) return true;
+    say(e, to); if (e instanceof HTMLElement) delete e.dataset.odo;
+    if (e.isConnected) e.animate([{ opacity: .25 }, { opacity: 1 }], { duration: 220, easing: 'ease' });
+    return false;
+  });
 }
 
 /* ---------- Chart geometry ---------- */
@@ -218,7 +261,7 @@ function morphSvg(v: SVGSVGElement, old: SvgSnap, delay = 0, dur = 560) {
   const same = kids.length === old.n && kids.every((k, i) => k.tagName === old.kids[i][0]);
   // A few more or fewer parts (a 31st day's bar, one more slice): each part takes over from the old one of its kind
   // in the same place and the extra ones fade in. Very different drawings just fade in whole.
-  if (!same && Math.abs(kids.length - old.n) > Math.max(2, old.n * .2)) { v.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay, easing: 'ease', fill: 'backwards' }); return; }
+  if (!same && Math.abs(kids.length - old.n) > Math.max(2, old.n * .2)) { v.animate([{ opacity: .25 }, { opacity: 1 }], { duration: 300, easing: 'ease', fill: 'backwards' }); return; }
   const was: Record<string, Record<string, string>[]> = {}, seen: Record<string, number> = {};
   old.kids.forEach(([t, a]) => (was[t] = was[t] || []).push(a));
   const tw: [Element, string, (p: number) => string][] = [], fresh: Element[] = [];
@@ -356,10 +399,27 @@ export function morph(root: HTMLElement, s: Snap, dir = '') {
       if (s.cards.has(keyOf(c, root)) || c.matches(SELF) || !near(c.getBoundingClientRect())) return;
       c.animate([{ opacity: 0, transform: 'scale(.97)' }, { opacity: 1, transform: 'none' }], { duration: 360, delay: at(c), easing: 'cubic-bezier(.32,.72,0,1)', fill: 'backwards' });
     });
+    // In each card the words wait for the wave with the chart: the old ones stay until it arrives, then the new
+    // ones fade in (new ones with nothing before them just fade in then)
+    let n = 0;
+    topCards(root).forEach(card => {
+      if (card.matches(SELF) || !near(card.getBoundingClientRect())) return;
+      const d = at(card), hold = s.shapes.get(keyOf(card, root)) === shape(card);
+      leaves(card, root).forEach(e => {
+        if (n >= 1500) return;
+        const k = keyOf(e, root), now = said(e), was = s.texts.get(k), old = s.held.get(k);
+        if (was === now) return;
+        n++;
+        if (was == null) { e.animate([{ opacity: hold ? 0 : .25 }, { opacity: 1 }], { duration: 220, delay: hold ? d : 0, easing: 'ease', fill: 'backwards' }); return; }
+        if (hold && old != null) later(e, old, grab(e), d, 'text');
+        else e.animate([{ opacity: .25 }, { opacity: 1 }], { duration: 220, easing: 'ease' });
+      });
+    });
     root.querySelectorAll<HTMLElement>(TEXT).forEach(e => {
       const was = s.texts.get(keyOf(e, root));
       if (was == null || was === e.textContent || !ours(e, root) || !near(e.getBoundingClientRect())) return;
-      e.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: at(e), easing: 'ease', fill: 'backwards' });
+      if (e.closest(CARD) && !e.children.length) return;      // (a card's words: above)
+      e.animate([{ opacity: .25 }, { opacity: 1 }], { duration: 260, delay: at(e), easing: 'ease', fill: 'backwards' });
     });
   }
   // in a wave each card's move is a little quicker, so the last one settles soon after the first
@@ -371,15 +431,22 @@ export function morph(root: HTMLElement, s: Snap, dir = '') {
     if (was == null || was === now || !near(e.getBoundingClientRect())) return;
     c++;
     const d = at(e);
-    if (!roll(e, was, now, d, 700 * D) && d > 0 && e.isConnected && !e.children.length && e.textContent === now) later(e, was, now, d);
+    if (!roll(e, was, now, d, 700 * D) && (d > 0 || wave) && e.isConnected && !e.children.length && e.textContent === now) later(e, was, now, d);
   });
   if (s.fills.size) root.querySelectorAll<HTMLElement>('.fill').forEach(e => {
     const was = s.fills.get(keyOf(e, root)), now = parseFloat(e.style.width);
     if (was == null || !isFinite(now) || now <= 0 || Math.abs(was - now) < .2) return;
     e.animate([{ transform: 'scaleX(' + (was / now).toFixed(4) + ')', transformOrigin: 'left' }, { transform: 'none', transformOrigin: 'left' }], { duration: 620 * D, delay: at(e), fill: 'backwards', easing: 'cubic-bezier(.32,.72,0,1)' });
   });
-  if (s.tints.size) root.querySelectorAll<HTMLElement>(TINT).forEach(e => {
-    const was = s.tints.get(keyOf(e, root)), now = getComputedStyle(e).backgroundColor;
+  // Another month: the same square is another day (the month starts on another weekday), so taking over its old
+  // shade would show last month's pattern on this month's days for a moment. Each day's square starts as a day with
+  // nothing spent and darkens to its shade as the wave reaches it instead.
+  const cells = s.tints.size ? [...root.querySelectorAll<HTMLElement>(TINT)] : [];
+  const blank = wave ? cells.find(e => !e.style.getPropertyValue('--p') && !e.classList.contains('fut')) : null;
+  const base = blank ? getComputedStyle(blank).backgroundColor : '';
+  cells.forEach(e => {
+    const now = getComputedStyle(e).backgroundColor;
+    const was = wave ? (e.style.getPropertyValue('--p') ? base : '') : s.tints.get(keyOf(e, root));
     if (was && was !== now) e.animate([{ backgroundColor: was }, { backgroundColor: now }], { duration: 520 * D, delay: at(e), fill: 'backwards', easing: 'ease' });
   });
   if (s.svgs.size) root.querySelectorAll<SVGSVGElement>('svg').forEach(v => { const was = s.svgs.get(keyOf(v, root)); if (was && near(v.getBoundingClientRect())) morphSvg(v, was, at(v), 560 * D); });
