@@ -1385,11 +1385,12 @@
     display: grid; place-items: center; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.3); box-sizing: border-box; }
   .leaflet-marker-icon.map-pin.on { background: var(--accent); color: var(--on-accent); }
   form.ask { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 6px 14px; margin-bottom: 16px; }
+  form.ask:focus-within { border-color: var(--muted); }
   form.ask svg { width: 18px; height: 18px; color: var(--muted); flex: none; }
-  form.ask input { border: 0; background: none; flex: 1; font-size: 16px; padding: 8px 0; outline: none; box-shadow: none; }
-  /* the themes' input fill and focus ring (html[data-theme] :is(input[type=text], …)) would draw a second box inside the bar */
-  html form.ask input[type], html form.ask input[type]:focus { background: none; border: 0; box-shadow: none; }
-  html .pickpop input[type], html .pickpop input[type]:focus { background: transparent; box-shadow: none; border-color: var(--line); }
+  /* #askQ: an id so no theme input rule (Frosted night's html[data-theme][data-scene] :is(…) is 0,3,2) can paint a second box inside the bar */
+  form.ask #askQ, form.ask #askQ:focus { flex: 1; min-width: 0; width: 100%; border: 0; border-radius: 0; background: transparent; font-size: 16px; padding: 8px 0; outline: none; box-shadow: none; -webkit-appearance: none; appearance: none; }
+  /* :not(#_) adds id weight so Frosted night's input fill (0,3,2) can't win here either */
+  html .pickpop input[type]:not(#_), html .pickpop input[type]:not(#_):focus { background: transparent; box-shadow: none; border-color: var(--line); }
   .ask-answer .ask-title { font-size: 18px; line-height: 1.45; margin: 6px 0 12px; }
   .ask-answer .list button.row { width: 100%; text-align: left; font: inherit; color: inherit; background: none; border: 0; border-top: 1px solid var(--line); border-radius: 0; padding-left: 0; padding-right: 0; cursor: pointer; }
   .ask-answer { margin-bottom: 16px; }
