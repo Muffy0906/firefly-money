@@ -308,7 +308,7 @@
   .tbl .date { color: var(--muted); white-space: nowrap; width: 80px; }
   .tbl .desc { font-weight: 500; }
   .tbl .meta { margin-top: 3px; }
-  .tbl .flow { color: var(--muted); font-size: 13px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tbl .fromto { color: var(--muted); font-size: 13px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tbl .amt { text-align: right; white-space: nowrap; font-weight: 500; font-variant-numeric: tabular-nums; }
   .tbl .act { text-align: right; white-space: nowrap; width: 1%; }
   .tbl input.inline { width: 120px; padding: 6px 10px; text-align: right; }
@@ -619,8 +619,8 @@
   .tbl.feed tr[data-gid] td { display: flex; align-items: center; min-width: 0; }
   .tbl.feed tr[data-gid] td.amt { justify-content: flex-end; }
   .tbl.feed td.sel { width: auto; padding-right: 0; }
-  .tbl.feed td.flow { max-width: none; }
-  .tbl.feed td.flow > span, .tbl.feed td.catcol > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .tbl.feed td.fromto { max-width: none; }
+  .tbl.feed td.fromto > span, .tbl.feed td.catcol > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .tbl.feed tr.dayhead td { padding: 0; border-bottom: 1px solid var(--line); background: transparent; }
   .tbl.feed tr.dayhead div { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--muted);
     background: color-mix(in srgb, color-mix(in srgb, var(--faint) 60%, var(--panel)) 90%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
