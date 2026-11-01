@@ -33,21 +33,26 @@ acc(1, 'Everyday Checking', 'asset', 0, 'defaultAsset')   # balances: worked out
 acc(2, 'High-Yield Savings', 'asset', 0, 'savingAsset')
 acc(3, 'Rewards Card', 'asset', 0, 'ccAsset', monthly_payment_date='2026-01-03')
 acc(4, 'Cashback Card', 'asset', 0, 'ccAsset', monthly_payment_date='2026-01-31')
-acc(5, 'Car loan', 'liability', -9020, None, liability_type='loan', current_debt='9020', interest='5.9', interest_period='yearly')
+acc(5, 'Car loan', 'liability', 0, None, liability_type='loan', current_debt='0', interest='5.9', interest_period='yearly')
 acc(6, 'Acme Corp', 'revenue')
 acc(130, 'Online transfer', 'expense'); acc(131, 'Transfer from Everyday', 'revenue')   # see the pair below
 acc(140, 'Old Gym Membership', 'expense'); acc(141, 'Garage sale', 'revenue')   # nothing uses these (for Clean up)
 acc(143, 'Maple Street Apartments', 'expense')   # rent, on the 1st
+acc(144, 'Island Air', 'expense'); acc(145, 'Seaside Resort', 'expense')   # a trip every summer, paid from savings
+acc(146, 'Riverside Motors', 'expense'); acc(147, 'Riverside Auto Finance', 'expense')   # the car (and the loan's interest)
+acc(148, 'Savings interest', 'revenue')
 PAYEES = [  # name, category, budget, typical amount, per-month count
     ('Green Grocer', 'Groceries', 'Food', 64, 5), ('Corner Market', 'Groceries', 'Food', 48, 4), ('SQ *BEAN THERE COFFEE', 'Dining', 'Food', 7, 6),
     ('Burrito Bar', 'Dining', 'Food', 14, 3), ('Taco Stand', 'Dining', 'Food', 22, 2), ('Fuel Stop', 'Gas', None, 42, 3), ('Online Store', 'Shopping', None, 38, 3),
     ('StreamFlix', 'Subscriptions', None, 15.49, 1), ('Tunes Plus', 'Subscriptions', None, 11.99, 1), ('City Power & Light', 'Utilities', None, 96, 1),
     ('Pharmacy Plus', 'Health', None, 23, 1), ('Big Box Store', 'Shopping', None, 55, 1),
+    ('Mobile Co', 'Utilities', None, 65, 1), ('FiberNet', 'Utilities', None, 70, 1), ('FitLife Gym', 'Health', None, 45, 1),
+    ('Pizza Place', 'Dining', 'Food', 32, 2), ('Home Goods', 'Shopping', None, 140, 0.6),
 ]
 PID = {}
 for i, p in enumerate(PAYEES):
     PID[p[0]] = str(100 + i); acc(100 + i, p[0], 'expense')
-CATS = sorted({p[1] for p in PAYEES} | {'Salary', 'Travel', 'Rent'}) + ['Hobbies']   # Hobbies: unused (for Clean up)
+CATS = sorted({p[1] for p in PAYEES} | {'Salary', 'Travel', 'Rent'}) + ['Hobbies', 'Car', 'Interest']   # Hobbies: unused (for Clean up)
 CAT_ID = {c: str(i + 1) for i, c in enumerate(CATS)}
 BUDGETS = {'Food': '1', 'Fun': '2'}
 
@@ -66,8 +71,8 @@ BILL_OF = {b[7]: b for b in BILLS if b[7]}
 
 TX = []
 # Every balance is worked out from the history, so it adds up whatever day it is: checking and savings start with
-# these amounts, the cards start paid off, and the loan stays where it is
-BAL = {'1': 2000, '2': 6000, '3': 0, '4': 0}
+# these amounts, and the cards and the car loan start at nothing
+BAL = {'1': 2000, '2': 6000, '3': 0, '4': 0, '5': 0}
 # Where the in-store payees are (a few blocks of one town), for the Map page; three in four purchases there have a place
 SPOTS = {'Green Grocer': (40.7290, -73.9890), 'Corner Market': (40.7265, -73.9815), 'SQ *BEAN THERE COFFEE': (40.7308, -73.9973),
          'Burrito Bar': (40.7223, -73.9874), 'Taco Stand': (40.7195, -73.9960), 'Fuel Stop': (40.7410, -73.9780), 'Pharmacy Plus': (40.7340, -73.9900), 'Big Box Store': (40.7480, -73.9860)}
@@ -85,40 +90,96 @@ def add_tx(d, typ, amt, desc, src, dst, cat=None, bud=None):
         'foreign_amount': None, 'foreign_currency_code': None, 'reconciled': False, 'latitude': spot and spot[0], 'longitude': spot and spot[1]}]}})
 ACC_BY = {a['id']: a for a in ACC}
 
-# A year of history, always up to today: paychecks on the 1st and 15th, rent on the 1st, savings on the 16th, everyday
-# spending, and each card paid off: what it owed at the start of the month, on its due date (the 3rd and the month's end)
-d = (TODAY.replace(day=1) - timedelta(days=int(os.environ.get('HISTORY_DAYS', 365)))).replace(day=1)   # HISTORY_DAYS=1100: three years, for the Timeline
-owed = {}
+# Ten years of history, as the online demo has (HISTORY_DAYS=400 makes it about a year), always up to today, in today's
+# money: what things cost now, scaled back for inflation, and pay and rent scaled back for each year's raise (in March)
+# and lease renewal (in August).
+YEARS = 10
+def ago(d): return (TODAY - d).days / 365.25
+def prices(d): return 1.028 ** -ago(d)
+def stepped(d, month, steps):   # how much a yearly step (raise, rent increase) has taken a number since day d: steps[0] is the latest
+    f, k = 1, 0
+    for y in range(TODAY.year, TODAY.year - YEARS - 2, -1):
+        s = date(y, month, 1)
+        if d < s <= TODAY: f *= 1 + steps[k]; k += 1
+    return f
+RAISES = [.04, .03, .035, .12, .03, .045, .02, .03, .05, .03, .03]   # the .12 was a promotion
+RENT_UPS = [.03, .045, .06, .05, .02, 0, .03, .035, .04, .03, .03]
+def pay(d): return round(2850 / stepped(d, 3, RAISES))
+def rent(d): return round(2150 / stepped(d, 8, RENT_UPS) / 5) * 5
+SUBS = {'StreamFlix': [(5, 9.99), (2.5, 12.99), (1, 15.49)], 'Tunes Plus': [(6, 9.99), (3, 10.99), (1.5, 11.99)]}   # (years ago from, price)
+STARTS = {'Taco Stand': 2.5, 'SQ *BEAN THERE COFFEE': 7}   # opened this many years ago
+# More shopping before the holidays, more driving and eating out in summer, bigger power bills in winter and August
+def season(cat, m):
+    if cat == 'Shopping': return [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.4, 2.2][m - 1]
+    if cat == 'Gas': return 1.25 if 6 <= m <= 8 else 1
+    if cat == 'Dining': return 1.15 if 6 <= m <= 8 else 1.3 if m == 12 else 1
+    if cat == 'Utilities': return [1.35, 1.3, 1.1, 1, .9, .95, 1.15, 1.25, 1, .9, 1, 1.3][m - 1]
+    return 1
+def apy(d): a = ago(d); return 1.0 if a > 7 else .5 if a > 5 else 1.2 if a > 3.5 else 4.2   # savings rate, %
+# The car: bought a little over four years ago, part cash from savings and a 6-year loan at 5.9%
+_cm = TODAY.month - 3
+CAR = date(TODAY.year - 4 + _cm // 12, _cm % 12 + 1, 12)
+LOAN, RATE = 25000, .059 / 12
+PMT = round(LOAN * RATE / (1 - (1 + RATE) ** -72), 2)
+
+# Paychecks on the 1st and 15th and a bonus each March, rent on the 1st, whatever's spare moved to savings on the 16th,
+# everyday spending, a trip each summer, and each card paid off: what it owed at the start of the month, on its due
+# date (the 3rd and the month's end)
+START = d = (TODAY.replace(day=1) - timedelta(days=int(os.environ['HISTORY_DAYS']))).replace(day=1) if os.environ.get('HISTORY_DAYS') else date(TODAY.year - YEARS, TODAY.month, 1)
+owed, mood = {}, {}
 def pay_card(d, id, name):
     if owed.get(id, 0) > 0: add_tx(d, 'transfer', round(owed[id], 2), name + ' payment', '1', id)
 while d <= TODAY:
     this_month = (d.year, d.month) == (TODAY.year, TODAY.month)
-    if d.day == 1: owed = {'3': -BAL['3'], '4': -BAL['4']}
-    if d.day in (1, 15): add_tx(d, 'deposit', 2850, 'ACME CORP PAYROLL', '6', '1', 'Salary')
-    if d.day == 1: add_tx(d, 'withdrawal', 2150, 'Maple Street Apartments', '1', '143', 'Rent')
-    if d.day == 16: add_tx(d, 'transfer', 1800, 'Monthly savings', '1', '2')
+    p, last = prices(d), (d + timedelta(days=1)).day == 1
+    if d.day == 1:
+        owed = {'3': -BAL['3'], '4': -BAL['4']}
+        mood = {c: random.uniform(.85, 1.2) for c in CATS}    # some months are just pricier than others
+    if d.day in (1, 15): add_tx(d, 'deposit', pay(d), 'ACME CORP PAYROLL', '6', '1', 'Salary')
+    if d.month == 3 and d.day == 15: add_tx(d, 'deposit', round(pay(d) * 24 * random.uniform(.04, .09) / 10) * 10, 'ACME CORP BONUS', '6', '1', 'Salary')
+    if d.day == 1: add_tx(d, 'withdrawal', rent(d), 'Maple Street Apartments', '1', '143', 'Rent')
+    if d.day == 16:
+        spare = (BAL['1'] - 2500 * p) // 50 * 50
+        if spare > 0: add_tx(d, 'transfer', spare, 'Monthly savings', '1', '2')
     for i, (name, cat, bud, amt, per) in enumerate(PAYEES):
+        if ago(d) > STARTS.get(name, 99): continue
         if cat in ('Subscriptions', 'Utilities'):         # these come on the same day every month
             if d.day == 4 + i:
-                price = amt * random.uniform(.85, 1.15) if cat == 'Utilities' else 17.99 if name == 'StreamFlix' and (TODAY - d).days < 20 else amt
+                sub = SUBS.get(name)
+                if sub and ago(d) > sub[0][0]: continue      # not signed up yet
+                price = (amt * p * season(cat, d.month) * random.uniform(.85, 1.15) if name == 'City Power & Light' else amt * p if cat == 'Utilities'
+                         else 17.99 if name == 'StreamFlix' and (TODAY - d).days < 20 else [v for f, v in sub if ago(d) <= f][-1] if sub else amt)
                 add_tx(d, 'withdrawal', round(price, 2), name, '3', PID[name], cat, bud)
             continue
         # Early in the month the days so far get more of it, so this month's charts are never empty (on the 1st, about a week's worth)
-        odds = per / 30 * (max(1, 8 / TODAY.day) if this_month else 1)
+        odds = per / 30 * (max(1, 8 / TODAY.day) if this_month else season(cat, d.month))
         for _ in range(int(odds) + (random.random() < odds % 1)):
-            mult = 1.0
+            mult = 1.0 if this_month else mood[cat]
             if cat == 'Dining' and this_month: mult = 1.9          # dining spike this month
             if cat == 'Groceries' and this_month: mult = 0.45     # groceries down
             src = random.choice(['1', '3', '3', '4'])
-            add_tx(d, 'withdrawal', round(amt * mult * random.uniform(.7, 1.3), 2), name.title() if name.isupper() else name, src, PID[name], cat, bud)
+            add_tx(d, 'withdrawal', round(amt * p * mult * random.uniform(.7, 1.3), 2), name.title() if name.isupper() else name, src, PID[name], cat, bud)
+    # A summer trip, from savings, in a different week each year (this year's is still being saved for: see the piggy bank)
+    if d.month == 7 and d.day == 8 + (d.year % 4) * 4 and d.year < TODAY.year and d - timedelta(days=30) >= START:
+        add_tx(d - timedelta(days=30), 'withdrawal', round(random.uniform(900, 1400) * p, 2), 'Island Air', '2', '144', 'Travel')
+        add_tx(d, 'withdrawal', round(random.uniform(1800, 3000) * p, 2), 'Seaside Resort', '2', '145', 'Travel')
+    if d == CAR:
+        add_tx(d, 'withdrawal', 6000, 'Riverside Motors (down payment)', '2', '146', 'Car')
+        add_tx(d, 'withdrawal', LOAN, 'Riverside Motors', '5', '146', 'Car')
+    if d > CAR + timedelta(days=20) and d.day == 20 and BAL['5'] < 0:   # the loan: a month's interest, then the payment
+        due = -BAL['5']
+        add_tx(d, 'withdrawal', round(due * RATE, 2), 'Car loan interest', '5', '147', 'Car')
+        add_tx(d, 'transfer', round(min(PMT, due * (1 + RATE)), 2), 'Car loan payment', '1', '5')
     if d.day == 3: pay_card(d, '3', 'Rewards Card')
-    if (d + timedelta(days=1)).day == 1: pay_card(d, '4', 'Cashback Card')
+    if last: pay_card(d, '4', 'Cashback Card')
+    if last and d < TODAY: add_tx(d, 'deposit', round(BAL['2'] * apy(d) / 1200, 2), 'Interest', '148', '2', 'Interest')
     d += timedelta(days=1)
 add_tx(TODAY - timedelta(days=min(9, TODAY.day - 1)), 'withdrawal', 312.40, 'Airline tickets', '3', PID['Online Store'], 'Travel')
 # One move to savings that came in from two banks' imports as an expense and an income (Review -> Transfers to match)
 add_tx(TODAY - timedelta(days=5), 'withdrawal', 250, 'Online transfer to savings', '1', '130')
 add_tx(TODAY - timedelta(days=4), 'deposit', 250, 'Transfer from Everyday Checking', '131', '2')
 for id, v in BAL.items(): ACC_BY[id]['attributes']['current_balance'] = '%.2f' % v
+ACC_BY['5']['attributes']['current_debt'] = '%.2f' % -BAL['5']
 TX.sort(key=lambda g: g['attributes']['transactions'][0]['date'], reverse=True)
 
 def jd(g): return g['attributes']['transactions'][0]
@@ -153,7 +214,7 @@ def balance_on(a, day):
     moved = 0.0
     for g in TX:
         j = jd(g)
-        if j['date'][:10] <= day: continue
+        if j['date'][:10] <= day: break      # newest first, so stop at the day
         if j['destination_id'] == a['id']: moved += float(j['amount'])
         if j['source_id'] == a['id']: moved -= float(j['amount'])
     return {**a, 'attributes': {**t, 'current_balance': '%.2f' % (float(t['current_balance']) - moved)}}
@@ -191,7 +252,10 @@ def handle(path, q, method, body=None):
         if kind == 'budgets': [BUDGETS.pop(n) for n, b in list(BUDGETS.items()) if b == i]
         return None
     if path == '/about': return {'data': {'version': '6.2.0'}}
-    if path == '/accounts': return page([balance_on(a, q['date']) for a in ACC] if q.get('date') else ACC, q)
+    if path == '/accounts':
+        kind = 'liability' if q.get('type') == 'liabilities' else q.get('type')
+        lst = ACC if kind in (None, '', 'all') else [a for a in ACC if a['attributes']['type'] == kind]
+        return page([balance_on(a, q['date']) for a in lst] if q.get('date') else lst, q)
     m = re.match(r'/preferences/([\w.-]+)$', path)
     if m:
         if method in ('PUT', 'POST'): PREFS[m.group(1)] = body.get('data')
@@ -219,14 +283,17 @@ def handle(path, q, method, body=None):
     if m: return page([g for g in TX if jd(g)['bill_id'] == m.group(1) and in_range(g, q)], q)
     if path in ('/tags', '/recurrences', '/rule-groups', '/rules', '/link-types', '/webhooks', '/available-budgets'): return page([], q)
     if path == '/currencies': return page([{'id': '1', 'attributes': {'code': 'USD', 'name': 'US Dollar', 'symbol': '$', 'enabled': True, 'primary': True}}], q)
-    if path == '/summary/basic': return {'net-worth-in-USD': {'monetary_value': '5418.00'}}
+    if path == '/summary/basic': return {'net-worth-in-USD': {'monetary_value': '%.2f' % sum(float(a['attributes']['current_balance']) for a in ACC if a['attributes']['type'] in ('asset', 'liability'))}}
     if path == '/insight/expense/category': return expense_by_cat(q)
     if path == '/insight/expense/no-category': return expense_by_cat(q, True)
     if path == '/insight/expense/total': return total(q, 'withdrawal')
     if path == '/insight/income/total': return total(q, 'deposit')
     if path == '/insight/income/revenue':
-        v = sum(float(jd(g)['amount']) for g in TX if jd(g)['type'] == 'deposit' and in_range(g, q))
-        return [{'id': '6', 'name': 'Acme Corp', 'difference': '%.2f' % v, 'difference_float': v, 'currency_code': 'USD'}] if v else []
+        sums = {}
+        for g in TX:
+            t = jd(g)
+            if t['type'] == 'deposit' and in_range(g, q): sums[t['source_id']] = sums.get(t['source_id'], 0) + float(t['amount'])
+        return [{'id': i, 'name': ACC_BY[i]['attributes']['name'], 'difference': '%.2f' % v, 'difference_float': v, 'currency_code': 'USD'} for i, v in sums.items()]
     if path == '/insight/expense/expense':
         sums = {}
         for g in TX:

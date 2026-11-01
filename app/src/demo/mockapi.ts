@@ -46,21 +46,26 @@ export function createMockApi(now = new Date()) {
   acc(2, 'High-Yield Savings', 'asset', 0, 'savingAsset');
   acc(3, 'Rewards Card', 'asset', 0, 'ccAsset', { monthly_payment_date: '2026-01-03' });
   acc(4, 'Cashback Card', 'asset', 0, 'ccAsset', { monthly_payment_date: '2026-01-31' });
-  acc(5, 'Car loan', 'liability', -9020, null, { liability_type: 'loan', current_debt: '9020', interest: '5.9', interest_period: 'yearly' });
+  acc(5, 'Car loan', 'liability', 0, null, { liability_type: 'loan', current_debt: '0', interest: '5.9', interest_period: 'yearly' });
   acc(6, 'Acme Corp', 'revenue');
   acc(130, 'Online transfer', 'expense'); acc(131, 'Transfer from Everyday', 'revenue');   // see the pair below
   acc(140, 'Old Gym Membership', 'expense'); acc(141, 'Garage sale', 'revenue');   // nothing uses these (for Clean up)
   acc(142, 'Online Store', 'revenue');   // pays back part of the airline tickets below
   acc(143, 'Maple Street Apartments', 'expense');   // rent, on the 1st
+  acc(144, 'Island Air', 'expense'); acc(145, 'Seaside Resort', 'expense');   // a trip every summer, paid from savings
+  acc(146, 'Riverside Motors', 'expense'); acc(147, 'Riverside Auto Finance', 'expense');   // the car (and the loan's interest)
+  acc(148, 'Savings interest', 'revenue');
   const PAYEES: [string, string, string | null, number, number][] = [  // name, category, budget, typical amount, per-month count
     ['Green Grocer', 'Groceries', 'Food', 64, 5], ['Corner Market', 'Groceries', 'Food', 48, 4], ['SQ *BEAN THERE COFFEE', 'Dining', 'Food', 7, 6],
     ['Burrito Bar', 'Dining', 'Food', 14, 3], ['Taco Stand', 'Dining', 'Food', 22, 2], ['Fuel Stop', 'Gas', null, 42, 3], ['Online Store', 'Shopping', null, 38, 3],
     ['StreamFlix', 'Subscriptions', null, 15.49, 1], ['Tunes Plus', 'Subscriptions', null, 11.99, 1], ['City Power & Light', 'Utilities', null, 96, 1],
     ['Pharmacy Plus', 'Health', null, 23, 1], ['Big Box Store', 'Shopping', null, 55, 1],
+    ['Mobile Co', 'Utilities', null, 65, 1], ['FiberNet', 'Utilities', null, 70, 1], ['FitLife Gym', 'Health', null, 45, 1],
+    ['Pizza Place', 'Dining', 'Food', 32, 2], ['Home Goods', 'Shopping', null, 140, 0.6],
   ];
   const PID: Record<string, string> = {};
   PAYEES.forEach((p, i) => { PID[p[0]] = String(100 + i); acc(100 + i, p[0], 'expense'); });
-  const CATS = [...[...new Set([...PAYEES.map(p => p[1]), 'Salary', 'Travel', 'Rent'])].sort(), 'Hobbies'];   // Hobbies: unused (for Clean up)
+  const CATS = [...[...new Set([...PAYEES.map(p => p[1]), 'Salary', 'Travel', 'Rent'])].sort(), 'Hobbies', 'Car', 'Interest'];   // Hobbies: unused (for Clean up)
   const CAT_ID = Object.fromEntries(CATS.map((c, i) => [c, String(i + 1)]));
   const BUDGETS: Record<string, string> = { Food: '1', Fun: '2' };
   const ACC_BY = Object.fromEntries(ACC.map(a => [a.id, a]));
@@ -84,8 +89,8 @@ export function createMockApi(now = new Date()) {
 
   let TX: MockGroup[] = [];
   // Every balance is worked out from the history, so it adds up whatever day it is: checking and savings start with
-  // these amounts, the cards start paid off, and the loan stays where it is
-  const BAL: Record<string, number> = { '1': 2000, '2': 6000, '3': 0, '4': 0 };
+  // these amounts, and the cards and the car loan start at nothing
+  const BAL: Record<string, number> = { '1': 2000, '2': 6000, '3': 0, '4': 0, '5': 0 };
   const addTx = (d: number, type: string, amt: number, description: string, src: string, dst: string, cat: string | null = null, bud: string | null = null) => {
     const gid = String(TX.length + 1), s = ACC_BY[src].attributes, t = ACC_BY[dst].attributes;
     if (src in BAL) BAL[src] -= amt;
@@ -98,38 +103,91 @@ export function createMockApi(now = new Date()) {
       foreign_amount: null, foreign_currency_code: null, reconciled: false, latitude: spot ? spot[0] : null, longitude: spot ? spot[1] : null }] } });
   };
 
-  // A year of history, always up to today: paychecks on the 1st and 15th, rent on the 1st, savings on the 16th, everyday
-  // spending, and each card paid off: what it owed at the start of the month, on its due date (the 3rd and the month's end)
-  const [sy, sm] = ymd(utc(ty - 1, tm, 1));
-  const owed: Record<string, number> = {};
-  const payCard = (d: number, id: string, name: string) => { if (owed[id] > 0) addTx(d, 'transfer', Math.round(owed[id] * 100) / 100, name + ' payment', '1', id); };
+  // Ten years of history, always up to today, in today's money: what things cost now, scaled back for inflation,
+  // and pay and rent scaled back for each year's raise (in March) and lease renewal (in August).
+  const YEARS = 10, ago = (d: number) => (TODAY - d) / (365.25 * DAY);
+  const prices = (d: number) => 1.028 ** -ago(d);
+  // How much a yearly step (raise, rent increase) has taken a number since day d: steps[0] is the latest one
+  const stepped = (d: number, month: number, steps: number[]) => {
+    let f = 1, k = 0;
+    for (let y = ty; y >= ty - YEARS - 1; y--) { const s = utc(y, month, 1); if (s > d && s <= TODAY) f *= 1 + steps[k++]; }
+    return f;
+  };
+  const RAISES = [0.04, 0.03, 0.035, 0.12, 0.03, 0.045, 0.02, 0.03, 0.05, 0.03, 0.03];   // the 0.12 was a promotion
+  const RENT_UPS = [0.03, 0.045, 0.06, 0.05, 0.02, 0, 0.03, 0.035, 0.04, 0.03, 0.03];
+  const pay = (d: number) => Math.round(2850 / stepped(d, 2, RAISES));
+  const rent = (d: number) => Math.round(2150 / stepped(d, 7, RENT_UPS) / 5) * 5;
+  // Subscriptions went up in steps, and some didn't exist yet: [years ago from, price]
+  const SUBS: Record<string, [number, number][]> = { StreamFlix: [[5, 9.99], [2.5, 12.99], [1, 15.49]], 'Tunes Plus': [[6, 9.99], [3, 10.99], [1.5, 11.99]] };
+  const STARTS: Record<string, number> = { 'Taco Stand': 2.5, 'SQ *BEAN THERE COFFEE': 7 };   // opened this many years ago
+  // More shopping before the holidays, more driving and eating out in summer, bigger power bills in winter and August
+  const season = (cat: string, m: number) => cat === 'Shopping' ? [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.4, 2.2][m]
+    : cat === 'Gas' ? (m >= 5 && m <= 7 ? 1.25 : 1) : cat === 'Dining' ? (m >= 5 && m <= 7 ? 1.15 : m === 11 ? 1.3 : 1)
+    : cat === 'Utilities' ? [1.35, 1.3, 1.1, 1, 0.9, 0.95, 1.15, 1.25, 1, 0.9, 1, 1.3][m] : 1;
+  const APY = (d: number) => { const a = ago(d); return a > 7 ? 1.0 : a > 5 ? 0.5 : a > 3.5 ? 1.2 : 4.2; };   // savings rate, %
+  // The car: bought a little over four years ago, part cash from savings and a 6-year loan at 5.9%
+  const CAR = utc(ty - 4, tm - 2, 12), LOAN = 25000, RATE = 0.059 / 12, PMT = Math.round(LOAN * RATE / (1 - (1 + RATE) ** -72) * 100) / 100;
+  const r2 = (v: number) => Math.round(v * 100) / 100;
+
+  // Paychecks on the 1st and 15th and a bonus each March, rent on the 1st, whatever's spare moved to savings on the 16th,
+  // everyday spending, a trip each summer, and each card paid off: what it owed at the start of the month, on its due
+  // date (the 3rd and the month's end)
+  const [sy, sm] = ymd(utc(ty - YEARS, tm, 1));
+  const owed: Record<string, number> = {}, mood: Record<string, number> = {};
+  const payCard = (d: number, id: string, name: string) => { if (owed[id] > 0) addTx(d, 'transfer', r2(owed[id]), name + ' payment', '1', id); };
   for (let d = utc(sy, sm, 1); d <= TODAY; d += DAY) {
-    const [y, m, day] = ymd(d), thisMonth = y === ty && m === tm;
-    if (day === 1) { owed['3'] = -BAL['3']; owed['4'] = -BAL['4']; }
-    if (day === 1 || day === 15) addTx(d, 'deposit', 2850, 'ACME CORP PAYROLL', '6', '1', 'Salary');
-    if (day === 1) addTx(d, 'withdrawal', 2150, 'Maple Street Apartments', '1', '143', 'Rent');
-    if (day === 16) addTx(d, 'transfer', 1800, 'Monthly savings', '1', '2');
+    const [y, m, day] = ymd(d), thisMonth = y === ty && m === tm, p = prices(d), last = d === utc(y, m + 1, 0);
+    if (day === 1) {
+      owed['3'] = -BAL['3']; owed['4'] = -BAL['4'];
+      for (const c of CATS) mood[c] = uniform(0.85, 1.2);     // some months are just pricier than others
+    }
+    if (day === 1 || day === 15) addTx(d, 'deposit', pay(d), 'ACME CORP PAYROLL', '6', '1', 'Salary');
+    if (m === 2 && day === 15) addTx(d, 'deposit', Math.round(pay(d) * 24 * uniform(0.04, 0.09) / 10) * 10, 'ACME CORP BONUS', '6', '1', 'Salary');
+    if (day === 1) addTx(d, 'withdrawal', rent(d), 'Maple Street Apartments', '1', '143', 'Rent');
+    if (day === 16) {
+      const spare = Math.floor((BAL['1'] - 2500 * p) / 50) * 50;
+      if (spare > 0) addTx(d, 'transfer', spare, 'Monthly savings', '1', '2');
+    }
     for (const [i, [name, cat, bud, amt, per]] of PAYEES.entries()) {
+      if (ago(d) > (STARTS[name] ?? 99)) continue;
       if (cat === 'Subscriptions' || cat === 'Utilities') {       // these come on the same day every month
         if (day === 4 + i) {
-          const price = cat === 'Utilities' ? amt * uniform(0.85, 1.15) : name === 'StreamFlix' && (TODAY - d) / DAY < 20 ? 17.99 : amt;
-          addTx(d, 'withdrawal', Math.round(price * 100) / 100, name, '3', PID[name], cat, bud);
+          const sub = SUBS[name];
+          if (sub && ago(d) > sub[0][0]) continue;    // not signed up yet
+          const price = name === 'City Power & Light' ? amt * p * season(cat, m) * uniform(0.85, 1.15) : cat === 'Utilities' ? amt * p
+            : name === 'StreamFlix' && (TODAY - d) / DAY < 20 ? 17.99 : sub ? sub.filter(([from]) => ago(d) <= from).at(-1)![1] : amt;
+          addTx(d, 'withdrawal', r2(price), name, '3', PID[name], cat, bud);
         }
         continue;
       }
       // Early in the month the days so far get more of it, so this month's charts are never empty (on the 1st, about a week's worth)
-      const odds = per / 30 * (thisMonth ? Math.max(1, 8 / td) : 1);
+      const odds = per / 30 * (thisMonth ? Math.max(1, 8 / td) : season(cat, m));
       for (let n = Math.floor(odds) + (random() < odds % 1 ? 1 : 0); n > 0; n--) {
-        let mult = 1.0;
+        let mult = thisMonth ? 1 : mood[cat];
         if (cat === 'Dining' && thisMonth) mult = 1.9;        // dining spike this month
         if (cat === 'Groceries' && thisMonth) mult = 0.45;    // groceries down
         const src = choice(['1', '3', '3', '4']);
         const title = name === name.toUpperCase() ? name.toLowerCase().replace(/(^|[^a-z])([a-z])/g, (_, a, b) => a + b.toUpperCase()) : name;
-        addTx(d, 'withdrawal', Math.round(amt * mult * uniform(0.7, 1.3) * 100) / 100, title, src, PID[name], cat, bud);
+        addTx(d, 'withdrawal', r2(amt * p * mult * uniform(0.7, 1.3)), title, src, PID[name], cat, bud);
       }
     }
+    // A summer trip, from savings, in a different week each year (this year's is still being saved for: see the piggy bank)
+    if (m === 6 && day === 8 + (y % 4) * 4 && y < ty && d - 30 * DAY >= utc(sy, sm, 1)) {
+      addTx(d - 30 * DAY, 'withdrawal', r2(uniform(900, 1400) * p), 'Island Air', '2', '144', 'Travel');
+      addTx(d, 'withdrawal', r2(uniform(1800, 3000) * p), 'Seaside Resort', '2', '145', 'Travel');
+    }
+    if (d === CAR) {
+      addTx(d, 'withdrawal', 6000, 'Riverside Motors (down payment)', '2', '146', 'Car');
+      addTx(d, 'withdrawal', LOAN, 'Riverside Motors', '5', '146', 'Car');
+    }
+    if (d > CAR + 20 * DAY && day === 20 && BAL['5'] < 0) {       // the loan: a month's interest, then the payment
+      const due = -BAL['5'];
+      addTx(d, 'withdrawal', r2(due * RATE), 'Car loan interest', '5', '147', 'Car');
+      addTx(d, 'transfer', r2(Math.min(PMT, due * (1 + RATE))), 'Car loan payment', '1', '5');
+    }
     if (day === 3) payCard(d, '3', 'Rewards Card');
-    if (d === utc(y, m + 1, 0)) payCard(d, '4', 'Cashback Card');
+    if (last) payCard(d, '4', 'Cashback Card');
+    if (last && d < TODAY) addTx(d, 'deposit', r2(BAL['2'] * APY(d) / 1200), 'Interest', '148', '2', 'Interest');
   }
   addTx(TODAY - Math.min(9, td - 1) * DAY, 'withdrawal', 312.40, 'Airline tickets', '3', PID['Online Store'], 'Travel');
   // A refund of part of them, linked to them the way Money makes one (Reports and Budgets take it off spending)
@@ -141,6 +199,7 @@ export function createMockApi(now = new Date()) {
   addTx(TODAY - 5 * DAY, 'withdrawal', 250, 'Online transfer to savings', '1', '130');
   addTx(TODAY - 4 * DAY, 'deposit', 250, 'Transfer from Everyday Checking', '131', '2');
   for (const id in BAL) ACC_BY[id].attributes.current_balance = BAL[id].toFixed(2);
+  ACC_BY['5'].attributes.current_debt = (-BAL['5']).toFixed(2);
   TX.sort((a, b) => (jd(b).date > jd(a).date ? 1 : jd(b).date < jd(a).date ? -1 : 0));
 
   function jd(g: MockGroup) { return g.attributes.transactions[0]; }
@@ -175,9 +234,9 @@ export function createMockApi(now = new Date()) {
     const t = a.attributes;
     if (t.type !== 'asset' && t.type !== 'liability') return a;
     let moved = 0;
-    for (const g of TX) {
+    for (const g of TX) {      // newest first, so stop at the day
       const j = jd(g);
-      if (j.date.slice(0, 10) <= day) continue;
+      if (j.date.slice(0, 10) <= day) break;
       if (j.destination_id === a.id) moved += +j.amount;
       if (j.source_id === a.id) moved -= +j.amount;
     }
@@ -217,7 +276,10 @@ export function createMockApi(now = new Date()) {
       return null;
     }
     if (path === '/about') return { data: { version: '6.2.0' } };
-    if (path === '/accounts') return page(q.date ? ACC.map(a => balanceOn(a, q.date)) : ACC, q);
+    if (path === '/accounts') {
+      const kind = q.type === 'liabilities' ? 'liability' : q.type, list = !kind || kind === 'all' ? ACC : ACC.filter(a => a.attributes.type === kind);
+      return page(q.date ? list.map(a => balanceOn(a, q.date)) : list, q);
+    }
     if ((m = path.match(/^\/preferences\/([\w.-]+)$/))) {
       if (method === 'PUT' || method === 'POST') PREFS[m[1]] = body.data;
       if (!(m[1] in PREFS)) throw new NotFound();
@@ -251,14 +313,15 @@ export function createMockApi(now = new Date()) {
       triggers: [{ type: 'description_contains', value: word, prohibited: false }], actions: [{ type: 'set_category', value: cat }] } })), q);
     if (['/tags', '/recurrences', '/webhooks', '/available-budgets'].includes(path)) return page([], q);
     if (path === '/currencies') return page([{ id: '1', attributes: { code: 'USD', name: 'US Dollar', symbol: '$', enabled: true, primary: true } }], q);
-    if (path === '/summary/basic') return { 'net-worth-in-USD': { monetary_value: '5418.00' } };
+    if (path === '/summary/basic') return { 'net-worth-in-USD': { monetary_value: ACC.filter(a => ['asset', 'liability'].includes(a.attributes.type)).reduce((s, a) => s + +a.attributes.current_balance, 0).toFixed(2) } };
     if (path === '/insight/expense/category') return expenseByCat(q);
     if (path === '/insight/expense/no-category') return expenseByCat(q, true);
     if (path === '/insight/expense/total') return total(q, 'withdrawal');
     if (path === '/insight/income/total') return total(q, 'deposit');
     if (path === '/insight/income/revenue') {
-      const v = TX.filter(g => jd(g).type === 'deposit' && inRange(g, q)).reduce((s, g) => s + +jd(g).amount, 0);
-      return v ? [{ id: '6', name: 'Acme Corp', difference: v.toFixed(2), difference_float: v, currency_code: 'USD' }] : [];
+      const sums = new Map<string, number>();
+      for (const g of TX) { const t = jd(g); if (t.type === 'deposit' && inRange(g, q)) sums.set(t.source_id, (sums.get(t.source_id) || 0) + +t.amount); }
+      return [...sums].map(([i, v]) => ({ id: i, name: ACC_BY[i].attributes.name, difference: v.toFixed(2), difference_float: v, currency_code: 'USD' }));
     }
     if (path === '/insight/expense/expense') {
       const sums = new Map();
