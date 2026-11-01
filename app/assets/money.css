@@ -1926,3 +1926,60 @@
   /* on the "can't reach" screen: the same chain, as a small card under the text */
   .ff-out-card .ff-chain { width: 100%; max-width: 300px; margin-top: 22px; padding: 10px 16px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--panel) 70%, transparent); text-align: left; font-size: 13.5px; }
   @media print { .ff-alert, .ff-pill, .ff-pop { display: none !important; } }
+
+  /* ---------- Pinned page head (pinhead.ts): the title row and its controls (month, Today, Customize, + New…) stay at the top
+     while the page scrolls. Once pinned, a blur behind it fades the content out as it slides under. --head-top is where it
+     pins: under the iPhone app's title bar, and up to the edge while that bar is slid away. ---------- */
+  :root { --head-top: 14px; --head-fade: 26px; --head-l: 44px; --head-r: 44px; }
+  html.compact { --head-top: 10px; }
+  @media (max-width: 900px) {
+    :root { --head-top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 4.5px); --head-fade: 18px;      /* the title row lines up with the search button */
+      --head-l: calc(16px + env(safe-area-inset-left, 0px)); --head-r: calc(16px + env(safe-area-inset-right, 0px)); }
+    html.shell { --head-top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 44px); }
+    html.shell.scroll-down { --head-top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 6px); }
+    html.shell.pinhead #view > .head { transition: top .3s cubic-bezier(.2, .8, .2, 1); }
+  }
+  html.pinhead #view > .head { position: sticky; top: var(--head-top); z-index: 12; }
+  html.pinhead #view > .head::before { content: ''; position: absolute; z-index: -1; pointer-events: none;
+    top: calc(-1 * var(--head-top) - 2px); bottom: calc(-1 * var(--head-fade)); left: calc(-1 * var(--head-l)); right: calc(-1 * var(--head-r));
+    background: color-mix(in srgb, var(--bg) 78%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--head-fade) - 6px), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - var(--head-fade) - 6px), transparent);
+    opacity: 0; visibility: hidden; transition: opacity .2s ease, visibility 0s .2s; }
+  html.head-pinned #view > .head::before { opacity: 1; visibility: visible; transition: opacity .2s ease, visibility 0s; }
+  /* the day headings on Transactions and the bulk bar stick just below it */
+  html.pinhead .tbl.feed tr.dayhead { top: calc(var(--head-top) + var(--head-h, 0px) + 4px) !important; z-index: 13; }
+  html.pinhead .bulkbar { top: calc(var(--head-top) + var(--head-h, 0px) + 10px) !important; z-index: 13; }
+  html.pinhead.shell .tbl.feed tr.dayhead, html.pinhead.shell .bulkbar { transition: top .3s cubic-bezier(.2, .8, .2, 1); }
+  @media print { html.pinhead #view > .head { position: static; } html.pinhead #view > .head::before { display: none; } }
+
+  /* ---------- Scrollbars: thin, themed pills on a clear track (mouse and trackpad only; touch keeps its own) ---------- */
+  /* The ::-webkit-scrollbar rules are not behind @supports selector(): Safari answers that test "no" and then drew its default bar.
+     Firefox ignores them and gets its own block below. Nothing here sets scrollbar-width or scrollbar-color for Chrome or Safari,
+     because either one makes them ignore ::-webkit-scrollbar. */
+  @media (hover: hover) and (pointer: fine) {
+    :root { --sb-thumb: color-mix(in srgb, var(--text) 22%, transparent); --sb-thumb-hover: color-mix(in srgb, var(--text) 40%, transparent); }
+    ::-webkit-scrollbar { width: 10px; height: 10px; background: transparent; }
+    ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--sb-thumb); background-clip: padding-box; border: 2px solid transparent; border-radius: 99px; min-height: 40px; }
+    ::-webkit-scrollbar-thumb:hover { background-color: var(--sb-thumb-hover); }
+    ::-webkit-scrollbar-button { display: none; }
+    /* Chrome and Safari: the sidebar always keeps its slot (6px padding + 10px slot = the 16px on the left), so a long nav never
+       pushes the rows sideways; its pill is softer and stays clear of the rounded corners */
+    @supports not (-moz-appearance: none) {
+      @media (min-width: 901px) {
+        .side { overflow-y: scroll; padding-right: 6px; }
+        .side::-webkit-scrollbar-track { margin-block: 22px; }
+        .side::-webkit-scrollbar-thumb { background-color: color-mix(in srgb, var(--text) 14%, transparent); }
+        .side::-webkit-scrollbar-thumb:hover { background-color: var(--sb-thumb-hover); }
+        /* folded to its icons there is no room for a slot: it still scrolls with the wheel */
+        html.side-mini .side { padding-right: 7px; scrollbar-width: none; }
+        html.side-mini .side::-webkit-scrollbar { display: none; }
+      }
+    }
+    /* Firefox */
+    @supports (-moz-appearance: none) {
+      html { scrollbar-width: thin; scrollbar-color: var(--sb-thumb) transparent; }
+      html.side-mini .side { scrollbar-width: none; }
+    }
+  }

@@ -112,8 +112,9 @@ VIEWS[''] = async (r, paint) => {
     W.forEach(w => { if (w[1] && !tileOn(w[0])) w[1] = 'off'; });     // off: not drawn, only offered under Add cards
     return html`${head('Overview', '', html`${monthNav()}${App.dashButton()}`)}${App.dashboard(W)}`;
   };
-  // Saved data (or a fast server): everything is here already, draw once.
-  const quick = await Promise.race([slowP, sleep(60).then(() => null)]);
+  // Saved data (or a fast server): everything is here already, draw once. Another month waits longer, so its cards
+  // glide from last month's in one go rather than dropping to placeholders and popping in (last month stays up, dimmed).
+  const quick = await Promise.race([slowP, sleep(paint.month ? 2500 : 60).then(() => null)]);
   if (quick || !paint.live) return paint(build(quick || await slowP));
   const first = build(null), tok = S.tok;
   paint(first);
