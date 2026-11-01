@@ -1154,6 +1154,13 @@
     html.shell :is(.tbl.feed tr.dayhead, .bulkbar) { transition: top .3s cubic-bezier(.2, .8, .2, 1); }
     html.shell.scroll-down .tbl.feed tr.dayhead { top: calc(env(safe-area-inset-top, 0px) + var(--edge)); }
     html.shell.scroll-down .bulkbar { top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 8px); }
+    /* Pages without a back button have no title bar row: the large title starts just under the status bar blur, with search
+       on its right (html.ab-row marks a back button, shell.ts). The title row's centre matches the search button's (top + 18px). */
+    html.shell:not(.ab-row) .appbar { display: none; }
+    html.shell:not(.ab-row) main#view { padding-top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 4px) !important; }
+    html.shell:not(.ab-row) #view > .head { padding-right: 46px; }
+    html.shell:not(.ab-row) :is(.tbl.feed tr.dayhead, .ptr) { top: calc(env(safe-area-inset-top, 0px) + var(--edge)); }
+    html.shell:not(.ab-row) .bulkbar { top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 8px); }
     /* Native tab bar in the iPhone app replaces the web one */
     html.native-tabs .tabbar { display: none !important; }
     html.native-tabs main#view { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 49px + 28px) !important; }
@@ -1937,6 +1944,9 @@
       --head-l: calc(16px + env(safe-area-inset-left, 0px)); --head-r: calc(16px + env(safe-area-inset-right, 0px)); }
     html.shell { --head-top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 44px); }
     html.shell.scroll-down { --head-top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 6px); }
+    html.shell:not(.ab-row) { --head-top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 4px); }
+    /* search sits on the pinned title row there, so it stays with it instead of sliding away */
+    html.shell.pinhead:not(.ab-row) .search-btn { transform: none; opacity: 1; pointer-events: auto; }
     html.shell.pinhead #view > .head { transition: top .3s cubic-bezier(.2, .8, .2, 1); }
   }
   html.pinhead #view > .head { position: sticky; top: var(--head-top); z-index: 12; }
