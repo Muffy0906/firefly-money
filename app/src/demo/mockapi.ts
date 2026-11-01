@@ -42,15 +42,16 @@ export function createMockApi(now = new Date()) {
       active: true, currency_code: 'USD', include_net_worth: true, notes: '', opening_balance: '0', ...kw } };
     ACC.push(a); return a;
   };
-  acc(1, 'Everyday Checking', 'asset', 3240.18, 'defaultAsset');
-  acc(2, 'High-Yield Savings', 'asset', 12050.00, 'savingAsset');
-  acc(3, 'Rewards Card', 'asset', -612.40, 'ccAsset', { monthly_payment_date: '2026-01-03' });
-  acc(4, 'Cashback Card', 'asset', -240.10, 'ccAsset', { monthly_payment_date: '2026-01-31' });
+  acc(1, 'Everyday Checking', 'asset', 0, 'defaultAsset');   // balances: worked out from the history below
+  acc(2, 'High-Yield Savings', 'asset', 0, 'savingAsset');
+  acc(3, 'Rewards Card', 'asset', 0, 'ccAsset', { monthly_payment_date: '2026-01-03' });
+  acc(4, 'Cashback Card', 'asset', 0, 'ccAsset', { monthly_payment_date: '2026-01-31' });
   acc(5, 'Car loan', 'liability', -9020, null, { liability_type: 'loan', current_debt: '9020', interest: '5.9', interest_period: 'yearly' });
   acc(6, 'Acme Corp', 'revenue');
   acc(130, 'Online transfer', 'expense'); acc(131, 'Transfer from Everyday', 'revenue');   // see the pair below
   acc(140, 'Old Gym Membership', 'expense'); acc(141, 'Garage sale', 'revenue');   // nothing uses these (for Clean up)
   acc(142, 'Online Store', 'revenue');   // pays back part of the airline tickets below
+  acc(143, 'Maple Street Apartments', 'expense');   // rent, on the 1st
   const PAYEES: [string, string, string | null, number, number][] = [  // name, category, budget, typical amount, per-month count
     ['Green Grocer', 'Groceries', 'Food', 64, 5], ['Corner Market', 'Groceries', 'Food', 48, 4], ['SQ *BEAN THERE COFFEE', 'Dining', 'Food', 7, 6],
     ['Burrito Bar', 'Dining', 'Food', 14, 3], ['Taco Stand', 'Dining', 'Food', 22, 2], ['Fuel Stop', 'Gas', null, 42, 3], ['Online Store', 'Shopping', null, 38, 3],
@@ -59,7 +60,7 @@ export function createMockApi(now = new Date()) {
   ];
   const PID: Record<string, string> = {};
   PAYEES.forEach((p, i) => { PID[p[0]] = String(100 + i); acc(100 + i, p[0], 'expense'); });
-  const CATS = [...[...new Set([...PAYEES.map(p => p[1]), 'Salary', 'Travel'])].sort(), 'Hobbies'];   // Hobbies: unused (for Clean up)
+  const CATS = [...[...new Set([...PAYEES.map(p => p[1]), 'Salary', 'Travel', 'Rent'])].sort(), 'Hobbies'];   // Hobbies: unused (for Clean up)
   const CAT_ID = Object.fromEntries(CATS.map((c, i) => [c, String(i + 1)]));
   const BUDGETS: Record<string, string> = { Food: '1', Fun: '2' };
   const ACC_BY = Object.fromEntries(ACC.map(a => [a.id, a]));
@@ -82,8 +83,13 @@ export function createMockApi(now = new Date()) {
     'Burrito Bar': [40.7223, -73.9874], 'Taco Stand': [40.7195, -73.9960], 'Fuel Stop': [40.7410, -73.9780], 'Pharmacy Plus': [40.7340, -73.9900], 'Big Box Store': [40.7480, -73.9860] };
 
   let TX: MockGroup[] = [];
+  // Every balance is worked out from the history, so it adds up whatever day it is: checking and savings start with
+  // these amounts, the cards start paid off, and the loan stays where it is
+  const BAL: Record<string, number> = { '1': 2000, '2': 6000, '3': 0, '4': 0 };
   const addTx = (d: number, type: string, amt: number, description: string, src: string, dst: string, cat: string | null = null, bud: string | null = null) => {
     const gid = String(TX.length + 1), s = ACC_BY[src].attributes, t = ACC_BY[dst].attributes;
+    if (src in BAL) BAL[src] -= amt;
+    if (dst in BAL) BAL[dst] += amt;
     const bill = type === 'withdrawal' ? BILL_OF[t.name] : null, spot = type === 'withdrawal' && +gid % 4 ? SPOTS[t.name] : undefined;
     TX.push({ id: gid, type: 'transactions', attributes: { group_title: null, created_at: iso(d) + 'T18:00:00-05:00', transactions: [{
       transaction_journal_id: gid, type, date: iso(d) + 'T12:00:00-05:00', amount: amt.toFixed(2), description,
@@ -92,11 +98,17 @@ export function createMockApi(now = new Date()) {
       foreign_amount: null, foreign_currency_code: null, reconciled: false, latitude: spot ? spot[0] : null, longitude: spot ? spot[1] : null }] } });
   };
 
-  // About five months of history: two paychecks a month, everyday spending, and a card payment on the 3rd
-  const [sy, sm] = ymd(utc(ty, tm, 1) - 150 * DAY);
+  // A year of history, always up to today: paychecks on the 1st and 15th, rent on the 1st, savings on the 16th, everyday
+  // spending, and each card paid off: what it owed at the start of the month, on its due date (the 3rd and the month's end)
+  const [sy, sm] = ymd(utc(ty - 1, tm, 1));
+  const owed: Record<string, number> = {};
+  const payCard = (d: number, id: string, name: string) => { if (owed[id] > 0) addTx(d, 'transfer', Math.round(owed[id] * 100) / 100, name + ' payment', '1', id); };
   for (let d = utc(sy, sm, 1); d <= TODAY; d += DAY) {
-    const [y, m, day] = ymd(d);
-    if (day === 15 || d === utc(y, m + 1, 0)) addTx(d, 'deposit', 2850, 'ACME CORP PAYROLL', '6', '1', 'Salary');
+    const [y, m, day] = ymd(d), thisMonth = y === ty && m === tm;
+    if (day === 1) { owed['3'] = -BAL['3']; owed['4'] = -BAL['4']; }
+    if (day === 1 || day === 15) addTx(d, 'deposit', 2850, 'ACME CORP PAYROLL', '6', '1', 'Salary');
+    if (day === 1) addTx(d, 'withdrawal', 2150, 'Maple Street Apartments', '1', '143', 'Rent');
+    if (day === 16) addTx(d, 'transfer', 1800, 'Monthly savings', '1', '2');
     for (const [i, [name, cat, bud, amt, per]] of PAYEES.entries()) {
       if (cat === 'Subscriptions' || cat === 'Utilities') {       // these come on the same day every month
         if (day === 4 + i) {
@@ -105,16 +117,19 @@ export function createMockApi(now = new Date()) {
         }
         continue;
       }
-      if (random() < per / 30) {
+      // Early in the month the days so far get more of it, so this month's charts are never empty (on the 1st, about a week's worth)
+      const odds = per / 30 * (thisMonth ? Math.max(1, 8 / td) : 1);
+      for (let n = Math.floor(odds) + (random() < odds % 1 ? 1 : 0); n > 0; n--) {
         let mult = 1.0;
-        if (cat === 'Dining' && y === ty && m === tm) mult = 1.9;        // dining spike this month
-        if (cat === 'Groceries' && y === ty && m === tm) mult = 0.45;    // groceries down
+        if (cat === 'Dining' && thisMonth) mult = 1.9;        // dining spike this month
+        if (cat === 'Groceries' && thisMonth) mult = 0.45;    // groceries down
         const src = choice(['1', '3', '3', '4']);
         const title = name === name.toUpperCase() ? name.toLowerCase().replace(/(^|[^a-z])([a-z])/g, (_, a, b) => a + b.toUpperCase()) : name;
         addTx(d, 'withdrawal', Math.round(amt * mult * uniform(0.7, 1.3) * 100) / 100, title, src, PID[name], cat, bud);
       }
     }
-    if (day === 3) addTx(d, 'transfer', 400, 'Rewards Card payment', '1', '3');
+    if (day === 3) payCard(d, '3', 'Rewards Card');
+    if (d === utc(y, m + 1, 0)) payCard(d, '4', 'Cashback Card');
   }
   addTx(TODAY - Math.min(9, td - 1) * DAY, 'withdrawal', 312.40, 'Airline tickets', '3', PID['Online Store'], 'Travel');
   // A refund of part of them, linked to them the way Money makes one (Reports and Budgets take it off spending)
@@ -125,6 +140,7 @@ export function createMockApi(now = new Date()) {
   // One move to savings that came in from two banks' imports as an expense and an income (Review → Transfers to match)
   addTx(TODAY - 5 * DAY, 'withdrawal', 250, 'Online transfer to savings', '1', '130');
   addTx(TODAY - 4 * DAY, 'deposit', 250, 'Transfer from Everyday Checking', '131', '2');
+  for (const id in BAL) ACC_BY[id].attributes.current_balance = BAL[id].toFixed(2);
   TX.sort((a, b) => (jd(b).date > jd(a).date ? 1 : jd(b).date < jd(a).date ? -1 : 0));
 
   function jd(g: MockGroup) { return g.attributes.transactions[0]; }

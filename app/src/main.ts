@@ -24,6 +24,7 @@ import './features/grid';
 import './features/flow';
 import './features/tilepreview';
 import './features/magnet';
+import './features/edge';
 import './features/dashboard';
 import './features/pageopts';
 import './pages/loans';
