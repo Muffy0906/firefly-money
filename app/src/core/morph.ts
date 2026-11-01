@@ -65,7 +65,7 @@ const textOf = (e: HTMLElement) => e.dataset.odo ?? e.textContent ?? '';
 type SvgSnap = { n: number, kids: [string, Record<string, string>][] };
 export type Snap = {
   nums: Map<string, string>, fills: Map<string, number>, svgs: Map<string, SvgSnap>, tints: Map<string, string>,
-  texts: Map<string, string>, cards: Set<string>, shapes: Map<string, number>, rows: Map<string, number>, layout: Set<string>, feed: boolean
+  texts: Map<string, string>, held: Map<string, Said>, cards: Set<string>, shapes: Map<string, number>, rows: Map<string, number>, layout: Set<string>, feed: boolean
 };
 // A part that changes itself into place when its own data comes (the Transactions month strip: transactions.ts
 // fillStrip) is left alone here, or it would change twice
@@ -98,8 +98,11 @@ function shape(card: Element) {
   return h;
 }
 // What a piece of text says: its words, or its markup when words inside it are styled
+// (compared by its markup; put back as copies of its own nodes, never by parsing that markup again)
+type Said = string | Element;
 const said = (e: Element) => e.children.length || e.matches(ICON) ? 'H:' + e.innerHTML : e.textContent || '';
-const say = (e: Element, v: string) => { if (v.startsWith('H:')) e.innerHTML = v.slice(2); else e.textContent = v; };
+const grab = (e: Element): Said => e.children.length || e.matches(ICON) ? e.cloneNode(true) as Element : e.textContent || '';
+const say = (e: Element, v: Said) => { if (typeof v === 'string') e.textContent = v; else e.replaceChildren(...[...v.childNodes].map(n => n.cloneNode(true))); };
 const topCards = (root: Element | DocumentFragment) => [...root.querySelectorAll(CARD)].filter(c => !c.parentElement?.closest(CARD));
 // The parts of a page that frame the layout: if most of them are the same in both drawings, it can redraw in place
 const LAYOUT = '[data-w], .kpi, section.panel, .hero';
@@ -110,7 +113,7 @@ function layoutKeys(root: Element | DocumentFragment) {
 }
 
 export function snapshot(root: HTMLElement): Snap {
-  const s: Snap = { nums: new Map(), fills: new Map(), svgs: new Map(), tints: new Map(), texts: new Map(), cards: new Set(), shapes: new Map(), rows: new Map(), layout: layoutKeys(root), feed: !!root.querySelector('.tbl.feed tr[data-gid]') };
+  const s: Snap = { nums: new Map(), fills: new Map(), svgs: new Map(), tints: new Map(), texts: new Map(), held: new Map(), cards: new Set(), shapes: new Map(), rows: new Map(), layout: layoutKeys(root), feed: !!root.querySelector('.tbl.feed tr[data-gid]') };
   if (RM) return s;
   let c = 0;
   root.querySelectorAll<HTMLElement>(NUM).forEach(e => { if (c < 80 && (!e.children.length || e.dataset.odo) && ours(e, root) && near(e.getBoundingClientRect())) { s.nums.set(keyOf(e, root), textOf(e)); c++; } });
@@ -121,7 +124,7 @@ export function snapshot(root: HTMLElement): Snap {
   topCards(root).forEach(card => {
     if (!near(card.getBoundingClientRect())) return;
     s.shapes.set(keyOf(card, root), shape(card));
-    leaves(card, root).forEach(e => { if (c++ < 1500) s.texts.set(keyOf(e, root), said(e)); });
+    leaves(card, root).forEach(e => { if (c++ < 1500) { const k = keyOf(e, root); s.texts.set(k, said(e)); s.held.set(k, grab(e)); } });
   });
   c = 0;
   root.querySelectorAll<SVGSVGElement>('svg').forEach(v => {
@@ -231,8 +234,8 @@ function roll(e: HTMLElement, from: string, to: string, delay = 0, dur = 700): b
 }
 // Text that can't roll (a word, a figure of another shape) keeps showing what it said until the wave reaches it,
 // then the new words fade in, so a card never shows this month's labels on last month's chart
-function later(e: Element, from: string, to: string, delay: number, kind = 'roll') {
-  say(e, from); if (e instanceof HTMLElement && kind === 'roll') e.dataset.odo = to;
+function later(e: Element, from: Said, to: Said, delay: number, kind = 'roll') {
+  say(e, from); if (e instanceof HTMLElement && kind === 'roll' && typeof to === 'string') e.dataset.odo = to;
   const t0 = performance.now() + delay;
   own(e, kind, now => {
     if (now < t0 && e.isConnected) return true;
@@ -404,11 +407,11 @@ export function morph(root: HTMLElement, s: Snap, dir = '') {
       const d = at(card), hold = s.shapes.get(keyOf(card, root)) === shape(card);
       leaves(card, root).forEach(e => {
         if (n >= 1500) return;
-        const now = said(e), was = s.texts.get(keyOf(e, root));
+        const k = keyOf(e, root), now = said(e), was = s.texts.get(k), old = s.held.get(k);
         if (was === now) return;
         n++;
         if (was == null) { e.animate([{ opacity: hold ? 0 : .25 }, { opacity: 1 }], { duration: 220, delay: hold ? d : 0, easing: 'ease', fill: 'backwards' }); return; }
-        if (hold) later(e, was, now, d, 'text');
+        if (hold && old != null) later(e, old, grab(e), d, 'text');
         else e.animate([{ opacity: .25 }, { opacity: 1 }], { duration: 220, easing: 'ease' });
       });
     });
