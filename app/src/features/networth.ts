@@ -1,6 +1,6 @@
 import { html, htmlList } from '../core/html';
 import { getAll } from '../core/api';
-import { App, S, el, monthOf, monthRange, money0, todayIso } from '../core/base';
+import { App, el, fmtD, money0, monthOf, monthRange, S, todayIso } from '../core/base';
 import { buzz } from '../core/haptics';
 import { type Account, isAsset, isLiab, lists, normAccount } from '../core/lists';
 import { LS, monthEnds } from '../core/helpers';
@@ -42,7 +42,7 @@ export const nwSeg = () => { const years = nwYears(); return html`<div class="se
    Let go on a past point and it offers that month's Overview. Each point you pass ticks (where the phone lets a
    drag tick: Android does, iPhone only on the first touch). */
 let SCRUB: NetWorthPoint[] = [];
-const label = (d: string) => new Date(d + 'T12:00:00').toLocaleString('en-US', { month: 'short', year: 'numeric' });
+const label = (d: string) => fmtD(d, { month: 'short', year: 'numeric' });
 // The tile's line, with a guide and a knob on top that follow your finger
 export function nwLine(pts: NetWorthPoint[], color: string) {
   SCRUB = pts;

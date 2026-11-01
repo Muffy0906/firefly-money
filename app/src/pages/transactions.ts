@@ -1,7 +1,7 @@
 import { type Html, html, htmlList, raw } from '../core/html';
 import { type Snap, morph, morphOk, snapshot } from '../core/morph';
 import { api, getAll } from '../core/api';
-import { App, PAGE_SIZE, type Period, S, absDiff, arr, el, money, money0, sumDiff, todayIso, viewPeriod } from '../core/base';
+import { absDiff, App, arr, el, fmtD, fmtDay, money, money0, PAGE_SIZE, type Period, S, sumDiff, todayIso, viewPeriod } from '../core/base';
 import { head, icon, monthNav, toast } from '../core/dom';
 import { catColor, normGroup, rankCats, txRows } from '../core/feed';
 import { addDays, daysBetween } from '../core/helpers';
@@ -114,7 +114,7 @@ async function monthStrip(cur: Period, key: string, rank = true) {
   const running = pageOpt('transactions', 'bars') === 'running', cum: Record<string, number> = {};
   list.reduce((t, d) => (cum[d] = t + (byDay[d] || 0)), 0);
   const most = Math.max(1, ...list.map(d => (running ? cum : byDay)[d] || 0));
-  const fmt = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const fmt = (d: string) => fmtD(d, { weekday: 'short', month: 'short', day: 'numeric' });
   const bars = htmlList(list.map(d => {
     const v = byDay[d] || 0, n = nDay[d] || 0, label = fmt(d) + ': ' + (v ? money(v) + ' spent' : 'nothing spent');
     const tip = fmt(d) + (d === today ? ' (today)' : '') + '\n' + (v ? money(v) + ' spent · ' + n + (n === 1 ? ' purchase' : ' purchases') : 'Nothing spent') + (running ? '\n' + money(cum[d]) + ' so far this month' : '');
@@ -147,7 +147,7 @@ async function txDay(day: string) {
   let more = true;
   while (!find() && more) more = await App.feedMore();
   const h = find();
-  if (!h) return toast('Nothing on ' + new Date(day + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+  if (!h) return toast('Nothing on ' + fmtDay(day));
   const body = h.closest<HTMLElement>('tbody.day') || h;
   body.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
   body.classList.remove('flash'); void body.offsetWidth; body.classList.add('flash');

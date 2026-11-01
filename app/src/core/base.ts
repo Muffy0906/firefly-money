@@ -70,8 +70,8 @@ export function monthRange(y: number, m: number) {
   const s = cycleStart(yy, mm, day), e = cycleStart(yy, mm + 1, day); e.setDate(e.getDate() - 1);
   return {
     start: isoDate(s), end: isoDate(e),
-    label: d.toLocaleString('en-US', { month: 'long', year: 'numeric' }),
-    short: d.toLocaleString('en-US', { month: 'short' }), y: yy, m: mm,
+    label: fmtD(d, { month: 'long', year: 'numeric' }),
+    short: fmtD(d, { month: 'short' }), y: yy, m: mm,
   };
 }
 // The period the month selector shows: one month, or everything up to today when "All time" is picked.
@@ -87,12 +87,74 @@ export const num = (v: unknown) => { const n = parseFloat(v as string); return i
 export const arr = (r: ApiData): ApiData[] => Array.isArray(r) ? r : (r && Array.isArray(r.data)) ? r.data : [];
 export const absDiff = (x: ApiData) => Math.abs(num(x.difference_float ?? x.difference));
 export const sumDiff = (r: ApiData): number => arr(r).reduce((s, x) => s + absDiff(x), 0);
-const FMT = new Map<string, Intl.NumberFormat>();
-function fmtFor(key: string, make: () => Intl.NumberFormat) { let f = FMT.get(key); if (!f) { f = make(); FMT.set(key, f); } return f; }
-export const money = (n: number, dec = 2) => fmtFor(S.currency + dec, () => new Intl.NumberFormat('en-US', { style: 'currency', currency: S.currency, minimumFractionDigits: dec, maximumFractionDigits: dec })).format(n || 0);
+/* ---------- Regional formats ----------
+   Every amount and date goes through these, in the locale picked in Settings → Appearance → Number & date format
+   ("Automatic" follows the browser). Interface text stays English; only how numbers and dates are written changes. */
+export const LOCALE_KEY = 'money.locale';
+let locCache: [string | null, string] | null = null;
+// Read on every format call (a setting synced from another device can change it), so the parsed value is kept
+export function locale() {
+  let raw: string | null = null;
+  try { raw = localStorage.getItem(LOCALE_KEY); } catch (e) { /* storage blocked */ }
+  if (locCache && locCache[0] === raw) return locCache[1];
+  let pick = '';
+  try { pick = raw ? String(JSON.parse(raw) || '') : ''; } catch (e) { /* not JSON */ }
+  const want = pick || (typeof navigator !== 'undefined' && navigator.language) || 'en-US';
+  let ok = 'en-US';
+  try { ok = Intl.NumberFormat.supportedLocalesOf([want])[0] || 'en-US'; } catch (e) { /* not a locale tag */ }
+  locCache = [raw, ok];
+  return ok;
+}
+const FMT = new Map<string, Intl.NumberFormat | Intl.DateTimeFormat>();
+function fmtFor<T extends Intl.NumberFormat | Intl.DateTimeFormat>(key: string, make: (loc: string) => T): T {
+  const loc = locale(), k = loc + '|' + key;
+  let f = FMT.get(k) as T | undefined;
+  if (!f) { f = make(loc); FMT.set(k, f); }
+  return f;
+}
+export const money = (n: number, dec = 2) => fmtFor('$' + S.currency + dec, loc => new Intl.NumberFormat(loc, { style: 'currency', currency: S.currency, minimumFractionDigits: dec, maximumFractionDigits: dec })).format(n || 0);
 export const money0 = (n: number) => money(n, 0);
-const DAY_FMT = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }), DATE_FMT = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-export const fmtDay = (s: string | null | undefined) => s ? DAY_FMT.format(new Date(String(s).slice(0, 10) + 'T12:00:00')) : '';
-export const fmtDate = (s: string | null | undefined) => s ? DATE_FMT.format(new Date(String(s).slice(0, 10) + 'T12:00:00')) : '';
+// A plain number with the locale's grouping (1,234 or 1.234)
+export const fmtNum = (n: number, dec = 0) => fmtFor('n' + dec, loc => new Intl.NumberFormat(loc, { minimumFractionDigits: 0, maximumFractionDigits: dec })).format(n || 0);
+// A date (or ISO day) written the locale's way, with the given parts
+export function fmtD(d: Date | string, opts: Intl.DateTimeFormatOptions) {
+  const dt = typeof d === 'string' ? new Date(d.slice(0, 10) + 'T12:00:00') : d;
+  return fmtFor('d' + JSON.stringify(opts), loc => new Intl.DateTimeFormat(loc, opts)).format(dt);
+}
+export const fmtDay = (s: string | null | undefined) => s ? fmtD(String(s), { month: 'short', day: 'numeric' }) : '';
+export const fmtDate = (s: string | null | undefined) => s ? fmtD(String(s), { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+// The locale's decimal mark: '.' in en-US, ',' in de-DE
+export const decimalMark = () => fmtFor('n1', loc => new Intl.NumberFormat(loc, { minimumFractionDigits: 0, maximumFractionDigits: 1 })).formatToParts(1.5).find(p => p.type === 'decimal')?.value || '.';
+/* An amount someone typed, written their way: "5,40", "1.234,56 €", "$1,234.56", "1 234,5". With both marks the last
+   one is the decimal; with one mark followed by three digits ("1,234" or "1.234") the locale decides. null if it isn't one. */
+export function parseAmount(text: string): number | null {
+  const t = String(text).replace(/[\p{Sc}\s\u00a0\u202f']/gu, '');
+  if (!/^-?\d[\d.,]*$/.test(t) || /[.,]{2}|[.,]$/.test(t)) return null;
+  const lastDot = t.lastIndexOf('.'), lastComma = t.lastIndexOf(',');
+  let dec = '';
+  if (lastDot >= 0 && lastComma >= 0) dec = lastDot > lastComma ? '.' : ',';
+  else if (lastDot >= 0 || lastComma >= 0) {
+    const mark = lastDot >= 0 ? '.' : ',', parts = t.split(mark);
+    dec = parts.length === 2 && (parts[1].length !== 3 || decimalMark() === mark) ? mark : '';
+  }
+  const [int, frac = ''] = dec ? [t.slice(0, t.lastIndexOf(dec)), t.slice(t.lastIndexOf(dec) + 1)] : [t, ''];
+  if (/[.,]/.test(frac) || (dec && !/^-?\d{1,3}([.,]\d{3})*$|^-?\d+$/.test(int))) return null;
+  const n = parseFloat(int.replace(/[.,]/g, '') + (frac ? '.' + frac : ''));
+  return isNaN(n) ? null : n;
+}
+// The day a week starts on in the locale: 0 Sunday, 1 Monday … 6 Saturday
+export function weekStart() {
+  try {
+    const L = new Intl.Locale(locale()) as Intl.Locale & { getWeekInfo?: () => { firstDay: number }, weekInfo?: { firstDay: number } };
+    const w = L.getWeekInfo ? L.getWeekInfo() : L.weekInfo;
+    if (w && w.firstDay) return w.firstDay % 7;
+    // Browsers without week info (Firefox): Sunday where the region uses it, Monday elsewhere
+    return /^(US|CA|MX|BR|JP|KR|TW|HK|IL|IN|PH|ZA|AU|SA|PE|CO|VE|GT|DO|PA|PR)$/.test(L.maximize().region || 'US') ? 0 : 1;
+  } catch (e) { return 0; }
+}
+// Weekday labels in the order the locale's week runs, from English names starting on Sunday
+export const weekOrder = <T>(sunFirst: T[]) => { const s = weekStart(); return [...sunFirst.slice(s), ...sunFirst.slice(0, s)]; };
+// How many blank cells come before the 1st in a month grid that starts on weekStart()
+export const leadDays = (d: Date) => (d.getDay() - weekStart() + 7) % 7;
 [S.y, S.m] = nowMonth();
 export const sameName = (a: string | null | undefined, b: string | null | undefined) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();

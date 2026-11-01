@@ -1,6 +1,6 @@
 import { type Html, html, htmlList } from '../core/html';
 import { api } from '../core/api';
-import { App, S, absDiff, arr, money0, monthRange, nowMonth, sumDiff, todayIso } from '../core/base';
+import { absDiff, App, arr, fmtD, money0, monthRange, nowMonth, S, sumDiff, todayIso } from '../core/base';
 import { head } from '../core/dom';
 import { type Account, isAsset, isLiab, lists } from '../core/lists';
 import { VIEWS, parseHash } from '../core/router';
@@ -63,7 +63,7 @@ const chevron = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 function card(mo: Month, fresh: boolean) {
   const d = mo.nw.net - mo.before.net, kept = mo.earned - mo.spent, top = Math.max(mo.earned, mo.spent, 1);
   const still = !mo.earned && !mo.spent && Math.abs(d) < 1 && !mo.moments.length;
-  const side = mo.k % 2 ? 'r' : 'l', short = new Date(mo.y, mo.m, 1).toLocaleString('en-US', { month: 'short' });
+  const side = mo.k % 2 ? 'r' : 'l', short = fmtD(new Date(mo.y, mo.m, 1), { month: 'short' });
   const dot = html`<span class="tl-dot ${d >= 1 ? 'pos' : d <= -1 ? 'neg' : ''}" aria-hidden="true"></span><span class="tl-date" aria-hidden="true"><strong>${short}</strong>${mo.y}</span>`;
   if (still) return html`<li class="tl-item quiet ${side}${fresh ? ' tl-new' : ''}">${dot}<article class="tl-card panel"><h2>${mo.label}</h2><p class="sub-s">A quiet month: nothing came in or went out.</p></article></li>`;
   return html`<li class="tl-item ${side}${fresh ? ' tl-new' : ''}">${dot}<article class="tl-card panel">
@@ -88,7 +88,7 @@ function items(ms: Month[], fresh: boolean, prevYear: number | null) {
 }
 const more = () => html`<li class="tl-more" id="tlMore" aria-label="Loading older months"><span class="tl-dot" aria-hidden="true"></span><div class="tl-card panel"><div class="sk" style="width:40%;height:14px"></div><div style="height:14px"></div><div class="sk" style="width:70%;height:22px"></div><div style="height:14px"></div><div class="sk" style="width:100%;height:12px"></div></div></li>`;
 function endCap() {
-  const when = (d: string) => new Date(d + 'T12:00:00').toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  const when = (d: string) => fmtD(d, { month: 'long', year: 'numeric' });
   const note = startAcc ? html`Where it starts: <strong>${startAcc.name}</strong> opened in ${when(floor)}.` : floor ? html`Where it starts: your first transaction, in ${when(floor)}.` : 'That’s as far back as your history goes.';
   return html`<li class="tl-end"><span class="tl-dot" aria-hidden="true"></span><p>${note}</p></li>`;
 }
