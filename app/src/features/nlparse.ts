@@ -25,7 +25,7 @@ function nlParse(text: string, submit?: boolean) {
   const base = f.nlBase, L = S.lists!, ws = text.trim().split(/\s+/).filter(Boolean), used = new Set(), out: any = {};
   // dates first (so "sep 12" isn't read as an amount of 12)
   for (let i = 0; i < ws.length; i++) { if (used.has(i) || out.date) continue; const r = nlDate(ws, i); if (r) { out.date = r[0]; for (let j = 0; j < r[1]; j++) used.add(i + j); if (/^last$/i.test(ws[i - 1] || '')) used.add(i - 1); } }
-  ws.forEach((w, i) => { if (used.has(i) || out.amount != null || !/^\p{Sc}?\d[\d.,]*\p{Sc}?$/u.test(w)) return; const n = parseAmount(w); if (n != null && n > 0) { out.amount = String(n); used.add(i); } });
+  ws.forEach((w, i) => { if (used.has(i) || out.amount != null || !/^\p{Sc}?\d[\d.,]*\p{Sc}?$/u.test(w)) return; const n = parseAmount(w); if (n != null && n > 0) { out.amount = Number.isInteger(n) || /\.\d{3,}$/.test(String(n)) ? String(n) : n.toFixed(2); used.add(i); } });
   ws.forEach((w, i) => {
     const lw = w.toLowerCase();
     if (used.has(i)) return;
