@@ -1710,3 +1710,32 @@
   .side-tip::before { content: ""; position: absolute; left: -4px; top: 50%; width: 8px; height: 8px; margin-top: -4px; background: inherit; border-radius: 2px; transform: rotate(45deg); }
   .side-tip.on { opacity: 1; visibility: visible; }
   @media (prefers-reduced-motion: no-preference) { .side-tip.on { transition: opacity .12s ease .06s; } }
+
+  /* ---------- Scrollbars: thin, themed pills on a clear track (mouse and trackpad only; touch keeps its own) ---------- */
+  @media (hover: hover) and (pointer: fine) {
+    :root { --sb-thumb: color-mix(in srgb, var(--text) 22%, transparent); --sb-thumb-hover: color-mix(in srgb, var(--text) 40%, transparent); }
+    /* Chrome and Safari: a 10px slot holding a 6px pill, no arrows, no white track */
+    @supports selector(::-webkit-scrollbar) {
+      ::-webkit-scrollbar { width: 10px; height: 10px; background: transparent; }
+      ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: var(--sb-thumb); background-clip: padding-box; border: 2px solid transparent; border-radius: 99px; min-height: 40px; }
+      ::-webkit-scrollbar-thumb:hover { background-color: var(--sb-thumb-hover); }
+      ::-webkit-scrollbar-button { display: none; }
+      /* the sidebar always keeps its slot (6px padding + 10px slot = the 16px on the left), so a long nav never pushes the rows
+         sideways; its pill is softer and stays clear of the rounded corners */
+      @media (min-width: 901px) {
+        .side { overflow-y: scroll; padding-right: 6px; }
+        .side::-webkit-scrollbar-track { margin-block: 22px; }
+        .side::-webkit-scrollbar-thumb { background-color: color-mix(in srgb, var(--text) 14%, transparent); }
+        .side::-webkit-scrollbar-thumb:hover { background-color: var(--sb-thumb-hover); }
+        /* folded to its icons there is no room for a slot: it still scrolls with the wheel */
+        html.side-mini .side { padding-right: 6px; scrollbar-width: none; }
+        html.side-mini .side::-webkit-scrollbar { display: none; }
+      }
+    }
+    /* Firefox */
+    @supports not selector(::-webkit-scrollbar) {
+      html { scrollbar-width: thin; scrollbar-color: var(--sb-thumb) transparent; }
+      html.side-mini .side { scrollbar-width: none; }
+    }
+  }
