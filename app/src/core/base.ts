@@ -158,3 +158,17 @@ export const weekOrder = <T>(sunFirst: T[]) => { const s = weekStart(); return [
 export const leadDays = (d: Date) => (d.getDay() - weekStart() + 7) % 7;
 [S.y, S.m] = nowMonth();
 export const sameName = (a: string | null | undefined, b: string | null | undefined) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+
+/* ---------- Drill-down links: where a number in a chart or card leads ---------- */
+// The transactions behind a number: q filters the list (category, budget, tag, type, search…) and range, when it isn't
+// the month picked at the top, limits it to those dates (Transactions then shows them in place of the month).
+export type Range = { start: string, end: string };
+export function txHref(q: Record<string, string | null | undefined>, range?: Range | null) {
+  const p = new URLSearchParams();
+  Object.entries(q).forEach(([k, v]) => { if (v) p.set(k, v); });
+  if (range && !q.search) { p.set('start', range.start); p.set('end', range.end); }
+  const s = p.toString();
+  return '#/transactions' + (s ? '?' + s : '');
+}
+// Spending with no category (or no budget) over some dates, as a search: Firefly has no list of those otherwise
+export const noneHref = (what: 'category' | 'budget', r: Range) => txHref({ search: 'has_no_' + what + ':true transaction_type:withdrawal date_after:' + r.start + ' date_before:' + r.end });

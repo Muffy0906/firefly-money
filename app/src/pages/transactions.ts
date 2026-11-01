@@ -1,7 +1,7 @@
 import { type Html, html, htmlList, raw } from '../core/html';
 import { type Snap, morph, morphOk, snapshot } from '../core/morph';
 import { api, getAll } from '../core/api';
-import { absDiff, App, arr, el, fmtD, fmtDay, money, money0, PAGE_SIZE, type Period, S, sumDiff, todayIso, viewPeriod } from '../core/base';
+import { absDiff, App, arr, el, fmtD, fmtDate, fmtDay, money, money0, monthOf, monthRange, PAGE_SIZE, period, type Period, S, sumDiff, todayIso, viewPeriod } from '../core/base';
 import { head, icon, monthNav, toast } from '../core/dom';
 import { catColor, normGroup, rankCats, txRows } from '../core/feed';
 import { addDays, daysBetween } from '../core/helpers';
@@ -15,7 +15,9 @@ import { customizeButton, pageCard, pageOpt } from '../features/pageopts';
 VIEWS.transactions = async (r, paint) => {
   const L = await lists();
   const q = r.q, page = Math.max(1, +q.page || 1), type = q.type || 'all', search = (q.search || '').trim();
-  const cur = viewPeriod(r);
+  // ?start=&end=: the dates a chart's number covered (a week, a day, a report's range) in place of the month picked at the top
+  const range = !r.at && /^\d{4}-\d\d-\d\d$/.test(q.start || '') && /^\d{4}-\d\d-\d\d$/.test(q.end || '') ? { start: q.start, end: q.end } : null;
+  const cur = range ? rangePeriod(range.start, range.end) : viewPeriod(r);
   let endpoint = '/transactions', scope = '';
   const find = (list: { id: string, name: string }[], id: string) => (list.find(x => x.id === id) || {}).name || '#' + id;
   if (q.budget) { endpoint = '/budgets/' + q.budget + '/transactions'; scope = 'Budget: ' + find(L.budgets, q.budget); }
@@ -26,7 +28,7 @@ VIEWS.transactions = async (r, paint) => {
   const load = (pg: number) => search ? api('/search/transactions', { params: { query, search: query, page: pg, limit: PAGE_SIZE } })
     : api(endpoint, { params: { start: cur.start, end: cur.end, type, page: pg, limit: PAGE_SIZE } });
   // The month strip loads on its own and is filled in when it's ready, so it never holds up the list
-  const stripOn = !search && !scope && !cur.all && pageCard('transactions', 'strip'), stripKey = cur.start + '|' + cur.end + '|' + pageOpt('transactions', 'bars');
+  const stripOn = !search && !scope && !range && !cur.all && pageCard('transactions', 'strip'), stripKey = cur.start + '|' + cur.end + '|' + pageOpt('transactions', 'bars');
   // Another month's strip that isn't ready yet: keep showing the one on screen (dimmed) so it can change in place
   const prev = paint.live && shown ? STRIPS.get(shown.k) : null;
   const strip = !stripOn ? '' : STRIPS.get(stripKey)?.html || (prev ? raw(String(prev.html).replace(/ data-k="[^"]*" data-n="\d+"/, ` data-k="${stripKey}" data-n="0"`).replace('class="panel txsum"', 'class="panel txsum wait"'))
@@ -40,11 +42,17 @@ VIEWS.transactions = async (r, paint) => {
   if (paint.live) S.feed = { next: page + 1, pages: pg.total_pages || 1, opts: { select: true }, more: async n => arr(await load(n)).map(normGroup) };
   const tab = (t: string, label: string) => html`<a href="${hashWith({ type: t === 'all' ? '' : t, page: '' })}" class="${type === t ? 'on' : ''}">${label}</a>`;
   paint(
-    html`${head(scope || 'Transactions', search ? 'Search results across all dates' : total + ' transaction' + (total === 1 ? '' : 's') + (cur.all ? ' in total' : ' in ' + cur.label) +
-      (scope ? html` · <a class="link" href="#/transactions">Show all</a>` : ''),
-      html`${search ? '' : monthNav()}${customizeButton('transactions')}<button class="btn primary new-tx" data-onclick="App.newTx()">+ New transaction</button>`)}${strip}<div class="txbar${search ? ' searching' : ''}"><form class="search" data-onsubmit="event.preventDefault();App.search(this.q.value)">${icon('search')}<input type="search" name="q" placeholder="Search, e.g. amazon or category:Gas" title="Search all transactions — try: amazon, category:Gas, amount_more:100" value="${search}" aria-label="Search transactions"></form><div class="tabs">${tab('all', 'All')}${tab('withdrawal', 'Expenses')}${tab('deposit', 'Income')}${tab('transfer', 'Transfers')}</div>${search ? html`<button class="link" data-onclick="App.search('')">Clear</button>` : ''}${groups.length ? html`<label class="check selall"><input type="checkbox" data-onchange="App.selAll(this.checked)"> Select all</label>` : ''}</div><div id="bulkbar" class="bulkbar" hidden></div>${search || scope || page > 1 ? '' : draftsPanel()}<section class="daycards">${txRows(groups, { select: true, empty: search ? 'Nothing matches that search.' : (cur.all ? 'No transactions yet.' : 'No transactions this month.') })}${page < pages ? html`<div class="more" id="feedMore"><span class="spin"></span>Loading older transactions…</div>` : ''}</section>`);
+    html`${head(scope || 'Transactions', search ? (/\bdate_(on|after|before):/.test(search) ? 'Search results' : 'Search results across all dates') : html`${total + ' transaction' + (total === 1 ? '' : 's') + (cur.all ? ' in total' : ' in ' + cur.label)}${scope ? html` · <a class="link" href="${range ? hashWith({ category: '', budget: '', tag: '', bill: '', page: '' }) : '#/transactions'}">Show all</a>` : ''}${range ? html` · <a class="link" href="${hashWith({ start: '', end: '', page: '' })}">Show ${period().label}</a>` : ''}`,
+      html`${search || range ? '' : monthNav()}${customizeButton('transactions')}<button class="btn primary new-tx" data-onclick="App.newTx()">+ New transaction</button>`)}${strip}<div class="txbar${search ? ' searching' : ''}"><form class="search" data-onsubmit="event.preventDefault();App.search(this.q.value)">${icon('search')}<input type="search" name="q" placeholder="Search, e.g. amazon or category:Gas" title="Search all transactions — try: amazon, category:Gas, amount_more:100" value="${search}" aria-label="Search transactions"></form><div class="tabs">${tab('all', 'All')}${tab('withdrawal', 'Expenses')}${tab('deposit', 'Income')}${tab('transfer', 'Transfers')}</div>${search ? html`<button class="link" data-onclick="App.search('')">Clear</button>` : ''}${groups.length ? html`<label class="check selall"><input type="checkbox" data-onchange="App.selAll(this.checked)"> Select all</label>` : ''}</div><div id="bulkbar" class="bulkbar" hidden></div>${search || scope || page > 1 ? '' : draftsPanel()}<section class="daycards">${txRows(groups, { select: true, empty: search ? 'Nothing matches that search.' : (cur.all ? 'No transactions yet.' : 'No transactions this month.') })}${page < pages ? html`<div class="more" id="feedMore"><span class="spin"></span>Loading older transactions…</div>` : ''}</section>`);
   if (stripOn) monthStrip(cur, stripKey).then(h => { keepStrip(stripKey, h); fillStrip(); }).catch(() => { const box = el('txsum'); if (box && box.dataset.k === stripKey && !box.childElementCount) box.remove(); });
 };
+// A period for some dates: named after its month when it is exactly one, else by its first and last day
+function rangePeriod(start: string, end: string): Period {
+  const [y, m] = monthOf(new Date(start + 'T12:00:00')), mo = monthRange(y, m);
+  if (mo.start === start && mo.end === end) return mo;
+  const label = start === end ? fmtDate(start) : start.slice(0, 4) === end.slice(0, 4) ? fmtDay(start) + ' – ' + fmtDate(end) : fmtDate(start) + ' – ' + fmtDate(end);
+  return { start, end, label, short: label };
+}
 // The month strips drawn so far (by period), so going back to a month shows its strip straight away
 const STRIPS = new Map<string, { n: number, html: Html }>();
 let stripN = 0;
