@@ -218,7 +218,7 @@ function sankeyPanel(sources: ApiData[], income: number, cats: { name: string, a
   if (spend > inc) left.push({ name: 'From savings', v: spend - inc, kind: 'save' });
   if (inc > spend) right.push({ name: 'Kept', v: inc - spend, kind: 'kept' });
   const d: Flow = { left, right, inc, spend };
-  return html`<section class="panel chart sankey" data-sk="${JSON.stringify(d)}"><h2>Money flow</h2><p class="lead">Where ${cur.all ? 'all your' : cur.label + '’s'} income went · ${matchMedia?.('(hover: none)').matches ? 'tap a band to see its transactions' : 'hover a band for details'}</p><div class="sk-box">${sankeySvg(d, innerWidth < 900 ? innerWidth - 72 : 900)}</div></section>`;
+  return html`<section class="panel chart sankey" data-sk="${JSON.stringify(d)}"><h2>Money flow</h2><p class="lead">Where ${cur.all ? 'all your' : cur.label + '’s'} income went · ${matchMedia?.('(hover: none)').matches ? 'tap a band to see its transactions' : 'hover a band for details'}</p><div class="sk-box">${skFirst(d)}</div></section>`;
 }
 // Shorten a label with … until it fits in px at the chart's label font
 let skCtx: CanvasRenderingContext2D | null = null;
@@ -229,6 +229,13 @@ function fitText(t: string, px: number, weight = 500) {
   let n = t.length;
   while (n > 1 && skCtx.measureText(t.slice(0, n).trimEnd() + '…').width > px) n--;
   return t.slice(0, n).trimEnd() + '…';
+}
+// The first drawing of a Money flow chart. Another month of the same page draws it at the size the one on screen was
+// fitted to (fitSankey), so it doesn't get drawn a second time, a moment later, halfway through changing into place
+function skFirst(d: Flow) {
+  const on = document.querySelector<SVGSVGElement>('#view .sankey svg[data-w]'), w = on ? Number(on.dataset.w) : 0, h = on ? Number(on.dataset.h || 0) : 0;
+  if (w > 0) return h > 0 ? sankeySvg(d, w, h) : sankeySvg(d, w, 0, on!.closest('.cards.bento') ? SK_ROWS : 0);
+  return sankeySvg(d, innerWidth < 900 ? innerWidth - 72 : 900);
 }
 // The most rows a side can have: six categories, one for the rest, and Kept (sankeyPanel caps them)
 const SK_ROWS = 8;
@@ -268,11 +275,13 @@ function sankeySvg(d: Flow, W: number, fill = 0, minRows = 0) {
   const tip = (n: LaidNode) => n.kind === 'in' ? n.name + ' → ' + money0(n.v) + share(n, total)
     : n.name + ' · ' + money0(n.v) + share(n, n.kind === 'kept' ? inc : spend) + (n.kind === 'kept' ? ' of income' : ' of spending');
   const act = (n: LaidNode) => html` data-tip="${tip(n)}" data-onclick="App.go('${href(n)}')"`;
-  left.forEach(n => { links = html`${links}<path class="lk" d="${band(xl + NW, n.y, xm, my1, n.h)}" fill="${col(n)}"${act(n)}/>`; my1 += n.h; });
-  right.forEach(n => { links = html`${links}<path class="lk" d="${band(xm + NW, my2, xr, n.y, n.h)}" fill="${col(n)}"${act(n)}/>`; my2 += n.h; });
+  // Each part is named for what it stands for, so another month's chart changes part by part (core/morph.ts)
+  const mk = (part: string, n: LaidNode) => part + ':' + n.kind + ':' + n.name;
+  left.forEach(n => { links = html`${links}<path class="lk" data-mk="${mk('l', n)}" d="${band(xl + NW, n.y, xm, my1, n.h)}" fill="${col(n)}"${act(n)}/>`; my1 += n.h; });
+  right.forEach(n => { links = html`${links}<path class="lk" data-mk="${mk('l', n)}" d="${band(xm + NW, my2, xr, n.y, n.h)}" fill="${col(n)}"${act(n)}/>`; my2 += n.h; });
   // Room for a label: beside the chart on a wide card; inside, between its bar and the middle one, on a narrow one
   const room = narrow ? xm - (xl + NW) - 2 * PAD : LW - 14;
-  const label = (n: LaidNode, anchor: string, x: number, nm = fitText(n.name, room, narrow ? 600 : 500)) => html`<text x="${x}" y="${n.ly - 2}" text-anchor="${anchor}" class="sk-name">${nm !== n.name ? html`<title>${n.name}</title>` : ''}${nm}</text><text x="${x}" y="${n.ly + 12}" text-anchor="${anchor}" class="sk-amt amtx">${money0(n.v)}</text>`;
+  const label = (n: LaidNode, anchor: string, x: number, nm = fitText(n.name, room, narrow ? 600 : 500)) => html`<text data-mk="${mk('t', n)}" x="${x}" y="${n.ly - 2}" text-anchor="${anchor}" class="sk-name">${nm !== n.name ? html`<title>${n.name}</title>` : ''}${nm}</text><text data-mk="${mk('a', n)}" x="${x}" y="${n.ly + 12}" text-anchor="${anchor}" class="sk-amt amtx">${money0(n.v)}</text>`;
   // Keep two-line labels apart and inside the chart: centre each on its node, push it below the one above,
   // pull any that run off the bottom back up, then make sure the first one still clears the top edge
   const TOP = 14, BOT = H - 18;
@@ -283,9 +292,9 @@ function sankeySvg(d: Flow, W: number, fill = 0, minRows = 0) {
   };
   spread(left); spread(right);
   let labels: Html | string = '';
-  left.forEach(n => { nodes = html`${nodes}<rect class="sk-node" x="${n.x}" y="${n.y}" width="${NW}" height="${n.h}" rx="3" fill="${col(n)}"${act(n)}/>`; labels = html`${labels}${narrow ? label(n, 'start', xl + NW + PAD) : label(n, 'end', xl - 8)}`; });
-  right.forEach(n => { nodes = html`${nodes}<rect class="sk-node" x="${n.x}" y="${n.y}" width="${NW}" height="${n.h}" rx="3" fill="${col(n)}"${act(n)}/>`; labels = html`${labels}${narrow ? label(n, 'end', xr - PAD) : label(n, 'start', xr + NW + 8)}`; });
-  nodes = html`${nodes}<rect x="${xm}" y="${my}" width="${NW}" height="${mh}" rx="3" fill="var(--text)" opacity=".75"/>`;
+  left.forEach(n => { nodes = html`${nodes}<rect class="sk-node" data-mk="${mk('n', n)}" x="${n.x}" y="${n.y}" width="${NW}" height="${n.h}" rx="3" fill="${col(n)}"${act(n)}/>`; labels = html`${labels}${narrow ? label(n, 'start', xl + NW + PAD) : label(n, 'end', xl - 8)}`; });
+  right.forEach(n => { nodes = html`${nodes}<rect class="sk-node" data-mk="${mk('n', n)}" x="${n.x}" y="${n.y}" width="${NW}" height="${n.h}" rx="3" fill="${col(n)}"${act(n)}/>`; labels = html`${labels}${narrow ? label(n, 'end', xr - PAD) : label(n, 'start', xr + NW + 8)}`; });
+  nodes = html`${nodes}<rect data-mk="mid" x="${xm}" y="${my}" width="${NW}" height="${mh}" rx="3" fill="var(--text)" opacity=".75"/>`;
   return html`<svg viewBox="0 0 ${W} ${H}" data-w="${W}" data-h="${Math.round(fill)}" class="${narrow ? 'sk-in' : ''}" role="img" aria-label="Income flowing into spending categories">${links}${nodes}${labels}</svg>`;
 }
 // Redraw each money-flow chart at the width its card actually has, now and whenever the card changes size

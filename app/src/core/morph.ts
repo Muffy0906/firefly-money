@@ -62,7 +62,10 @@ function keyOf(e: Element, root: Node) {
 const near = (r: DOMRect, m = 120) => r.bottom > -m && r.top < innerHeight + m && r.width > 0;
 const textOf = (e: HTMLElement) => e.dataset.odo ?? e.textContent ?? '';
 
-type SvgSnap = { n: number, kids: [string, Record<string, string>][] };
+// keyed: a chart whose parts carry data-mk (Money flow: a band, bar or label per income source / category) is paired
+// part by part by that name, with a copy of each old part to stand in while the wave is on its way
+type SvgSnap = { n: number, kids: [string, Record<string, string>][], keyed?: Map<string, { attrs: Record<string, string>, node: Element }> };
+const attrsOf = (k: Element) => Object.fromEntries(ATTRS.filter(a => k.hasAttribute(a)).map(a => [a, k.getAttribute(a)!]));
 export type Snap = {
   nums: Map<string, string>, fills: Map<string, number>, svgs: Map<string, SvgSnap>, tints: Map<string, string>,
   texts: Map<string, string>, held: Map<string, Said>, cards: Set<string>, shapes: Map<string, number>, rows: Map<string, number>, layout: Set<string>, feed: boolean
@@ -83,7 +86,7 @@ const isLine = (e: Element) => e.children.length > 0 && [...e.childNodes].some(n
 // (an icon, which says something too: an arrow up or down, a tick, goes with its words)
 const ICON = 'svg[viewBox="0 0 24 24"]';
 const leaves = (card: Element, root: Node) => [...card.querySelectorAll('*')].filter(e => ours(e, root) && (e.matches(ICON) || ((e.textContent || '').trim() &&
-  (!e.children.length ? !e.matches(NUM) : isLine(e)))) && !e.parentElement?.closest(ICON) && !e.parentElement?.closest('[data-odo], .hm-cell, .mghost') && !e.matches('.hm-cell, .mghost, [data-odo]') &&
+  (!e.children.length ? !e.matches(NUM) : isLine(e)))) && !e.parentElement?.closest(ICON) && !e.closest('[data-mk]') && !e.parentElement?.closest('[data-odo], .hm-cell, .mghost') && !e.matches('.hm-cell, .mghost, [data-odo]') &&
   !(e.parentElement && isLine(e.parentElement)));
 // A card's build (its elements, in order): another month's words can only stand in for this one's when they sit in
 // the same places. A calendar (the month starts on another day, has 30 days, not 31) or a list with more rows is
@@ -132,7 +135,9 @@ export function snapshot(root: HTMLElement): Snap {
     const kids = [...v.querySelectorAll(GEO)];
     if (!kids.length || kids.length > 600) return;
     c++;
-    s.svgs.set(keyOf(v, root), { n: kids.length, kids: kids.map(k => [k.tagName, Object.fromEntries(ATTRS.filter(a => k.hasAttribute(a)).map(a => [a, k.getAttribute(a)!]))]) });
+    const marked = [...v.querySelectorAll('[data-mk]')];
+    s.svgs.set(keyOf(v, root), { n: kids.length, kids: kids.map(k => [k.tagName, attrsOf(k)]),
+      keyed: marked.length ? new Map(marked.map(k => [k.getAttribute('data-mk')!, { attrs: attrsOf(k), node: k.cloneNode(true) as Element }])) : undefined });
   });
   c = 0;
   root.querySelectorAll<HTMLElement>(TINT).forEach(e => { if (c < 200 && near(e.getBoundingClientRect())) { s.tints.set(keyOf(e, root), getComputedStyle(e).backgroundColor); c++; } });
@@ -256,7 +261,36 @@ function tweenAttr(a: string, b: string): ((p: number) => string) | null {
   const x = na.map(Number), y = nb.map(Number);
   return p => parts.reduce((s, part, i) => s + part + (i < y.length ? +(x[i] + (y[i] - x[i]) * p).toFixed(2) : ''), '');
 }
+// Parts paired by name: shared ones move from where they were, new ones fade in when the wave arrives, and the old
+// month's parts that are gone stay (as copies) until then and fade out. A label keeps its old words until then too.
+function morphKeyed(v: SVGSVGElement, old: NonNullable<SvgSnap['keyed']>, delay: number, dur: number) {
+  const t0 = performance.now() + delay, tw: [Element, string, (p: number) => string][] = [], words: [Element, Node[]][] = [], seen = new Set<string>();
+  v.querySelectorAll('[data-mk]').forEach(k => {
+    const key = k.getAttribute('data-mk')!, o = old.get(key); seen.add(key);
+    if (!o) { k.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay, easing: 'ease', fill: 'backwards' }); return; }
+    ATTRS.forEach(a => { const now = k.getAttribute(a); if (now == null || o.attrs[a] == null) return; const f = tweenAttr(o.attrs[a], now); if (f) tw.push([k, a, f]); });
+    if (k.tagName === 'text' && k.textContent !== o.node.textContent && delay > 0) {
+      words.push([k, [...k.childNodes]]); k.replaceChildren(...[...o.node.childNodes].map(n => n.cloneNode(true)));
+    }
+  });
+  const gone: Element[] = [];
+  old.forEach((o, key) => {
+    if (seen.has(key)) return;
+    const g = o.node.cloneNode(true) as Element; g.removeAttribute('data-mk'); g.removeAttribute('data-onclick'); g.removeAttribute('data-tip');
+    g.setAttribute('pointer-events', 'none'); v.appendChild(g); gone.push(g);
+    g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, delay, easing: 'ease', fill: 'forwards' }).finished.catch(() => {}).then(() => g.remove());
+  });
+  tw.forEach(([k, a, f]) => k.setAttribute(a, f(0)));
+  own(v, 'svg', now => {
+    const p = v.isConnected ? Math.min(1, Math.max(0, now - t0) / dur) : 1, e = glide(p);
+    if (words.length && (now >= t0 || !v.isConnected)) { words.forEach(([k, ns]) => { k.replaceChildren(...ns); if (v.isConnected) k.animate([{ opacity: .25 }, { opacity: 1 }], { duration: 220, easing: 'ease' }); }); words.length = 0; }
+    tw.forEach(([k, a, f]) => k.setAttribute(a, f(e)));
+    if (p >= 1) gone.forEach(g => g.remove());
+    return p < 1;
+  });
+}
 function morphSvg(v: SVGSVGElement, old: SvgSnap, delay = 0, dur = 560) {
+  if (old.keyed && v.querySelector('[data-mk]')) return morphKeyed(v, old.keyed, delay, dur);
   const kids = [...v.querySelectorAll(GEO)];
   const same = kids.length === old.n && kids.every((k, i) => k.tagName === old.kids[i][0]);
   // A few more or fewer parts (a 31st day's bar, one more slice): each part takes over from the old one of its kind
