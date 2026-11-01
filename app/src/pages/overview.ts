@@ -7,7 +7,7 @@ import { addDays, budgetAlert } from '../core/helpers';
 import { type Account, isAsset, isCard, isLiab, lists } from '../core/lists';
 import { VIEWS } from '../core/router';
 import { DASH_NAMES, tileOn, tileOpt } from '../features/dashboard';
-import { barChart, paceChart, ring, shareChart, sparkBars } from '../features/charts';
+import { barChart, paceChart, ring, shareChart, sparkBars, twoLines } from '../features/charts';
 import { type NetWorthPoint, nwLine, nwSeg, nwYears } from '../features/networth';
 import { bindSwipe } from '../features/phone';
 import { drafts } from '../features/txform';
@@ -103,7 +103,7 @@ VIEWS[''] = async (r, paint) => {
       ['payees', wait('payees') ?? payeesPanel(arr(payNow), arr(payPrev), future, all, tileOpt('payees', 'count'), tileOpt('payees', 'compare'))],
       ['income', future ? idle('income') : wait('income') ?? incomePanel(arr(incomeSrc), all)],
       ['goals', !tileOn('goals') ? 'off' : wait('goals') ?? goalsPanel(piggies, tileOpt('goals', 'done'))],     // (empty without its data, so offered as is)
-      ['cashflow', html`<section class="panel chart">${cashFlow(trend)}</section>`],
+      ['cashflow', html`<section class="panel chart">${cashFlowAs(trend, tileOpt('cashflow', 'style'))}</section>`],
       ['recent', html`<section class="panel flush"><div style="padding:24px 26px 6px" class="panel-head"><div><h2>Recent transactions</h2></div><a class="link" href="#/transactions">See all</a></div>${txRows(arr(recent).map(normGroup))}</section>`],
       ['pace', monthOnly ? idle('pace') : wait('pace') ?? pacePanel(cur, prev, arr(dayTx).map(normGroup), arr(prevTx).map(normGroup))],
       ['savings', html`<section class="panel chart">${savingsRate(trend)}</section>`],
@@ -187,7 +187,7 @@ function spendingPanel(cats: CatRow[], future: boolean, all: boolean, count = 6,
     const vs = !cmp ? '' : !c.prev ? ' · new' : Math.abs(d) < 1 ? ' · same' : html` · <span class="${d > 0 ? 'up' : 'down'}">${money0(Math.abs(d))} ${d > 0 ? 'more' : 'less'}</span>`;
     return { name: c.name, v: c.amt, href: c.id ? '#/transactions?category=' + c.id : undefined, sub: html`${money0(c.amt)}${vs}` };
   });
-  const chart = shareChart(items, html`<span class="eyebrow">Spent</span><strong class="num">${money0(total)}</strong>`, 'Spending by category', { limit: count });
+  const chart = shareChart(items, html`<span class="eyebrow">Spent</span><strong class="num">${money0(total)}</strong>`, 'Spending by category', { limit: count, ring: tileOpt('spending', 'style') !== 'bars' });
   return html`<section class="panel"><h2>Where it went</h2><p class="lead">Spending by category ${all ? 'of all time' : 'this month'}${cmp ? ', against last month' : ''}</p>${chart || html`<p class="empty">${future ? 'This month hasn’t started yet.' : 'No spending recorded ' + (all ? 'yet.' : 'this month.')}</p>`}</section>`;
 }
 function balancesPanel(title: string, lead: string, items: Account[], val: (a: Account) => number, paidOff: boolean, sparks: any = {}) {
@@ -220,6 +220,14 @@ export function cashFlow(trend: CashMonth[]) {
   const avgS = trend.reduce((s, t) => s + t.spend, 0) / n, avgK = trend.reduce((s, t) => s + t.income - t.spend, 0) / n;
   S.chartData = trend;
   return html`<h2>Cash flow</h2><p class="lead">Earned vs. spent over the last ${n === 6 ? 'six' : n} months · click a month to open it</p><svg class="flowchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Income and spending by month"><line x1="0" x2="${W}" y1="${H - bottom}" y2="${H - bottom}" stroke="var(--line)"/>${bars}</svg><div style="display:flex;gap:40px;margin-top:18px"><div><div class="eyebrow">Avg. spent / month</div><div class="num" style="font-size:21px">${money0(avgS)}</div></div><div><div class="eyebrow">Avg. kept / month</div><div class="num" style="font-size:21px">${money0(avgK)}</div></div></div><div class="legend"><span><i style="background:var(--income)"></i>Earned</span><span><i style="background:var(--spend)"></i>Spent</span></div>`;
+}
+// The Cash flow tile drawn as its ⚙ says: bars (cashFlow above), smooth lines, or what was kept each month
+function cashFlowAs(trend: CashMonth[], style: string) {
+  if (style === 'bars') return cashFlow(trend);
+  const n = trend.length, months = n === 6 ? 'six' : String(n);
+  if (style === 'lines') return html`<h2>Cash flow</h2><p class="lead">Earned vs. spent over the last ${months} months</p>${twoLines(trend.map(t => ({ label: t.label, a: t.income, b: t.spend })), ['Earned', 'Spent'], ['var(--income)', 'var(--spend)'], 'Income and spending by month', { w: window.innerWidth < 600 ? 420 : window.innerWidth >= 1700 ? 1500 : 960, h: 240 })}`;
+  const kept = trend.reduce((s, t) => s + t.income - t.spend, 0);
+  return html`<h2>Cash flow</h2><p class="lead">What you kept each month · ${money0(kept / Math.max(1, n))} a month on average</p>${barChart(trend.map(t => ({ label: t.label, v: t.income - t.spend })), v => (v < 0 ? '−' : '') + money0(Math.abs(v)), 'Earned minus spent by month', { w: window.innerWidth < 600 ? 420 : window.innerWidth >= 1700 ? 1500 : 960, h: 220 })}`;
 }
 // Spending pace: where this month's running total is against the same day last month, and where it's heading
 function pacePanel(cur: Period, prev: Period, now: { date: string, total: number }[], before: { date: string, total: number }[]) {
@@ -272,7 +280,7 @@ function payeesPanel(now: ApiData[], prev: ApiData[], future: boolean, all: bool
     const vs = all || !compare ? '' : !x.prev ? ' · new' : Math.abs(d) < 1 ? ' · same' : html` · <span class="${d > 0 ? 'up' : 'down'}">${money0(Math.abs(d))} ${d > 0 ? 'more' : 'less'}</span>`;
     return { name: x.name, v: x.amt, href: '#/account/' + x.id, sub: html`${money0(x.amt)}${vs}` };
   });
-  const chart = shareChart(items, html`<span class="eyebrow">Paid</span><strong class="num">${money0(total)}</strong>`, 'Spending by payee', { limit: count, other: 'Everyone else' });
+  const chart = shareChart(items, html`<span class="eyebrow">Paid</span><strong class="num">${money0(total)}</strong>`, 'Spending by payee', { limit: count, other: 'Everyone else', ring: tileOpt('payees', 'style') !== 'bars' });
   return html`<section class="panel"><h2>Top payees</h2><p class="lead">Who you paid the most ${all ? 'of all time' : 'this month'}</p>${chart || html`<p class="empty">${future ? 'This month hasn’t started yet.' : 'No spending recorded ' + (all ? 'yet.' : 'this month.')}</p>`}</section>`;
 }
 function incomePanel(sources: ApiData[], all: boolean) {

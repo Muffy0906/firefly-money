@@ -39,11 +39,12 @@ const DASH_EST: Record<string, number> = { spent: 170, earned: 170, insights: 20
   pace: 380, savings: 330, trends: 420 };
 // Each tile's own settings (the ⚙ button while customizing), saved in money.dash opts {tile: {setting: value}}
 const yes = [true, false];
-type TileOpt = { id: string, label: string, options: (number | boolean)[], def: number | boolean, unit?: string };
+type TileOpt = { id: string, label: string, options: (number | boolean | string)[], def: number | boolean | string, unit?: string, names?: Record<string, string> };
+const SHARE_STYLE = { id: 'style', label: 'Chart', options: ['donut', 'bars'], def: 'donut', names: { donut: 'Donut and bars', bars: 'Bars only' } };
 export const TILE_OPTS: Record<string, TileOpt[]> = {
   recent: [{ id: 'count', label: 'Transactions to show', options: [5, 8, 10, 15, 20, 25], def: 8 }],
-  spending: [{ id: 'count', label: 'Categories to show', options: [4, 5, 6, 8, 12, 20], def: 5 }, { id: 'compare', label: 'Compare with last month', options: yes, def: true }],
-  payees: [{ id: 'count', label: 'Payees to show', options: [4, 5, 8, 10, 15], def: 5 }, { id: 'compare', label: 'Compare with last month', options: yes, def: true }],
+  spending: [SHARE_STYLE, { id: 'count', label: 'Categories to show', options: [4, 5, 6, 8, 12, 20], def: 5 }, { id: 'compare', label: 'Compare with last month', options: yes, def: true }],
+  payees: [SHARE_STYLE, { id: 'count', label: 'Payees to show', options: [4, 5, 8, 10, 15], def: 5 }, { id: 'compare', label: 'Compare with last month', options: yes, def: true }],
   budgets: [{ id: 'unset', label: 'Show budgets without an amount', options: yes, def: true }],
   cash: [{ id: 'zero', label: 'Show accounts with a zero balance', options: yes, def: true }, { id: 'closed', label: 'Show closed accounts', options: yes, def: false },
     { id: 'sparks', label: 'Show 30-day trend lines', options: yes, def: true }],
@@ -52,7 +53,7 @@ export const TILE_OPTS: Record<string, TileOpt[]> = {
   loans: [{ id: 'paidOff', label: 'Show paid-off loans', options: yes, def: true }, { id: 'closed', label: 'Show closed loans', options: yes, def: false }],
   bills: [{ id: 'days', label: 'Look ahead', options: [7, 14, 30, 45], def: 45, unit: 'days' }],
   goals: [{ id: 'done', label: 'Show goals already reached', options: yes, def: true }],
-  cashflow: [{ id: 'months', label: 'Months to show', options: [3, 6, 12], def: 6 }],
+  cashflow: [{ id: 'style', label: 'Chart', options: ['bars', 'lines', 'net'], def: 'bars', names: { bars: 'Bars', lines: 'Lines', net: 'What you kept' } }, { id: 'months', label: 'Months to show', options: [3, 6, 12], def: 6 }],
 };
 // A tile's setting, or its default when unset or no longer one of the choices
 export function tileOpt(k: string, id: string) {
@@ -66,7 +67,7 @@ function tileOptsPanel(k: string) {
     const v = tileOpt(k, o.id);
     return typeof o.def === 'boolean'
       ? html`<label class="check"><input type="checkbox"${v ? ' checked' : ''} data-onchange="App.dashOpt('${k}','${o.id}',this.checked)"> ${o.label}</label>`
-      : html`<label class="wopt">${o.label}<select data-onchange="App.dashOpt('${k}','${o.id}',this.value)">${htmlList(o.options.map(x => html`<option value="${x}"${x === v ? ' selected' : ''}>${x}${o.unit ? ' ' + o.unit : ''}</option>`))}</select></label>`;
+      : html`<label class="wopt">${o.label}<select data-onchange="App.dashOpt('${k}','${o.id}',this.value)">${htmlList(o.options.map(x => html`<option value="${x}"${x === v ? ' selected' : ''}>${o.names ? o.names[String(x)] : x}${o.unit ? ' ' + o.unit : ''}</option>`))}</select></label>`;
   }))}</div>`;
 }
 const optsButton = (k: string) => TILE_OPTS[k] ? html`<button type="button" class="obtn" data-onclick="App.dashOpts('${k}')" aria-label="Settings for this tile" title="Settings">⚙</button>` : '';
@@ -286,7 +287,7 @@ function dashOpts(k: string) {
 function dashOpt(k: string, id: string, v: string | number | boolean) {
   const o = (TILE_OPTS[k] || []).find(x => x.id === id); if (!o) return;
   if (typeof o.def === 'number') v = +v;
-  if (!o.options.includes(v as number | boolean)) return;
+  if (!o.options.includes(v)) return;
   dashSave(x => { x.opts = { ...x.opts, [k]: { ...(x.opts || {})[k], [id]: v } }; });
   dashRedraw();
 }

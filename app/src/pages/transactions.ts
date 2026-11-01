@@ -9,6 +9,7 @@ import { insight, refundsIn } from '../features/refunds';
 import { draftsPanel } from '../features/txform';
 import { lists } from '../core/lists';
 import { VIEWS, hashWith } from '../core/router';
+import { customizeButton, pageCard, pageOpt } from '../features/pageopts';
 
 /* ================= Transactions page ================= */
 VIEWS.transactions = async (r, paint) => {
@@ -25,7 +26,7 @@ VIEWS.transactions = async (r, paint) => {
   const load = (pg: number) => search ? api('/search/transactions', { params: { query, search: query, page: pg, limit: PAGE_SIZE } })
     : api(endpoint, { params: { start: cur.start, end: cur.end, type, page: pg, limit: PAGE_SIZE } });
   // The month strip loads on its own and is filled in when it's ready, so it never holds up the list
-  const stripOn = !search && !scope && !cur.all, stripKey = cur.start + '|' + cur.end;
+  const stripOn = !search && !scope && !cur.all && pageCard('transactions', 'strip'), stripKey = cur.start + '|' + cur.end + '|' + pageOpt('transactions', 'bars');
   // Another month's strip that isn't ready yet: keep showing the one on screen (dimmed) so it can change in place
   const prev = paint.live && shown ? STRIPS.get(shown.k) : null;
   const strip = !stripOn ? '' : STRIPS.get(stripKey)?.html || (prev ? raw(String(prev.html).replace(/ data-k="[^"]*" data-n="\d+"/, ` data-k="${stripKey}" data-n="0"`).replace('class="panel txsum"', 'class="panel txsum wait"'))
@@ -41,7 +42,7 @@ VIEWS.transactions = async (r, paint) => {
   paint(
     html`${head(scope || 'Transactions', search ? 'Search results across all dates' : total + ' transaction' + (total === 1 ? '' : 's') + (cur.all ? ' in total' : ' in ' + cur.label) +
       (scope ? html` · <a class="link" href="#/transactions">Show all</a>` : ''),
-      html`${search ? '' : monthNav()}<button class="btn primary new-tx" data-onclick="App.newTx()">+ New transaction</button>`)}${strip}<div class="txbar${search ? ' searching' : ''}"><form class="search" data-onsubmit="event.preventDefault();App.search(this.q.value)">${icon('search')}<input type="search" name="q" placeholder="Search, e.g. amazon or category:Gas" title="Search all transactions — try: amazon, category:Gas, amount_more:100" value="${search}" aria-label="Search transactions"></form><div class="tabs">${tab('all', 'All')}${tab('withdrawal', 'Expenses')}${tab('deposit', 'Income')}${tab('transfer', 'Transfers')}</div>${search ? html`<button class="link" data-onclick="App.search('')">Clear</button>` : ''}${groups.length ? html`<label class="check selall"><input type="checkbox" data-onchange="App.selAll(this.checked)"> Select all</label>` : ''}</div><div id="bulkbar" class="bulkbar" hidden></div>${search || scope || page > 1 ? '' : draftsPanel()}<section class="daycards">${txRows(groups, { select: true, empty: search ? 'Nothing matches that search.' : (cur.all ? 'No transactions yet.' : 'No transactions this month.') })}${page < pages ? html`<div class="more" id="feedMore"><span class="spin"></span>Loading older transactions…</div>` : ''}</section>`);
+      html`${search ? '' : monthNav()}${customizeButton('transactions')}<button class="btn primary new-tx" data-onclick="App.newTx()">+ New transaction</button>`)}${strip}<div class="txbar${search ? ' searching' : ''}"><form class="search" data-onsubmit="event.preventDefault();App.search(this.q.value)">${icon('search')}<input type="search" name="q" placeholder="Search, e.g. amazon or category:Gas" title="Search all transactions — try: amazon, category:Gas, amount_more:100" value="${search}" aria-label="Search transactions"></form><div class="tabs">${tab('all', 'All')}${tab('withdrawal', 'Expenses')}${tab('deposit', 'Income')}${tab('transfer', 'Transfers')}</div>${search ? html`<button class="link" data-onclick="App.search('')">Clear</button>` : ''}${groups.length ? html`<label class="check selall"><input type="checkbox" data-onchange="App.selAll(this.checked)"> Select all</label>` : ''}</div><div id="bulkbar" class="bulkbar" hidden></div>${search || scope || page > 1 ? '' : draftsPanel()}<section class="daycards">${txRows(groups, { select: true, empty: search ? 'Nothing matches that search.' : (cur.all ? 'No transactions yet.' : 'No transactions this month.') })}${page < pages ? html`<div class="more" id="feedMore"><span class="spin"></span>Loading older transactions…</div>` : ''}</section>`);
   if (stripOn) monthStrip(cur, stripKey).then(h => { keepStrip(stripKey, h); fillStrip(); }).catch(() => { const box = el('txsum'); if (box && box.dataset.k === stripKey && !box.childElementCount) box.remove(); });
 };
 // The month strips drawn so far (by period), so going back to a month shows its strip straight away
@@ -109,14 +110,17 @@ async function monthStrip(cur: Period, key: string, rank = true) {
   const byDay: Record<string, number> = {}, nDay: Record<string, number> = {};
   arr(spends).map(normGroup).forEach(g => { const d = String(g.date).slice(0, 10); byDay[d] = (byDay[d] || 0) + g.total; nDay[d] = (nDay[d] || 0) + 1; });
   const today = todayIso(), list = days <= 45 ? Array.from({ length: days }, (_, i) => addDays(cur.start, i)) : [];
-  const most = Math.max(1, ...list.map(d => byDay[d] || 0));
+  // Customize: each day's spending, or the month adding up day by day
+  const running = pageOpt('transactions', 'bars') === 'running', cum: Record<string, number> = {};
+  list.reduce((t, d) => (cum[d] = t + (byDay[d] || 0)), 0);
+  const most = Math.max(1, ...list.map(d => (running ? cum : byDay)[d] || 0));
   const fmt = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   const bars = htmlList(list.map(d => {
     const v = byDay[d] || 0, n = nDay[d] || 0, label = fmt(d) + ': ' + (v ? money(v) + ' spent' : 'nothing spent');
-    const tip = fmt(d) + (d === today ? ' (today)' : '') + '\n' + (v ? money(v) + ' spent · ' + n + (n === 1 ? ' purchase' : ' purchases') : 'Nothing spent');
+    const tip = fmt(d) + (d === today ? ' (today)' : '') + '\n' + (v ? money(v) + ' spent · ' + n + (n === 1 ? ' purchase' : ' purchases') : 'Nothing spent') + (running ? '\n' + money(cum[d]) + ' so far this month' : '');
     return d > today
       ? html`<button type="button" class="db fut" style="--v:0" aria-label="${fmt(d)}" disabled><i></i></button>`
-      : html`<button type="button" class="db${d === today ? ' now' : ''}" data-day="${d}" data-onclick="App.txDay(this.dataset.day)" style="--v:${(v / most).toFixed(3)}" data-tip="${tip}" aria-label="${label}"><i></i></button>`;
+      : html`<button type="button" class="db${d === today ? ' now' : ''}" data-day="${d}" data-onclick="App.txDay(this.dataset.day)" style="--v:${((running ? cum[d] : v) / most).toFixed(3)}" data-tip="${tip}" aria-label="${label}"><i></i></button>`;
   }));
   return { n: ++stripN, html: html`<section class="panel txsum" id="txsum" data-k="${key}" data-n="${stripN}"><div class="ts-k"><div><span class="eyebrow">Spent</span><strong class="num">${money0(spent)}</strong></div><div><span class="eyebrow">Earned</span><strong class="num pos">${money0(earned)}</strong></div><div><span class="eyebrow">Net</span><strong class="num${net < 0 ? ' neg' : ''}">${net > 0 ? '+' : ''}${money0(net)}</strong></div></div>${list.length ? html`<div class="dbars" role="group" aria-label="Spending each day">${bars}</div>` : ''}</section>` };
 }

@@ -76,8 +76,8 @@ const short$ = (v: number) => v >= 1e6 ? '$' + +(v / 1e6).toFixed(1) + 'm' : v >
 function niceMax(v: number) { const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; }
 // The hover/tap strip around one point, a step wide but kept inside the plot (the first and last would stick out half a step)
 const hitBox = (cx: number, step: number, lo: number, hi: number) => { const a = Math.max(lo, cx - step / 2), b = Math.min(hi, cx + step / 2); return raw(`x="${a.toFixed(1)}" width="${(b - a).toFixed(1)}"`); };
-export function twoLines(pts: LinePoint[], names: [string, string], colors: [string, string], label: string) {
-  const W = innerWidth < 600 ? 360 : 640, H = innerWidth < 600 ? 220 : 280, pl = 46, pr = 8, pt = 10, pb = 26, n = pts.length, base = H - pb;
+export function twoLines(pts: LinePoint[], names: [string, string], colors: [string, string], label: string, size?: { w: number, h: number }) {
+  const W = size ? size.w : innerWidth < 600 ? 360 : 640, H = size ? size.h : innerWidth < 600 ? 220 : 280, pl = 46, pr = 8, pt = 10, pb = 26, n = pts.length, base = H - pb;
   const max = niceMax(Math.max(1, ...pts.flatMap(p => [p.a, p.b])) / 4) * 4;     // four even steps
   const x = (i: number) => pl + (W - pl - pr) * (n < 2 ? .5 : i / (n - 1)), y = (v: number) => pt + (base - pt) * (1 - v / max);
   const la = smoothPath(pts.map((p, i) => [x(i), y(p.a)])), lb = smoothPath(pts.map((p, i) => [x(i), y(p.b)]));
@@ -106,15 +106,40 @@ export function paceChart(days: number[], before: number[], dim: number, label: 
 }
 
 /* ---------- Bars: one value a month (the savings rate), below the line when negative ---------- */
-export function barChart(pts: { label: string, v: number | null, go?: string }[], fmt: (v: number) => string, label: string) {
-  const W = innerWidth < 600 ? 360 : 640, H = 200, pt = 18, pb = 26, n = pts.length, vals = pts.map(p => p.v || 0);
-  const hi = Math.max(0, ...vals), lo = Math.min(0, ...vals), rng = hi - lo || 1;
+// size: a narrower drawing for a small card (its text then stays readable when the card scales it down)
+export function barChart(pts: { label: string, v: number | null, go?: string }[], fmt: (v: number) => string, label: string, size?: { w: number, h: number }) {
+  const W = size ? size.w : innerWidth < 600 ? 360 : 640, H = size ? size.h : 200, pt = 18, n = pts.length, vals = pts.map(p => p.v || 0);
+  const hi = Math.max(0, ...vals), lo = Math.min(0, ...vals), rng = hi - lo || 1, pb = lo < 0 ? 42 : 26;     // room under a bar below zero for its amount
   const y = (v: number) => pt + (H - pb - pt) * (hi - v) / rng, zero = y(0), slot = W / n, bw = Math.min(38, slot * .5);
   const bars = htmlList(pts.map((p, i) => {
     const cx = slot * i + slot / 2, v = p.v, top = v == null ? zero : Math.min(y(v), zero), h = v == null ? 0 : Math.max(2, Math.abs(y(v) - zero));
     return html`<g${p.go ? html` data-go="${p.go}" style="cursor:pointer"` : ''}><rect x="${slot * i}" y="0" width="${slot}" height="${H}" fill="transparent" data-tip="${p.label + ' · ' + (v == null ? 'no income' : fmt(v))}"></rect>${v == null ? '' : html`<rect class="bar${v < 0 ? ' neg' : ''}" style="--j:${i};transform-origin:50% ${v < 0 ? '0' : '100'}%" x="${(cx - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="${Math.min(8, bw / 3).toFixed(1)}"></rect><text class="bv" x="${cx.toFixed(1)}" y="${(v < 0 ? top + h + 13 : top - 6).toFixed(1)}" text-anchor="middle">${fmt(v)}</text>`}<text x="${cx.toFixed(1)}" y="${H - 6}" text-anchor="middle">${p.label}</text></g>`;
   }));
   return html`<svg class="barchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}"><line x1="0" x2="${W}" y1="${zero.toFixed(1)}" y2="${zero.toFixed(1)}" stroke="var(--line)"/>${bars}</svg>`;
+}
+
+/* ---------- Pairs of bars: two amounts side by side in each slot (earned and spent by month, budgeted and spent) ---------- */
+// Labels thin out so they never run into each other; every slot keeps its tip (full name and both amounts).
+export function pairBars(pts: (LinePoint & { tip?: string })[], names: [string, string], colors: [string, string], label: string) {
+  const W = innerWidth < 600 ? 360 : 640, H = innerWidth < 600 ? 220 : 260, pl = 46, pr = 4, pt = 10, pb = 26, n = pts.length, base = H - pb;
+  const max = niceMax(Math.max(1, ...pts.flatMap(p => [p.a, p.b])) / 4) * 4, slot = (W - pl - pr) / Math.max(1, n), bw = Math.max(3, Math.min(26, slot * .32));
+  const y = (v: number) => pt + (base - pt) * (1 - v / max), every = Math.max(1, Math.ceil(n / Math.floor((W - pl) / 58)));
+  const grid = htmlList([0, 1, 2, 3, 4].map(k => { const v = max * k / 4, yy = y(v).toFixed(1); return html`<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 8}" y="${(+yy + 4).toFixed(1)}" text-anchor="end">${short$(v)}</text>`; }));
+  const bars = htmlList(pts.map((p, i) => {
+    const cx = pl + slot * i + slot / 2, gap = Math.min(3, bw / 4), bar = (v: number, x: number, c: string, j: number) => html`<rect class="bar" style="--j:${i}" x="${x.toFixed(1)}" y="${y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(v > 0 ? 1.5 : 0, base - y(v)).toFixed(1)}" rx="${Math.min(6, bw / 3).toFixed(1)}" fill="${c}"${j ? raw(' opacity=".85"') : ''}/>`;
+    const lab = p.label.length > 10 ? p.label.slice(0, 9) + '…' : p.label;
+    return html`<g><rect x="${(pl + slot * i).toFixed(1)}" y="0" width="${slot.toFixed(1)}" height="${base}" fill="transparent" data-tip="${(p.tip || p.label) + '\n' + names[0] + ' ' + money0(p.a) + '\n' + names[1] + ' ' + money0(p.b)}"/>${bar(p.a, cx - bw - gap, colors[0], 0)}${bar(p.b, cx + gap, colors[1], 1)}${i % every ? '' : html`<text x="${cx.toFixed(1)}" y="${H - 6}" text-anchor="middle">${lab}</text>`}</g>`;
+  }));
+  return html`<svg class="lines pairbars" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}"><g class="grid">${grid}</g><line x1="${pl}" x2="${W - pr}" y1="${base}" y2="${base}" stroke="var(--line)"/>${bars}</svg><div class="legend"><span><i style="background:${colors[0]}"></i>${names[0]}</span><span><i style="background:${colors[1]}"></i>${names[1]}</span></div>`;
+}
+
+/* ---------- Change bars: how much each part moved against before, out from a middle line (less to the left) ---------- */
+export type Change = { name: string, now: number, prev: number, href?: string };
+export function changeBars(rows: Change[], limit = 8) {
+  const moved = rows.map(r => ({ ...r, d: r.now - r.prev })).filter(r => Math.abs(r.d) >= 1).sort((a, b) => Math.abs(b.d) - Math.abs(a.d)).slice(0, limit);
+  if (!moved.length) return '';
+  const most = Math.max(...moved.map(r => Math.abs(r.d)));
+  return html`<div class="chg">${htmlList(moved.map(r => html`<div class="chg-row" data-tip="${r.name + '\nNow ' + money0(r.now) + '\nBefore ' + money0(r.prev)}"><span class="name">${r.href ? html`<a href="${r.href}">${r.name}</a>` : r.name}</span><span class="chg-bar"><i class="${r.d > 0 ? 'chg-up' : 'chg-dn'}" style="width:${(Math.abs(r.d) / most * 50).toFixed(1)}%"></i></span><span class="num ${r.d > 0 ? 'up' : 'down'}">${r.d > 0 ? '+' : '−'}${money0(Math.abs(r.d))}</span></div>`))}</div><div class="legend"><span><i style="background:var(--good)"></i>Less than before</span><span><i style="background:var(--spend)"></i>More than before</span></div>`;
 }
 
 /* ---------- Little bars in a row: one category's months, the last one (now) in the accent; tips name each month ---------- */

@@ -25,6 +25,7 @@ import './features/flow';
 import './features/tilepreview';
 import './features/magnet';
 import './features/dashboard';
+import './features/pageopts';
 import './pages/loans';
 import './pages/bills';
 import './pages/budgets';

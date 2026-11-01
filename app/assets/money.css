@@ -458,6 +458,24 @@
   .part .track { margin: 0; height: 5px; }
   .part .track .fill { opacity: 1; }
   .part .num { text-align: right; color: var(--muted); font-size: 12.5px; }
+  /* Change bars (charts.ts changeBars): out from a middle line, less to the left, more to the right */
+  .chg { display: flex; flex-direction: column; gap: 11px; }
+  .chg-row { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 8fr) 76px; gap: 12px; align-items: center; font-size: 13.5px; }
+  .chg-row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chg-row .name a { color: inherit; text-decoration: none; }
+  .chg-row .num { text-align: right; font-size: 12.5px; }
+  .chg-bar { position: relative; height: 8px; border-radius: 99px; background: var(--faint); }
+  .chg-bar::before { content: ''; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--muted); opacity: .5; }
+  .chg-bar i { position: absolute; top: 0; bottom: 0; border-radius: 99px; }
+  .chg-bar i.chg-up { left: 50%; background: var(--spend); } .chg-bar i.chg-dn { right: 50%; background: var(--good); }
+  .chg + .legend { margin-top: 16px; }
+  /* Budgets' ring chart: bigger rings, centred in the card however many there are */
+  .brings.page-rings { display: flex; flex-wrap: wrap; justify-content: center; gap: 22px 28px; padding: 6px 0 4px; }
+  .page-rings .bring { width: 118px; } .page-rings .bring .ring { width: 88px; } .page-rings .bring .ring .mid strong { font-size: 16px; }
+  @media (max-width: 600px) { .page-rings .bring { width: calc(50% - 14px); } .page-rings .bring .ring { width: 72px; } }
+  /* Customize a page (pageopts.ts): Settings' rows in the sheet */
+  .page-opts .set-h { margin: 18px 0 8px 4px; } .page-opts .set-h:first-child { margin-top: 4px; }
+  .page-opts > .sub-s { margin: 14px 2px 0; }
   .ring { width: 92px; flex: none; }
   .ring .base { stroke: var(--faint); stroke-width: 10; }
   .ring .seg { stroke: var(--accent); stroke-width: 10; stroke-linecap: round; }
@@ -465,13 +483,17 @@
   .ring .mid strong { font-size: 19px; font-weight: 650; }
   .ring .mid span { font-size: 11px; color: var(--muted); }
   .goal { display: flex; align-items: center; gap: 18px; margin: 4px 0 16px; }
+  .goal.goal-bar { display: block; }
+  .goal-nums { display: flex; align-items: baseline; gap: 8px; } .goal-nums .total { margin: 0; }
+  .goal-nums .goal-pct { margin-left: auto; color: var(--muted); font-size: 13px; }
+  .goal-bar .track { height: 10px; margin: 12px 0 10px; }
   /* ---------- Page entrance (polish.ts playIn adds .anim; a card that arrives late gets .pop) ---------- */
   @media (prefers-reduced-motion: no-preference) {
     #view.anim:not(.calm) :is(.hero, .kpi, .panel, .insight) { animation: riseIn .5s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 45ms); }
     :is(#view.anim, .pop) .draw { stroke-dasharray: 1; animation: drawIn 1.1s .2s cubic-bezier(.45, 0, .2, 1) both; }
     :is(#view.anim, .pop) .draw.late { animation-delay: .4s; }
     :is(#view.anim, .pop) .area { animation: fadeIn .9s .55s ease both; }
-    :is(#view.anim, .pop) :is(.flowchart, .barchart, .sbars) .bar { transform-box: fill-box; transform-origin: 50% 100%; animation: growUp .7s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(.15s + var(--j, 0) * 60ms); }
+    :is(#view.anim, .pop) :is(.flowchart, .barchart, .sbars, .pairbars) .bar { transform-box: fill-box; transform-origin: 50% 100%; animation: growUp .7s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(.15s + var(--j, 0) * 60ms); }
     :is(#view.anim, .pop) .fill { transform-origin: left; animation: growRight .8s .2s cubic-bezier(.2, .8, .2, 1) both; }
     :is(#view.anim, .pop) :is(.donut, .ring) .seg { animation: sweepIn .6s cubic-bezier(.3, 0, .2, 1) both; animation-delay: calc(.25s + var(--at, 0) * .9s); }
     :is(#view.anim, .pop) .chart .pt .dot { animation: fadeIn .4s 1.1s both; }
@@ -1594,6 +1616,8 @@
   @media (max-width: 900px) {
     .dash-edit { width: 38px; height: 38px; padding: 0 !important; justify-content: center; border-radius: 50%; }
     .dash-edit svg { display: block; } .dash-edit span { display: none; }
+    /* a page's Customize beside full-size buttons (no month picker): as tall as they are */
+    .head .actions:not(:has(.month)) .dash-edit.page-cust { width: 44px; height: 44px; }
   }
 
   /* ---------- Collapsible sidebar (prefs.ts toggleSide): folds down to its icons ---------- */
