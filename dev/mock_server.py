@@ -8,7 +8,7 @@ Lets you try the UI (or develop on it) without a Firefly server.
 Only the endpoints the UI uses are implemented, and writes are accepted but not stored
 (except deletes). All names and amounts are invented.
 """
-import hashlib, json, random, re, sys
+import hashlib, io, json, random, re, sys
 from datetime import date, timedelta
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -297,6 +297,10 @@ class H(BaseHTTPRequestHandler):
         if out is None: self.send_response(204); self.end_headers(); return
         b = json.dumps(out).encode(); self.send_response(200); self.send_header('Content-Type', 'application/json'); self.end_headers(); self.wfile.write(b)
     def do_GET(self): self._go('GET')
+    def do_HEAD(self):                         # the app's connection ping (features/ffstatus.ts): a GET without the body
+        real, self.wfile = self.wfile, io.BytesIO()
+        try: self._go('GET')
+        finally: real.write(self.wfile.getvalue().split(b'\r\n\r\n', 1)[0] + b'\r\n\r\n'); self.wfile = real
     def do_DELETE(self): self._go('DELETE')
     def do_POST(self): self._go('POST')
     def do_PUT(self): self._go('PUT')

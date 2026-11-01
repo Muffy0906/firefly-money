@@ -130,6 +130,9 @@ export function createMockApi(now = new Date()) {
   function jd(g: MockGroup) { return g.attributes.transactions[0]; }
   type Query = Record<string, string>;
   const inRange = (g: MockGroup, q: Query) => { const dd = jd(g).date.slice(0, 10); return (!q.start || dd >= q.start) && (!q.end || dd <= q.end); };
+  // A few rule groups and rules, so the Rules page has something to show in the demo
+  const RULE_GROUPS = [['1', 'Transfers & income', 'Card payments, own-account moves, income.'], ['2', 'Merchants', 'Clean merchant names and categories.'], ['3', 'Budgets', 'Runs after category rules; assigns budgets.']];
+  const RULES = [['1', '1', 'Paycheck', 'Salary', 'ACME PAYROLL'], ['2', '2', 'Coffee shops', 'Dining out', 'COFFEE'], ['3', '2', 'Groceries', 'Groceries', 'MARKET'], ['4', '2', 'Rideshare', 'Transport', 'RIDE'], ['5', '3', 'Food budget', 'Groceries', 'MARKET']];
   const page = (items: unknown[], q: Query) => {
     const lim = +(q.limit || 50), p = +(q.page || 1), tot = items.length, pages = Math.max(1, Math.ceil(tot / lim));
     return { data: items.slice((p - 1) * lim, p * lim), meta: { pagination: { total: tot, count: Math.min(lim, tot), per_page: lim, current_page: p, total_pages: pages } } };
@@ -227,7 +230,10 @@ export function createMockApi(now = new Date()) {
     if ((m = path.match(/^\/transaction-journals\/(\d+)$/))) return { data: TX.find(g => jd(g).transaction_journal_id === m![1]) };
     if (path === '/transaction-links' && method === 'POST') { const l = { id: String(LINKS.length + 1), type: 'transaction_links', attributes: { link_type_id: String(body.link_type_id), inward_id: String(body.inward_id), outward_id: String(body.outward_id) } }; LINKS.push(l); return { data: l }; }
     if ((m = path.match(/^\/transaction-links\/(\d+)$/)) && method === 'DELETE') { const j = LINKS.findIndex(l => l.id === m![1]); if (j >= 0) LINKS.splice(j, 1); return null; }
-    if (['/tags', '/recurrences', '/rule-groups', '/rules', '/webhooks', '/available-budgets'].includes(path)) return page([], q);
+    if (path === '/rule-groups') return page(RULE_GROUPS.map(([id, title, description], i) => ({ id, attributes: { title, description, order: i + 1, active: true } })), q);
+    if (path === '/rules') return page(RULES.map(([id, gid, title, cat, word], i) => ({ id, attributes: { title, rule_group_id: gid, order: i + 1, active: true, strict: true, stop_processing: false, trigger: 'store-journal',
+      triggers: [{ type: 'description_contains', value: word, prohibited: false }], actions: [{ type: 'set_category', value: cat }] } })), q);
+    if (['/tags', '/recurrences', '/webhooks', '/available-budgets'].includes(path)) return page([], q);
     if (path === '/currencies') return page([{ id: '1', attributes: { code: 'USD', name: 'US Dollar', symbol: '$', enabled: true, primary: true } }], q);
     if (path === '/summary/basic') return { 'net-worth-in-USD': { monetary_value: '5418.00' } };
     if (path === '/insight/expense/category') return expenseByCat(q);

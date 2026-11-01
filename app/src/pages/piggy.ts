@@ -6,7 +6,8 @@ import { closeDrawer, formError, head, openDrawer, opt, toast } from '../core/do
 import { isAsset, isCard, lists } from '../core/lists';
 import { VIEWS, route } from '../core/router';
 import { goalPace } from '../features/pace';
-import { ring } from '../features/charts';
+import { SERIES, ring } from '../features/charts';
+import { customizeButton, pageCard, pageOpt } from '../features/pageopts';
 
 /* ================= Piggy banks ================= */
 // What a goal needs from here on, and a chip saying whether it keeps up (shared with the Overview's Savings goals card)
@@ -32,15 +33,21 @@ VIEWS.piggy = async (r, paint) => {
   const piggies = (await getAll('/piggy-banks')).map(normPiggy);
   S.piggyCache = Object.fromEntries(piggies.map(p => [p.id, p]));
   const saved = piggies.reduce((s, p) => s + p.current, 0), goal = piggies.reduce((s, p) => s + p.target, 0);
-  piggies.sort((a, b) => a.group.localeCompare(b.group));
-  const cards = htmlList(piggies.map((p, i) => {
-    const heading = p.group && (i === 0 || piggies[i - 1].group !== p.group) ? html`<div class="eyebrow" style="grid-column:1/-1;margin:6px 0 -6px">${p.group}</div>` : '';
-    const pct = p.target ? Math.min(100, p.current / p.target * 100) : 0;
-    return html`${heading}<section class="panel"><div class="panel-head"><h2>${p.name}</h2><button class="btn small" data-onclick="App.piggyForm('${p.id}')">Edit</button></div><p class="lead">${p.accounts.map(a => a.name || (L.byId[a.id] || {}).name).filter(Boolean).join(', ') || 'No account'}${p.targetDate ? ' · by ' + fmtDate(p.targetDate) : ''}</p><div class="goal">${ring(pct, 'good', 'saved')}<div><div class="total num" style="margin-bottom:2px">${money0(p.current)}</div><div class="neutral">of ${money0(p.target)}</div><div class="sub-s" style="margin-top:8px">${paceBits(p).line} ${paceBits(p).chip}</div></div></div><div style="display:flex;gap:8px"><button class="btn small" data-onclick="App.piggyMoney('${p.id}',1)">+ Add money</button><button class="btn small" data-onclick="App.piggyMoney('${p.id}',-1)">− Take out</button></div></section>`;
+  // Customize: the order (groups get their headings only when sorted by group), reached goals, rings or bars
+  const sort = pageOpt('piggy', 'sort'), pctOf = (p: Piggy) => p.target ? Math.min(100, p.current / p.target * 100) : 0;
+  const shown = piggies.filter(p => pageCard('piggy', 'done') || !(p.target && p.current >= p.target));
+  shown.sort(sort === 'progress' ? (a, b) => pctOf(b) - pctOf(a) : sort === 'date' ? (a, b) => (a.targetDate || '9999').localeCompare(b.targetDate || '9999')
+    : sort === 'left' ? (a, b) => (b.target - b.current) - (a.target - a.current) : (a, b) => a.group.localeCompare(b.group));
+  const bars = pageOpt('piggy', 'style') === 'bar';
+  const cards = htmlList(shown.map((p, i) => {
+    const heading = sort === 'group' && p.group && (i === 0 || shown[i - 1].group !== p.group) ? html`<div class="eyebrow full" style="margin:6px 0 -6px">${p.group}</div>` : '';
+    const pct = pctOf(p);
+    return html`${heading}<section class="panel"><div class="panel-head"><h2>${p.name}</h2><button class="btn small" data-onclick="App.piggyForm('${p.id}')">Edit</button></div><p class="lead">${p.accounts.map(a => a.name || (L.byId[a.id] || {}).name).filter(Boolean).join(', ') || 'No account'}${p.targetDate ? ' · by ' + fmtDate(p.targetDate) : ''}</p>${bars ? html`<div class="goal goal-bar"><div class="goal-nums"><span class="total num">${money0(p.current)}</span><span class="neutral">of ${money0(p.target)}</span><span class="num goal-pct">${pct.toFixed(0)}%</span></div><div class="track"><div class="fill good" style="width:${pct.toFixed(1)}%"></div></div><div class="sub-s">${paceBits(p).line} ${paceBits(p).chip}</div></div>`
+      : html`<div class="goal">${ring(pct, 'good', 'saved')}<div><div class="total num" style="margin-bottom:2px">${money0(p.current)}</div><div class="neutral">of ${money0(p.target)}</div><div class="sub-s" style="margin-top:8px">${paceBits(p).line} ${paceBits(p).chip}</div></div></div>`}<div style="display:flex;gap:8px"><button class="btn small" data-onclick="App.piggyMoney('${p.id}',1)">+ Add money</button><button class="btn small" data-onclick="App.piggyMoney('${p.id}',-1)">− Take out</button></div></section>`;
   }));
-  paint(html`${head('Piggy banks', piggies.length ? money0(saved) + ' saved toward ' + money0(goal) + ' in goals' : 'Set money aside for goals', html`<button class="btn primary" data-onclick="App.piggyForm()">+ New piggy bank</button>`)}${cards ?
-    html`<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))">${cards}</div>` :
-    html`<section class="panel"><div class="center-empty">No piggy banks yet.<br>Use one to set money aside in an account for a goal — a trip, tuition, an emergency fund.</div></section>`}`);
+  paint(html`${head('Piggy banks', piggies.length ? money0(saved) + ' saved toward ' + money0(goal) + ' in goals' : 'Set money aside for goals', html`${customizeButton('piggy')}<button class="btn primary" data-onclick="App.piggyForm()">+ New piggy bank</button>`)}${cards ?
+    html`<div class="flow" data-min="320">${pageCard('piggy', 'chart') ? html`<section class="panel full"><h2>All goals at a glance</h2><p class="lead">${money0(saved)} of ${money0(goal)} saved · ${goal ? Math.round(saved / goal * 100) : 0}% of the way</p><div class="parts goal-parts">${htmlList(shown.map((p, i) => html`<div class="part"><i style="background:${SERIES[i % SERIES.length]}"></i><span class="name">${p.name}<span class="sub-s">${money0(p.current)} of ${money0(p.target)}</span></span><span class="track"><span class="fill" style="width:${pctOf(p).toFixed(1)}%;background:${SERIES[i % SERIES.length]}"></span></span><span class="num">${pctOf(p).toFixed(0)}%</span></div>`))}</div></section>` : ''}${cards}</div>` :
+    piggies.length ? html`<section class="panel"><div class="center-empty">Every goal is reached. Turn on Goals already reached under Customize to see them.</div></section>` : html`<section class="panel"><div class="center-empty">No piggy banks yet.<br>Use one to set money aside in an account for a goal — a trip, tuition, an emergency fund.</div></section>`}`);
 };
 function piggyForm(id?: string) {
   const L = S.lists!, p: Piggy | null = id ? S.piggyCache![id] : null;

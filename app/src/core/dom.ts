@@ -1,4 +1,4 @@
-import { type Html, html, htmlList } from './html';
+import { type Html, html, htmlList, raw } from './html';
 import { App, S, type State, el, fmtDate, fmtDay, monthRange, nowMonth } from './base';
 import { BUZZ_DELETE, buzz } from './haptics';
 
@@ -82,10 +82,20 @@ export function vt(kind: string, update: () => void, setup?: () => void) {
   t.finished.catch(quiet).then(() => { root.classList.remove('vt-' + kind); if (S.vtRun === t) S.vtRun = null; document.querySelectorAll<HTMLElement>('[data-vtn]').forEach(n => { n.style.viewTransitionName = ''; delete n.dataset.vtn; }); });
   return t;
 }
+// Parts of a transaction row that read the same in the sheet's header (payee, amount), so each can grow into its
+// place there and back. A part whose text differs (a description vs. the payee's name) just goes with the row.
+const same = (a: string | null | undefined, b: string | null | undefined) => !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
+export function heroParts(row: Element | null | undefined, h: State['drawerHero'] | null | undefined) {
+  if (!row || !h) return [];
+  const name = row.querySelector<HTMLElement>('.desc'), amt = row.querySelector<HTMLElement>('.amt > span:first-child') || row.querySelector<HTMLElement>('.amt');
+  return [[name, 'txname', '.dhero h2', h.name], [amt, 'txamt', '.dhero .dh-amt', h.amount]]
+    .filter(([e, , , t]) => e && same((e as HTMLElement).textContent, t as string))
+    .map(([e, vtn, sel]) => ({ el: e as HTMLElement, vtn: vtn as string, sel: sel as string }));
+}
 export const vtName = (node: Element | null | undefined, name: string) => { if (node) { const n = node as HTMLElement; n.style.viewTransitionName = name; n.dataset.vtn = '1'; } };
 // Drawer header "hero": the transaction's avatar, payee and amount, so the row can morph into it
 function drawerHeroHtml(h: NonNullable<State['drawerHero']>) {
-  return html`<div class="dhero" data-id="${h.id}">${h.av}<div class="dh-txt"><div class="eyebrow">${h.kicker}</div><h2>${h.name}</h2><div class="sub-s num">${h.amount} · ${fmtDate(h.date)}</div></div></div>`;
+  return html`<div class="dhero" data-id="${h.id}">${h.av}<div class="dh-txt"><div class="eyebrow">${h.kicker}</div><h2>${h.name}</h2><div class="sub-s num"><span class="dh-amt">${h.amount}</span> · ${fmtDate(h.date)}</div></div></div>`;
 }
 export function openDrawer(title: string, bodyHtml: Html | string, footHtml?: Html | string) {
   const d = el('drawer'), wasOpen = d.classList.contains('open');
@@ -99,10 +109,10 @@ export function openDrawer(title: string, bodyHtml: Html | string, footHtml?: Ht
     d.insertAdjacentHTML('beforeend', String(html`<div class="body" id="drawerBody">${bodyHtml}</div>${footHtml ? html`<footer>${footHtml}</footer>` : ''}`));
     return;
   }
-  d.innerHTML = String(html`<div class="grab" aria-hidden="true"></div><header>${h ? drawerHeroHtml({ ...h, kicker: title === 'Loading…' ? h.kicker : title }) : html`<h2>${title}</h2>`}<button class="round" type="button" data-onclick="App.closeDrawer()" aria-label="Close">×</button></header><div class="body" id="drawerBody">${bodyHtml}</div>${footHtml ? html`<footer>${footHtml}</footer>` : ''}`);
+  d.innerHTML = String(html`<div class="grab" aria-hidden="true"></div><header>${h ? drawerHeroHtml({ ...h, kicker: title === 'Loading…' ? h.kicker : title }) : html`<h2>${title}</h2>`}<button class="round" type="button" data-onclick="App.closeDrawer()" aria-label="Close">${ICON_X}</button></header><div class="body" id="drawerBody">${bodyHtml}</div>${footHtml ? html`<footer>${footHtml}</footer>` : ''}`);
   if (!wasOpen) S.drawerReturn = document.activeElement as HTMLElement | null;
   d.setAttribute('aria-label', String(title === 'Loading…' && h ? h.name : title));
-  d.classList.add('open'); d.setAttribute('aria-hidden', 'false'); el('scrim').classList.add('open');
+  d.classList.add('open'); d.setAttribute('aria-hidden', 'false'); d.inert = false; el('scrim').classList.add('open');
   if (!wasOpen) setTimeout(() => { const f = d.querySelector<HTMLElement>('input:not([type=hidden]):not([type=checkbox]):not([type=date]), select'); if (f && innerWidth > 900) f.focus(); }, 280);
 }
 export function closeDrawer() {
@@ -115,11 +125,16 @@ export function closeDrawer() {
     d.classList.remove('open'); d.setAttribute('aria-hidden', 'true'); el('scrim').classList.remove('open');
     const back = S.drawerReturn; S.drawerReturn = null;
     if (back && back.isConnected && back.focus && d.contains(document.activeElement)) back.focus({ preventScroll: true });
+    d.inert = true;   // off screen, so Tab skips its buttons
   };
   if (!row) return shut();
   // Morph the drawer's avatar back into its row while the drawer slides away
-  vt('drawer-close', () => { const dav = d.querySelector<HTMLElement>('.dhero .av'); if (dav) dav.style.viewTransitionName = ''; shut(); vtName(row, 'txav'); },
-    () => vtName(d.querySelector('.dhero .av'), 'txav'));
+  const parts = heroParts(row.closest('tr'), h).map(p => ({ ...p, hero: d.querySelector<HTMLElement>(p.sel) }));
+  vt('drawer-close', () => {
+    const dav = d.querySelector<HTMLElement>('.dhero .av'); if (dav) dav.style.viewTransitionName = '';
+    parts.forEach(p => { if (p.hero) p.hero.style.viewTransitionName = ''; });
+    shut(); vtName(row, 'txav'); parts.forEach(p => { if (p.hero) vtName(p.el, p.vtn); });
+  }, () => { vtName(d.querySelector('.dhero .av'), 'txav'); parts.forEach(p => vtName(p.hero, p.vtn)); });
 }
 export function formError(msg: string) {
   const b = el('drawerBody'); if (!b) return toast(msg);
@@ -127,13 +142,19 @@ export function formError(msg: string) {
   if (!e) { e = document.createElement('div'); e.className = 'form-err'; b.prepend(e); }
   e.textContent = msg; b.scrollTop = 0;
 }
+// Icons for small round buttons: drawn, not text glyphs (× ‹ › sit on the font's baseline, so they land a pixel or two
+// low, by an amount that depends on the system font)
+const svgIcon = (d: string, w = 1.8) => raw(`<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`);
+export const ICON_X = svgIcon('M3.5 3.5l9 9M12.5 3.5l-9 9');
+export const ICON_PREV = svgIcon('M10 3L5 8l5 5');
+export const ICON_NEXT = svgIcon('M6 3l5 5-5 5');
 // Today keeps its place (hidden) in the current month, so the arrows don't jump when you step to another month
 export function monthNav() {
   if (S.all) return html`<div class="month"><span>All time</span><button class="btn small" style="margin-left:6px" data-onclick="App.thisMonth()">By month</button></div>`;
   const r = monthRange(S.y, S.m), [ny, nm] = nowMonth();
   const ahead = (S.y - ny) * 12 + (S.m - nm);
   const isNow = ahead >= 12;   // allow planning up to a year ahead
-  return html`<div class="month"><button class="round" data-onclick="App.shiftMonth(-1)" aria-label="Previous month">‹</button><span title="${fmtDate(r.start)} – ${fmtDate(r.end)}">${r.label}${r.start.endsWith('-01') ? '' : html`<small class="cycle">${fmtDay(r.start)} – ${fmtDay(r.end)}</small>`}</span><button class="round" data-onclick="App.shiftMonth(1)" aria-label="Next month"${isNow ? ' disabled' : ''}>›</button>${ahead !== 0 ? html`<button class="btn small" style="margin-left:6px" data-onclick="App.thisMonth()">Today</button>` : html`<button class="btn small today-gap" style="margin-left:6px" aria-hidden="true" tabindex="-1" disabled>Today</button>`}<button class="btn small" style="margin-left:6px" data-onclick="App.allTime()">All time</button></div>`;
+  return html`<div class="month"><button class="round" data-onclick="App.shiftMonth(-1)" aria-label="Previous month">${ICON_PREV}</button><span title="${fmtDate(r.start)} – ${fmtDate(r.end)}"><i class="ml">${r.label}</i><i class="ms">${r.short} ${r.y}</i>${r.start.endsWith('-01') ? '' : html`<small class="cycle">${fmtDay(r.start)} – ${fmtDay(r.end)}</small>`}</span><button class="round" data-onclick="App.shiftMonth(1)" aria-label="Next month"${isNow ? ' disabled' : ''}>${ICON_NEXT}</button>${ahead !== 0 ? html`<button class="btn small" style="margin-left:6px" data-onclick="App.thisMonth()">Today</button>` : html`<button class="btn small today-gap" style="margin-left:6px" aria-hidden="true" tabindex="-1" disabled>Today</button>`}<button class="btn small" style="margin-left:6px" data-onclick="App.allTime()">All time</button></div>`;
 }
 export function head(title: string | Html, sub: string | Html, actions?: string | Html) {
   return html`<div class="head"><div><h1>${title}</h1>${sub ? html`<p class="sub">${sub}</p>` : ''}</div><div class="actions">${actions || ''}</div></div>`;

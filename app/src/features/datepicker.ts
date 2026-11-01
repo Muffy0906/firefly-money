@@ -1,5 +1,6 @@
 import { Html, html, htmlList } from '../core/html';
-import { el, isoDate, todayIso } from '../core/base';
+import { el, fmtD, isoDate, leadDays, todayIso, weekOrder } from '../core/base';
+import { ICON_NEXT, ICON_PREV } from '../core/dom';
 
 /* ---------- Date picker ---------- */
 let calInput: HTMLInputElement | null = null, calView = { y: 0, m: 0 };
@@ -14,7 +15,7 @@ function openCal(input: HTMLInputElement) {
   box.style.top = Math.max(8, top) + 'px'; box.style.left = Math.min(innerWidth - box.offsetWidth - 8, Math.max(8, r.left)) + 'px';
 }
 function drawCal() {
-  const { y, m } = calView, first = new Date(y, m, 1), startDow = (first.getDay() + 6) % 7;
+  const { y, m } = calView, first = new Date(y, m, 1), startDow = leadDays(first);
   const input = calInput!, sel = input.value, tIso = todayIso();
   let cells: Html | string = '';
   for (let i = 0; i < 42; i++) {
@@ -22,7 +23,7 @@ function drawCal() {
     if (i >= 35 && d.getMonth() !== m) break;
     cells = html`${cells}<button type="button" class="d${d.getMonth() !== m ? ' out' : ''}${iso === tIso ? ' today' : ''}${iso === sel ? ' sel' : ''}" data-d="${iso}">${d.getDate()}</button>`;
   }
-  el('calpop').innerHTML = String(html`<div class="ch"><button type="button" data-nav="-1" aria-label="Previous month">‹</button><span>${first.toLocaleString('en-US', { month: 'long', year: 'numeric' })}</span><button type="button" data-nav="1" aria-label="Next month">›</button></div><div class="grid7">${htmlList(['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(x => html`<span class="dow">${x}</span>`))}${cells}</div><div class="cf"><button type="button" class="link" data-d="${tIso}">Today</button>${input.required ? '' : html`<button type="button" class="link" data-d="">Clear</button>`}</div>`);
+  el('calpop').innerHTML = String(html`<div class="ch"><button type="button" data-nav="-1" aria-label="Previous month">${ICON_PREV}</button><span>${fmtD(first, { month: 'long', year: 'numeric' })}</span><button type="button" data-nav="1" aria-label="Next month">${ICON_NEXT}</button></div><div class="grid7">${htmlList(weekOrder(['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']).map(x => html`<span class="dow">${x}</span>`))}${cells}</div><div class="cf"><button type="button" class="link" data-d="${tIso}">Today</button>${input.required ? '' : html`<button type="button" class="link" data-d="">Clear</button>`}</div>`);
 }
 function closeCal() { el('calpop').hidden = true; calInput = null; }
 el('calpop').addEventListener('mousedown', e => e.preventDefault());

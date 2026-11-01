@@ -3,6 +3,7 @@ import { api, eachLimited } from '../core/api';
 import { App, S, arr, el, money0, sameName } from '../core/base';
 import { toast } from '../core/dom';
 import { normGroup, tidyDays } from '../core/feed';
+import { glideRows, rowTops } from '../core/morph';
 import { lists } from '../core/lists';
 import { type RouteInfo, VIEWS, parseHash, route } from '../core/router';
 import { openPalette } from './palette';
@@ -26,6 +27,7 @@ function afterPaint(r: RouteInfo, o: { quiet?: boolean } = {}) {
   if (!o.quiet) { countUp(); playIn(); }
   bindChart();
   bindSwipe();
+  if (App.fillStrip) App.fillStrip();       // Transactions: a month strip that came before its page was on screen
   if (App.afterPaint2) App.afterPaint2(r);
 }
 // A tab you've seen before comes back from memory without a paint: play its entrance all the same
@@ -117,6 +119,38 @@ document.addEventListener('pointerup', e => {
   ringT = setTimeout(() => { tip.hidden = true; ringHot(null); }, 2500);
 });
 
+/* ---------- Drill-down: numbers, labels and slices in charts that open what's behind them ---------- */
+// Any element with data-go opens it when clicked: a page (#/transactions?category=…), a month of the Overview
+// (month:y:m), a Reports range (report:start:end) or one transaction (tx:id). On a phone a chart point's first tap shows its tip, with a hint,
+// and a second tap on it opens it (so a tip can be read without leaving the page); rows and amounts open at once.
+let goArm: { node: Element, at: number } | null = null, lastPointer = 'mouse';
+document.addEventListener('pointerdown', e => { lastPointer = e.pointerType || 'mouse'; }, true);
+export function drill(go: string) {
+  const [kind, a, b] = go.split(':');
+  el('tip').hidden = true;
+  if (kind === 'month') { S.all = false; S.y = +a; S.m = +b; if (location.hash.replace(/^#\/?/, '') === '') route(); else location.hash = '#/'; return; }
+  if (kind === 'tx') { App.editTx(a); return; }
+  if (kind === 'report') { location.hash = '#/reports?start=' + a + '&end=' + b; return; }
+  if (go === location.hash) route(); else location.hash = go;
+}
+document.addEventListener('click', e => {
+  const t = e.target instanceof Element ? e.target.closest<HTMLElement | SVGElement>('[data-go]') : null;
+  if (!t || t.closest('svg.flowchart')) return;          // the cash-flow bars have their own handler (bindChart)
+  // A link or button inside the row (a category's name) does its own thing
+  const inner = (e.target as Element).closest('a[href], button, input, select, label');
+  if (inner && t.contains(inner) && inner !== t) return;
+  const go = t.getAttribute('data-go'); if (!go) return;
+  if (lastPointer !== 'mouse' && t.hasAttribute('data-tip')) {
+    if (!goArm || goArm.node !== t || Date.now() - goArm.at > 2500) {
+      goArm = { node: t, at: Date.now() };
+      const tip = el('tip'); if (!tip.hidden && !/Tap again/.test(tip.textContent || '')) tip.textContent += '\nTap again to open';
+      return;
+    }
+  }
+  goArm = null; e.preventDefault();
+  drill(go);
+});
+
 /* ---------- Quick add + keyboard shortcuts ---------- */
 export async function quickAdd() { await lists(); const r = parseHash(); newTx(r.name === 'account' && r.id ? { account: r.id } : {}); }
 export const typing = (e: Event) => { const t = e.target as HTMLElement | null; return t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)); };
@@ -149,8 +183,10 @@ export async function payeeFill(i: number, name: string) {
 /* ---------- Undo for deleting transactions ---------- */
 function softDeleteTx(ids: string[]) {
   ids.forEach(id => S.pendingDel.add(id));
+  const before = rowTops(el('view'));               // the rows below close the gap, gliding up
   document.querySelectorAll<HTMLElement>('#view tr[data-gid]').forEach(tr => { if (ids.includes(tr.dataset.gid!)) tr.remove(); });
   tidyDays();
+  glideRows(el('view'), before);
   S.sel = new Set(); if (el('bulkbar')) el('bulkbar').hidden = true;
   const box = el('undo'); clearTimeout(S.undoT);
   let undone = false;

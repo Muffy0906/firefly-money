@@ -28,6 +28,7 @@ const SETTINGS: [string, string, string][] = [
   ['Month start day (payday)', 'cycle pay period month starts budget period', '#set-months'],
   ['Budget warning', 'alert warn threshold 80% percent budget full', '#set-months'],
   ['Appearance', 'theme dark light color look', '#set-look'],
+  ['Number & date format', 'locale region language format currency decimal comma date week monday sunday euro', '#set-look'],
   ['Customize theme colors', 'theme color colour background accent liquid glass frosted blur tint frost glow light custom scene background wallpaper photo', 'theme-custom'],
   ['Payee and bank logos', 'logos icons images duckduckgo merchant', '#set-look'],
   ['About logos', 'logos duckduckgo privacy', 'logos'],
@@ -81,6 +82,7 @@ function baseItems(): PalItem[] {
 export async function openPalette() {
   closeDrawer();
   const q = el<HTMLInputElement>('palQ');
+  clearTimeout(palOut); el('palette').classList.remove('out');
   el('palette').hidden = false; q.value = ''; q.focus();      // focus before any await, or iPhone won't show the keyboard
   document.documentElement.classList.add('pal-open');
   palItems = baseItems(); palFilter();
@@ -215,7 +217,16 @@ function jumpTo(target: string, wait: number) {
   };
   setTimeout(look, wait ? 150 : 0);
 }
-function closePalette() { el('palette').hidden = true; document.documentElement.classList.remove('pal-open'); clearTimeout(txTimer); }
+// Closing plays the short out-motion first (desktop, motion allowed: the phone's full-screen search has none, see money.css)
+let palOut: ReturnType<typeof setTimeout> | undefined;
+function closePalette() {
+  const p = el('palette'); if (p.hidden) return;
+  clearTimeout(txTimer); document.documentElement.classList.remove('pal-open');
+  if (p.contains(document.activeElement)) (document.activeElement as HTMLElement).blur();     // the keyboard goes with it
+  const hide = () => { p.hidden = true; p.classList.remove('out'); };
+  if (getComputedStyle(p).animationName === 'none') return hide();
+  p.classList.add('out'); clearTimeout(palOut); palOut = setTimeout(hide, 140);
+}
 
 // The methods markup handlers call (see events.ts), added to App and to its type
 const methods = {

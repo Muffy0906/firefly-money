@@ -4,7 +4,7 @@ import { showLogin } from '../core/auth';
 import { type ApiData, App, S, el, fmtDate, fmtDay, money, num, sameName, todayIso, type AppApi, type Field } from '../core/base';
 import { LS } from '../core/helpers';
 import { BUZZ_SAVE, buzz } from '../core/haptics';
-import { closeDrawer, formError, icon, openDrawer, opt, toast, vt, vtName } from '../core/dom';
+import { closeDrawer, formError, heroParts, icon, openDrawer, opt, toast, vt, vtName } from '../core/dom';
 import { type Group, amtInner, avatarHtml, normGroup, payeeOf, signed } from '../core/feed';
 import { hoursText, lensOn } from '../core/worklens';
 import { type Account, invalidate, isAsset, isCard, isLiab, lists } from '../core/lists';
@@ -54,14 +54,15 @@ export async function editTx(id: string) {
   // from Firefly III replaces it only if it differs and you haven't started editing.
   const known = meta && S.lists && EDITABLE.includes(meta.g.type) ? meta.g : null;
   const loading = html`<div style="padding:8px 0">${htmlList(['60%', '100%', '100%', '80%'].map(w => html`<div class="sk" style="width:${w};height:38px;margin-bottom:16px"></div>`))}</div>`;
-  const rowAv = row && row.querySelector('.av') as HTMLElement;
+  const rowAv = row && row.querySelector('.av') as HTMLElement, parts = heroParts(row, S.drawerHero);
   let shown = null as TxForm | null, shownJson = '', typed = '';
   const opening = vt('drawer-open', () => {
     if (rowAv) rowAv.style.viewTransitionName = '';
+    parts.forEach(p => { p.el.style.viewTransitionName = ''; vtName(el('drawer').querySelector(p.sel), p.vtn); });
     if (known) { shown = S.form = formOf(known); shownJson = JSON.stringify(shown); renderTxForm(); collectTx(); typed = JSON.stringify(S.form); }
     else openDrawer('Loading…', loading);
     vtName(el('drawer').querySelector('.dhero .av'), 'txav');
-  }, () => vtName(rowAv, 'txav'));
+  }, () => { vtName(rowAv, 'txav'); parts.forEach(p => vtName(p.el, p.vtn)); });
   try {
     const [res] = await Promise.all([api('/transactions/' + id), lists()]);
     if (opening) await opening.updateCallbackDone.catch(() => {});   // the drawer shell must be in place before the form goes in

@@ -2,7 +2,7 @@ import { html, htmlList } from '../core/html';
 import { api, getAll } from '../core/api';
 import { busy, withAuth } from '../core/auth';
 import { App, S, arr, el, fmtDay, money, monthRange, type ApiData } from '../core/base';
-import { closeDrawer, confirmBox, formError, head, icon, openDrawer, opt, toast } from '../core/dom';
+import { closeDrawer, confirmBox, formError, head, icon, ICON_X, openDrawer, opt, toast } from '../core/dom';
 import { normGroup } from '../core/feed';
 import { invalidate, lists } from '../core/lists';
 import { VIEWS, route } from '../core/router';
@@ -65,7 +65,7 @@ async function toggleRule(id: string, on: boolean) {
 }
 function condRow(kind: string, t: ApiData, i: number) {
   const list = kind === 't' ? TRIGGERS : ACTIONS, has = list.some(x => x[0] === t.type);
-  return html`<div class="editor-row" data-${kind}="${i}"><select data-f="type" data-onchange="App.ruleRowType(this)">${has ? '' : opt(t.type, t.type, t.type)}${htmlList(list.map(x => opt(x[0], x[1], t.type)))}</select><input type="text" data-f="value" value="${t.value || ''}"${noVal.has(t.type) ? html` disabled placeholder="No value needed"` : html` placeholder="Value"`}><span style="display:flex;gap:6px;align-items:center">${kind === 't' ? html`<label class="check" style="margin:0;font-size:12px" title="Match when this is NOT true"><input type="checkbox" data-f="prohibited"${t.prohibited ? ' checked' : ''}>Not</label>` : ''}<button type="button" class="x" data-onclick="App.removeRow(this)" aria-label="Remove">×</button></span></div>`;
+  return html`<div class="editor-row" data-${kind}="${i}"><select data-f="type" data-onchange="App.ruleRowType(this)">${has ? '' : opt(t.type, t.type, t.type)}${htmlList(list.map(x => opt(x[0], x[1], t.type)))}</select><input type="text" data-f="value" value="${t.value || ''}"${noVal.has(t.type) ? html` disabled placeholder="No value needed"` : html` placeholder="Value"`}><span style="display:flex;gap:6px;align-items:center">${kind === 't' ? html`<label class="check" style="margin:0;font-size:12px" title="Match when this is NOT true"><input type="checkbox" data-f="prohibited"${t.prohibited ? ' checked' : ''}>Not</label>` : ''}<button type="button" class="x" data-onclick="App.removeRow(this)" aria-label="Remove">${ICON_X}</button></span></div>`;
 }
 function ruleRowType(sel: HTMLSelectElement) { const inp = sel.parentElement!.querySelector<HTMLInputElement>('[data-f=value]')!; const nv = noVal.has(sel.value); inp.disabled = nv; inp.placeholder = nv ? 'No value needed' : 'Value'; if (nv) inp.value = ''; }
 function ruleForm(id?: string | null, groupId?: string) {

@@ -1,9 +1,10 @@
 import { type Html, html, htmlList } from './html';
-import { type ApiError, AuthError, CACHE, INFLIGHT, PAGES, PDB } from './api';
+import { type ApiError, AuthError, CACHE, INFLIGHT, PAGES, dropSavedCopies, netBusy, sleep } from './api';
 import { showLogin } from './auth';
-import { App, S, type State, el, monthOf, setToday, today } from './base';
-import { VT_OK, drawNav, toast, vt, vtName } from './dom';
+import { App, S, type State, el, monthOf, nowMonth, setToday, today } from './base';
+import { VT_OK, drawNav, monthNav, toast, vt, vtName } from './dom';
 import { lists } from './lists';
+import { labelHtml, monthLabel, morph, morphOk, sameLayout, slideLabel, snapshot } from './morph';
 
 /* ================= Router ================= */
 function skeleton() {
@@ -24,7 +25,7 @@ export function hashWith(changes: Record<string, string | null | undefined>) {
   return '#/' + r.name + (r.id ? '/' + encodeURIComponent(r.id) : '') + (qs ? '?' + qs : '');
 }
 // Each page module registers its view here by route name. A view draws the page by calling paint with its markup.
-export type RouteInfo = ReturnType<typeof parseHash>;
+export type RouteInfo = ReturnType<typeof parseHash> & { at?: [number, number] };     // at: see viewYM
 export type Paint = ((markup: Html | string) => void) & { live?: boolean };
 export type View = (r: RouteInfo, paint: Paint) => Promise<unknown> | void;
 export const VIEWS: Record<string, View> = {};
@@ -33,6 +34,7 @@ export const VIEWS: Record<string, View> = {};
 const CACHEABLE = new Set(['', 'transactions', 'budgets', 'accounts', 'account', 'categories', 'bills', 'piggy', 'forecast', 'reports', 'recurring', 'loans', 'recap', 'timeline']);
 function stashPage(feed: State['feed']) {
   const v = el('view');
+  unstepLabel(v);
   if (!S.pageLive || !S.pageKey || !S.pageCacheable || !v.firstChild) return;
   const scroll = scrollY, frag = document.createDocumentFragment();
   while (v.firstChild) frag.appendChild(v.firstChild);
@@ -49,9 +51,49 @@ function syncToday() {
   if (S.y === was[0] && S.m === was[1]) [S.y, S.m] = monthOf(now);
   setToday(now); S.freshAfter = Date.now(); PAGES.clear();
 }
+// The month picker on screen shows the month just picked, its name sliding the way you went (the page's data
+// follows when it comes; its own picker then already says the same, so it doesn't slide twice)
+let stepped: { s: HTMLElement, html: string, title: string, next: HTMLButtonElement | null, off: boolean, today?: [Element, Element] } | null = null;
+function stepLabel(v: HTMLElement, dir: string) {
+  const s = v.querySelector<HTMLElement>('.month > span'), was = monthLabel(v);
+  if (!s || was == null) return;
+  const next = v.querySelector<HTMLButtonElement>('.month button[aria-label="Next month"]');
+  if (!stepped || stepped.s !== s) stepped = { s, html: was, title: s.title, next, off: !!next && next.disabled };
+  const tpl = document.createElement('template'); tpl.innerHTML = String(monthNav());
+  const now = tpl.content.querySelector('.month > span'); if (!now) return;
+  s.querySelectorAll('.mghost').forEach(g => g.remove());
+  s.innerHTML = now.innerHTML; s.title = now.getAttribute('title') || '';
+  const nb = tpl.content.querySelector('button[aria-label="Next month"]');
+  if (next && nb) next.disabled = nb.hasAttribute('disabled');
+  // Today shows up (or steps aside) with it
+  const today = v.querySelector('.month > .btn.small'), tb = tpl.content.querySelector('.month > .btn.small');
+  if (today && tb && today.outerHTML !== tb.outerHTML && !today.contains(document.activeElement)) { today.replaceWith(tb); stepped.today = [stepped.today ? stepped.today[0] : today, tb]; }
+  slideLabel(v, was, dir);
+}
+// A page put away keeps the month it shows: its picker goes back to that month's name. The name on screen (maybe
+// still sliding) moves over to the page that replaces it (keepLabel), so a quick answer doesn't cut its slide short.
+let liveLab: HTMLElement | null = null;
+function unstepLabel(v: HTMLElement) {
+  if (!stepped) return;
+  const { s, html: h, title, next, off, today } = stepped; stepped = null;
+  if (!v.contains(s)) return;
+  if (today && v.contains(today[1])) today[1].replaceWith(today[0]);
+  const old = s.cloneNode(false) as HTMLElement; old.classList.remove('msliding'); old.innerHTML = h; old.title = title;
+  s.replaceWith(old); if (next) next.disabled = off;
+  liveLab = s.classList.contains('msliding') ? s : null;
+}
+function keepLabel(v: HTMLElement) {
+  const s = liveLab; liveLab = null;
+  const n = s && v.querySelector<HTMLElement>('.month > span');
+  if (s && n && s.classList.contains('msliding') && labelHtml(n) === labelHtml(s)) { s.title = n.title; n.replaceWith(s); }
+}
+const IN_PLACE = new Set(['', 'reports', 'forecast', 'budgets', 'categories', 'bills', 'recap']);
 export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: boolean } = {}) {
   syncToday();
-  const r = parseHash(), tok = ++S.tok, v = el('view');
+  const r = parseHash(), tok = ++S.tok, v = el('view'), stepped = S.vtDir;
+  // The same page with other options (a report's dates, an account's range, the forecast's horizon): its charts change
+  // in place like a month change, when the layout stays the same (see paint below)
+  const sameRoute = IN_PLACE.has(r.name) && !!S.pageKey && S.pageKey.startsWith(r.name + '/' + r.id + '?');
   S.swr = !!opts.nav;
   const key = r.name + '/' + r.id + '?' + new URLSearchParams(r.q) + '@' + (S.all ? 'all' : S.y + '-' + S.m);
   const cacheable = CACHEABLE.has(r.name) && !S.dashEdit;
@@ -76,18 +118,26 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
   if (saved) {
     PAGES.delete(key);
     const dir = S.vtDir; S.vtDir = '';
+    // another month of a page that keeps its layout: redraw in place from what's on screen (see paint below)
+    const snap = (dir === 'next' || dir === 'prev' || (!dir && sameRoute)) && !instant && morphOk() && S.pageLive && v.firstElementChild ? snapshot(v) : null;
+    const inPlace = !!snap && sameLayout(snap, saved.frag, dir);
     const swap = () => {
+      const at = scrollY, lab = monthLabel(v);
       stashPage(S.feed);
-      v.replaceChildren(saved.frag); v.classList.remove('enter');
-      if (!instant && (!dir || !VT_OK)) { void v.offsetWidth; v.classList.add('enter'); }     // the same entrance as a first visit
+      v.replaceChildren(saved.frag); keepLabel(v); if (!instant) slideLabel(v, lab, dir); v.classList.remove('enter', ...(inPlace ? ['anim'] : []));
+      if (!instant && !inPlace && (!dir || !VT_OK)) { void v.offsetWidth; v.classList.add('enter'); }     // the same entrance as a first visit
       S.pageKey = key; S.pageHtml = saved.html; S.pageCacheable = true; S.pageLive = true;
       S.feed = saved.feed; S.kIdx = -1; if (saved.chart) S.chartData = saved.chart;
-      scrollTo(0, saved.scroll);
-      if (window.App && App.replayIn) App.replayIn();
+      scrollTo(0, inPlace ? at : saved.scroll);
+      if (inPlace) morph(v, snap!, dir);
+      else if (window.App && App.replayIn) App.replayIn();
+      if (window.App && App.fillStrip) App.fillStrip();     // put away before its month strip came: fill it in now
       if (v.querySelector('input[data-sel]:checked')) App.selChanged();
       if (saved.stale) setTimeout(revalidate, 50);
+      warmMonths(r, tok, stepped);
     };
-    if (instant || !dir) return swap();     // a tab you've seen comes straight back, like a native tab bar
+    // a tab you've seen comes straight back, like a native tab bar; another month never slides (only its name does)
+    if (instant || !dir || inPlace || dir === 'next' || dir === 'prev') return swap();
     const t = vt('page', swap, () => { document.documentElement.dataset.vtdir = dir || ''; });
     if (t) t.kind = 'page';
     return;
@@ -96,16 +146,23 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
   // Opening a deeper page (an account) keeps the list on screen a little longer, so a quick answer slides straight
   // in; a slow one slides in its placeholder right away and fills it when the data comes.
   const pushing = S.vtDir === 'push' && !instant;
+  // Another month: keep this one up (dimmed) a little longer, so the page can redraw in place when the data comes
+  const month = (S.vtDir === 'next' || S.vtDir === 'prev') && !instant && morphOk();
   let painted = false;
-  if (!opts.quiet) S.skelT = setTimeout(() => {
+  // The month's name changes as soon as you press, so the picker answers at once even when the data takes a moment
+  if (month && !opts.quiet) stepLabel(v, S.vtDir || '');
+  if (month && !opts.quiet) S.dimT = setTimeout(() => { if (tok === S.tok && !painted) v.classList.add('stale'); }, 140);
+  // (another month never swaps the page for a placeholder: it stays up, dimmed, and changes in place when the data comes)
+  if (!opts.quiet && !month) S.skelT = setTimeout(() => {
     if (tok !== S.tok) return;
+    v.classList.remove('stale');
     // a skipped slide still runs its update later, so the placeholder must not land on top of a page that already painted
     const show = () => { if (painted || tok !== S.tok) return; stashPage(prevFeed); v.innerHTML = String(skeleton()); };
     if (!pushing || S.vtDir !== 'push') return show();
     S.vtDir = '';
     const t = vt('page', show, () => { document.documentElement.dataset.vtdir = 'push'; });
     if (t) t.kind = 'page';
-  }, pushing ? 350 : 140);
+  }, pushing ? 350 : month ? 900 : 140);
   const paint: Paint = markup => {
     if (tok !== S.tok) return;
     clearTimeout(S.skelT);
@@ -114,25 +171,39 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
     if (S.vtRun && S.vtRun.kind !== 'page') { S.vtRun.finished.catch(() => {}).then(() => paint(markup)); return; }   // let a drawer animation finish first
     const fresh = key !== S.pageKey;
     const from = S.vtFrom && S.vtFrom.node.isConnected && Date.now() - S.vtFrom.t < 4000 ? S.vtFrom.node : null; S.vtFrom = null;
+    const dir = S.vtDir; S.vtDir = '';
+    // What's on screen now, so a redraw in the same layout can move from it: a refresh or edit of this page, or a
+    // month change on a page whose cards don't depend on the month (Overview, Budgets…), which then redraws in place
+    // instead of sliding (Transactions too: the title, strip and filters stay, and the new rows fill in from the arrow)
+    const snap = morphOk() && S.painted && S.pageLive && !instant && v.firstElementChild && (!fresh || dir === 'next' || dir === 'prev' || (!dir && sameRoute)) ? snapshot(v) : null;
+    let frag: DocumentFragment | null = null, inPlace = false;
+    if (snap && fresh) {
+      const tpl = document.createElement('template'); tpl.innerHTML = String(markup); frag = tpl.content;
+      inPlace = sameLayout(snap, frag, dir);
+    }
     const swap = () => {
-      painted = true;
-      const keep = fresh ? 0 : scrollY;
+      painted = true; clearTimeout(S.dimT); v.classList.remove('stale');
+      const keep = fresh && !inPlace ? 0 : scrollY;
+      const lab = monthLabel(v);           // (before the page is put away)
       if (fresh) stashPage(prevFeed);
-      v.innerHTML = String(markup);
+      if (frag) v.replaceChildren(frag); else v.innerHTML = String(markup);
+      keepLabel(v);
+      if (!instant) slideLabel(v, lab, dir);
       S.sel = new Set();          // the new rows start unticked
       S.pageKey = key; S.pageHtml = markup; S.pageCacheable = cacheable && !v.querySelector(':scope > .error'); S.pageLive = true;
       if (from) vtName(v.querySelector('.head h1'), 'ptitle');
-      if (!fresh || !VT_OK || opts.quiet || instant || !dir) { v.classList.remove('enter'); if (fresh && !opts.quiet && !instant) { void v.offsetWidth; v.classList.add('enter'); } }
-      scrollTo(0, fresh ? 0 : keep);          // new pages start at the top; a refresh keeps your place
-      if (window.App && App.afterPaint) App.afterPaint(r, { quiet: opts.quiet || !fresh });
+      if (inPlace) v.classList.remove('enter', 'anim');
+      else if (!fresh || !VT_OK || opts.quiet || instant || !dir) { v.classList.remove('enter'); if (fresh && !opts.quiet && !instant) { void v.offsetWidth; v.classList.add('enter'); } }
+      scrollTo(0, keep);          // new pages start at the top; a refresh (or a month redrawn in place) keeps your place
+      if (snap && (inPlace || !fresh)) morph(v, snap, inPlace ? dir : '');
+      if (window.App && App.afterPaint) App.afterPaint(r, { quiet: opts.quiet || !fresh || inPlace });
       if (S.bootStale) { S.bootStale = false; S.warmed = true; setTimeout(() => refreshAll(), 60); }     // opened from saved data: update quietly (and then warm the tabs)
       else if (!S.warmed) { S.warmed = true; warmTabs(); }    // first page after signing in: get the other tabs ready too
     };
-    const dir = S.vtDir; S.vtDir = '';
-    // Only moves with a direction (into an account, back out, to another month) slide the page. A plain switch to
+    // Only moves with a direction (into an account, back out) slide the page. A plain switch to
     // another page lets its cards rise in instead: snapshotting the whole page for a fade costs the phone a frame or
     // more right as you tap, and the two motions on top of each other look like a stutter.
-    if (!fresh || !S.painted || opts.quiet || instant || !dir) { S.painted = true; return swap(); }
+    if (!fresh || !S.painted || opts.quiet || instant || !dir || inPlace || dir === 'next' || dir === 'prev') { S.painted = true; return swap(); }
     const t = vt('page', swap, () => { document.documentElement.dataset.vtdir = dir || ''; vtName(from, 'ptitle'); });
     if (t) t.kind = 'page';
   };
@@ -141,6 +212,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
     await (VIEWS[r.name] || VIEWS[''])(r, paint);
     netFails = 0;
     if (S.staleTok === tok && tok === S.tok) setTimeout(revalidate, 50);
+    warmMonths(r, tok, stepped);
   } catch (e) {
     if (e instanceof AuthError) return showLogin(e.message);
     const onError = !!v.querySelector(':scope > .error');
@@ -201,16 +273,16 @@ export async function refreshAll(opts: { visible?: boolean } = {}) {
   })();
   return S.refreshing;
 }
-// Recalculate: throw away every number this app has kept (responses in memory, saved pages, the copy on this
-// device, the offline cache, the account/category lists, the Categorize history) and redraw from Firefly III.
+// Recalculate: throw away every number this app has kept (responses in memory, saved pages, the account/category
+// lists, the Categorize history) and redraw from Firefly III.
 async function recalcAll(btn?: HTMLButtonElement) {
   if (S.recalcing) return;
   S.recalcing = true;
   const label = btn ? btn.textContent : null; if (btn) { btn.disabled = true; btn.textContent = 'Recalculating…'; }
   try {
-    CACHE.clear(); INFLIGHT.clear(); PAGES.clear(); PDB.clear();
+    CACHE.clear(); INFLIGHT.clear(); PAGES.clear();
     S.lists = null; S.listsAt = 0; S.inboxHist = null; S.linkTypes = null; S.dirtyAt = 0; S.freshAfter = Date.now(); S.lastRefresh = Date.now();
-    try { if (window.caches) await caches.open('money-v1').then(c => c.keys().then(ks => Promise.all(ks.filter(k => new URL(k.url).pathname.startsWith('/api/')).map(k => c.delete(k))))); } catch (e) { /* no Cache Storage */ }
+    await dropSavedCopies();
     await lists(true);
     await route({ quiet: true });
     toast('Recalculated everything from Firefly III');
@@ -222,14 +294,42 @@ async function recalcAll(btn?: HTMLButtonElement) {
     if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = label; }
   }
 }
-// After a refresh, quietly load the main tabs in the background so opening them is instant.
+/* ---------- Loading ahead: other tabs and the months either side, while nothing else is going on ---------- */
+// Only while the app is on screen and online, and not when the device asks to save data (Data Saver; iOS doesn't say).
+const mayLoadAhead = () => document.visibilityState === 'visible' && navigator.onLine && !S.refreshing &&
+  !(navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+// Waits for a quiet moment: no requests going, and (where the browser has it) an idle frame. False: give up for now.
+async function quiet(stillWanted: () => boolean) {
+  for (let i = 0; netBusy() && i < 50; i++) await sleep(200);
+  if (netBusy() || !stillWanted() || !mayLoadAhead()) return false;
+  const ric = window.requestIdleCallback;
+  await new Promise(res => ric ? ric(res, { timeout: 1500 }) : setTimeout(res, 50));
+  return stillWanted() && mayLoadAhead();
+}
+// After a refresh, quietly load the main tabs (this month) so opening them is instant.
+const WARM_TABS = ['', 'transactions', 'budgets', 'accounts', 'categories', 'bills', 'piggy', 'forecast'];
 async function warmTabs() {
-  const cur = parseHash().name;
-  await new Promise(res => setTimeout(res, 1200));
-  for (const name of ['', 'transactions', 'budgets', 'accounts']) {
-    if (name === cur || S.refreshing) continue;
-    await new Promise(res => setTimeout(res, 250));
-    try { await VIEWS[name]({ name, id: '', q: {} }, () => {}); } catch (e) { /* optional */ }
+  const cur = parseHash().name, at: [number, number] | undefined = S.all ? undefined : [S.y, S.m];
+  await sleep(1200);
+  for (const name of WARM_TABS) {
+    if (name === cur || !VIEWS[name]) continue;
+    if (!await quiet(() => !S.refreshing)) return;
+    try { await VIEWS[name]({ name, id: '', q: {}, at }, () => {}); } catch (e) { /* optional */ }
+  }
+}
+// On a page that shows one month, load the month before and the one after, so stepping either way is instant.
+// After stepping back it starts with the month before (and after stepping forward, the one after), so going on
+// in the same direction is ready first. Stops as soon as you go somewhere else.
+const MONTH_PAGES = new Set(['', 'transactions', 'budgets', 'categories', 'bills', 'account']);
+async function warmMonths(r: RouteInfo, tok: number, stepped?: string) {
+  if (!MONTH_PAGES.has(r.name) || S.all || r.q.search || (r.name === 'account' && r.q.range && r.q.range !== 'month')) return;
+  const [y, m] = [S.y, S.m], [ny, nm] = nowMonth();
+  await sleep(300);
+  for (const d of stepped === 'next' ? [1, -1] : [-1, 1]) {
+    const x = new Date(y, m + d, 1), at: [number, number] = [x.getFullYear(), x.getMonth()];
+    if ((at[0] - ny) * 12 + at[1] - nm > 12) continue;      // the month picker stops a year ahead
+    if (!await quiet(() => tok === S.tok)) return;
+    try { await VIEWS[r.name]({ ...r, at }, () => {}); } catch (e) { /* optional */ }
   }
 }
 document.addEventListener('visibilitychange', () => {

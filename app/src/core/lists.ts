@@ -1,5 +1,5 @@
 import { clearCache, getAll } from './api';
-import { type ApiData, S, money, num } from './base';
+import { type ApiData, S, money, num, parseAmount } from './base';
 
 /* ================= Reference lists (cached) ================= */
 export type Account = {
@@ -19,16 +19,16 @@ export function normAccount(a: ApiData): Account {
 }
 // A loan's planned monthly payment lives in its Firefly notes as one line, e.g.
 // "Monthly payment: $500.00 on day 30 from Chase Checking", so every device sees it.
-const PLAN_RE = /^[ \t]*Monthly payment:[ \t]*\$?([\d,.]+)(?:[ \t]+on day[ \t]+(\d{1,2}))?(?:[ \t]+from[ \t]+(.+?))?[ \t]*$/im;
+const PLAN_RE = /^[ \t]*Monthly payment:[ \t]*\p{Sc}?[ \t]*(\d[\d,. ]*?)[ \t]*\p{Sc}?(?:[ \t]+on day[ \t]+(\d{1,2}))?(?:[ \t]+from[ \t]+(.+?))?[ \t]*$/imu;
 export type Plan = { amount: number, day: number | null, from: string };
-export function parsePlan(notes: string | null | undefined): Plan | null { const m = PLAN_RE.exec(notes || ''); return m ? { amount: num(m[1].replace(/,/g, '')), day: m[2] ? +m[2] : null, from: m[3] ? m[3].trim() : '' } : null; }
+export function parsePlan(notes: string | null | undefined): Plan | null { const m = PLAN_RE.exec(notes || ''); return m ? { amount: parseAmount(m[1]) ?? num(m[1].replace(/,/g, '')), day: m[2] ? +m[2] : null, from: m[3] ? m[3].trim() : '' } : null; }
 export function stripPlan(notes: string | null | undefined) { return String(notes || '').replace(PLAN_RE, '').replace(/\n{3,}/g, '\n\n').trim(); }
 // A plan as a form gives it: only the amount is required
 export type PlanInput = { amount: number, day?: number | null, from?: string };
 export function withPlan(notes: string | null | undefined, p: PlanInput | null) {
   const base = stripPlan(notes);
   if (!p || !(p.amount > 0)) return base;
-  const line = 'Monthly payment: $' + p.amount.toFixed(2) + (p.day ? ' on day ' + p.day : '') + (p.from ? ' from ' + p.from : '');
+  const line = 'Monthly payment: ' + (S.currency === 'USD' ? '$' : '') + p.amount.toFixed(2) + (p.day ? ' on day ' + p.day : '') + (p.from ? ' from ' + p.from : '');
   return (base ? base + '\n\n' : '') + line;
 }
 export const ordinal = (n: number) => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th');

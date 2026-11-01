@@ -26,10 +26,26 @@ export function togglePrivacy() {
 // Fold the sidebar down to its icons for more room, or open it again. Kept per device: a laptop and a big screen differ.
 const sideLabels = (on: boolean) => document.querySelectorAll<HTMLElement>('.side-tg').forEach(b => { b.title = (on ? 'Expand' : 'Collapse') + ' the sidebar ([)'; b.setAttribute('aria-label', (on ? 'Expand' : 'Collapse') + ' the sidebar'); });
 sideLabels(!!LS.get('sideMini', false));
+// The page beside it glides with the rail's edge instead of being laid out again on every frame of the fold: for
+// the length of the slide it keeps one width, the wider of before and after (so it never leaves a gap; what doesn't
+// fit yet is clipped at the window's edge). Folding, it takes its new width at once and slides left into place;
+// opening, it slides right and narrows when it gets there.
+let glideT = 0;
 export function toggleSide() {
   const on = !LS.get('sideMini', false); LS.set('sideMini', on);
-  document.documentElement.classList.toggle('side-mini', on); sideLabels(on); buzz(8);
-  setTimeout(() => dispatchEvent(new Event('resize')), 260);     // once it has slid: the Overview lays its tiles out for the new width
+  const root = document.documentElement, v = document.getElementById('view'), side = document.querySelector<HTMLElement>('.side');
+  const glide = !!v && !!side && innerWidth > 900 && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (glide) {
+    clearTimeout(glideT);
+    const app = v!.parentElement!, w = on ? app.getBoundingClientRect().width - 70 : v!.getBoundingClientRect().width;   // 70: the folded rail (money.css)
+    root.style.setProperty('--glide-w', w.toFixed(2) + 'px'); root.classList.add('side-glide');
+  }
+  root.classList.toggle('side-mini', on); sideLabels(on); buzz(8);
+  if (glide && on) dispatchEvent(new Event('resize'));        // already at its new width: the Overview lays its tiles out now
+  glideT = window.setTimeout(() => {                          // once it has slid (.34s)
+    root.classList.remove('side-glide'); root.style.removeProperty('--glide-w');
+    dispatchEvent(new Event('resize'));
+  }, 360);
 }
 function toggleDensity() { LS.set('compact', !LS.get('compact', false)); vt('prefs', applyPrefs); buzz(8); }
 applyPrefs();

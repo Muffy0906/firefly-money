@@ -1,5 +1,5 @@
 import { Html, html, htmlList } from './html';
-import { type ApiData, S, money, num, todayIso } from './base';
+import { type ApiData, fmtD, money, num, S, todayIso } from './base';
 import { daysBetween } from './helpers';
 import { logoImg } from './logo';
 import { hoursText, learnRate, lensOn } from './worklens';
@@ -59,6 +59,19 @@ export function amtInner(v: number) {
   return html`<span>${v > 0 ? '+' : ''}${money(v)}</span>${hrs ? html`<span class="hrs" title="Hours of work">${hrs}</span>` : ''}`;
 }
 
+// Where an uncategorized transfer went, in place of a plain "Transfer" chip (the icon already says it is one):
+// "→ Savings" or "← Checking" with an account in view, "Checking → Savings" in the all-accounts list
+export function xferLabel(g: Group, accountId?: string) {
+  const one = (k: 'source_name' | 'destination_name') => { const v = [...new Set(g.splits.map(s => s[k]).filter(Boolean))]; return v.length === 1 ? v[0] : ''; };
+  const src = one('source_name'), dst = one('destination_name');
+  if (accountId) {
+    const out = g.splits.every(s => s.source_id === accountId), inn = g.splits.every(s => s.destination_id === accountId);
+    if (out && dst) return '→ ' + dst;
+    if (inn && src) return '← ' + src;
+  }
+  return src && dst ? src + ' → ' + dst : 'Transfer';
+}
+
 /* ---------- Merchant avatars ---------- */
 const AV_NOISE = /^(sq|tst|pos|ach|dd|pp|paypal|aplpay|sp|py|ic|in|web|pmt)\s*\*\s*|^(sq|tst)\s+/i;
 export function payeeOf(g: Group) {
@@ -111,14 +124,14 @@ export function dayLabel(iso: string) {
   if (diff === 1) return 'Yesterday';
   if (diff === -1) return 'Tomorrow';
   const dt = new Date(d + 'T12:00:00');
-  if (diff > 1 && diff < 7) return dt.toLocaleDateString('en-US', { weekday: 'long' });
-  return dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', ...(dt.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) });
+  if (diff > 1 && diff < 7) return fmtD(dt, { weekday: 'long' });
+  return fmtD(dt, { weekday: 'short', month: 'short', day: 'numeric', ...(dt.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) });
 }
 // A day header's title: "Today · Tue, Oct 28", "Sunday · Oct 26", "Thu, Oct 2"
 function dayTitle(iso: string) {
-  const rel = dayLabel(iso), dt = new Date(String(iso).slice(0, 10) + 'T12:00:00');
-  if (rel.includes(',')) return html`${rel}`;
-  const date = dt.toLocaleDateString('en-US', rel.endsWith('day') && !/^(Today|Yesterday)$/.test(rel) ? { month: 'short', day: 'numeric' } : { weekday: 'short', month: 'short', day: 'numeric' });
+  const d = String(iso).slice(0, 10), rel = dayLabel(d), diff = daysBetween(d, todayIso());
+  if (diff >= 7 || diff < -1) return html`${rel}`;           // already a full date
+  const date = fmtD(d, diff > 1 ? { month: 'short', day: 'numeric' } : { weekday: 'short', month: 'short', day: 'numeric' });
   return html`${rel}<span class="dd"> · ${date}</span>`;
 }
 // What a rendered transaction row was drawn from, by group id, so a row can be redrawn or edited in place
@@ -142,14 +155,14 @@ export function txRows(groups: Group[], opts: TxRowsOpts = {}) {
     const tags = [...new Set<string>(g.splits.flatMap(s => s.tags))].filter(t => !t.startsWith('Data Import on'));
     const fx = htmlList(g.splits.filter(s => s.fa && s.fc).map(s => html`<span class="chip">${s.fc} ${num(s.fa).toFixed(2)}</span>`));
     const inl = (k: string) => multi ? '' : html` inl" data-k="${k}" data-onclick="event.stopPropagation();App.pick(this)" title="Change ${k}`;
-    const chips = html`<span class="cat-s${inl('category')}">${cats.length ? cats.join(', ') : g.type === 'withdrawal' ? 'Uncategorized' : g.type === 'deposit' ? 'Income' : 'Transfer'}</span>${fx}${multi ? html`<span class="chip">${g.splits.length} splits</span>` : ''}${htmlList(buds.map(b => html`<span class="bud-s${inl('budget')}">${b} budget</span>`))}${!buds.length && !multi && g.type === 'withdrawal' ? html`<span class="chip ghost${inl('budget')}">+ Budget</span>` : ''}${htmlList(tags.map(t => html`<span class="tag-s">#${t}</span>`))}`;
+    const chips = html`<span class="cat-s${inl('category')}">${cats.length ? cats.join(', ') : g.type === 'withdrawal' ? 'Uncategorized' : g.type === 'deposit' ? 'Income' : xferLabel(g, opts.accountId)}</span>${fx}${multi ? html`<span class="chip">${g.splits.length} splits</span>` : ''}${htmlList(buds.map(b => html`<span class="bud-s${inl('budget')}">${b} budget</span>`))}${!buds.length && !multi && g.type === 'withdrawal' ? html`<span class="chip ghost${inl('budget')}">+ Budget</span>` : ''}${htmlList(tags.map(t => html`<span class="tag-s">#${t}</span>`))}`;
     S.txMeta[g.id] = { g, accountId: opts.accountId || '', opts: { select: !!opts.select, accountId: opts.accountId || '' } };
     let dh: Html | '' = '';
     if (day !== lastDay) {
       const close = lastDay ? html`</tbody>` : ''; lastDay = day; const net = byDay[day];
       dh = html`${close}<tbody class="day"><tr class="dayhead" data-day="${day}"><td colspan="${cols}"><div><span class="dl">${dayTitle(day)}</span>${Math.abs(net) >= .005 ? html`<span class="num ${net < 0 ? '' : 'pos'}">${net > 0 ? '+' : ''}${money(net)}</span>` : ''}</div></td></tr>`;
     }
-    return html`${dh}<tr class="click" data-gid="${g.id}" data-day="${day}"${cats.length ? html` style="--cat:${catColor(cats[0])}"` : ''} data-onclick="App.editTx('${g.id}')">${opts.select ? html`<td class="sel" data-onclick="event.stopPropagation()"><input type="checkbox" data-sel="${g.id}" data-onchange="App.selChanged()"${(S.sel || new Set()).has(g.id) ? ' checked' : ''} aria-label="Select"></td>` : ''}<td><div class="txmain">${avatarHtml(g)}<div class="txt"><div class="desc">${desc}</div><div class="meta">${chips}</div></div></div></td><td class="flow hide-s"><span>${flow}</span></td><td class="catcol hide-s"><span class="${cats.length ? '' : 'neutral'}${inl('category')}">${cats.length ? cats.join(', ') : '—'}</span></td>${amountCell(g, opts.accountId)}</tr>`;
+    return html`${dh}<tr class="click" data-gid="${g.id}" data-day="${day}"${cats.length ? html` style="--cat:${catColor(cats[0])}"` : ''} data-onclick="App.editTx('${g.id}')">${opts.select ? html`<td class="sel" data-onclick="event.stopPropagation()"><input type="checkbox" data-sel="${g.id}" data-onchange="App.selChanged()"${(S.sel || new Set()).has(g.id) ? ' checked' : ''} aria-label="Select"></td>` : ''}<td><div class="txmain">${avatarHtml(g)}<div class="txt"><div class="desc">${desc}</div><div class="meta">${chips}</div></div></div></td><td class="fromto hide-s"><span>${flow}</span></td><td class="catcol hide-s"><span class="${cats.length ? '' : 'neutral'}${inl('category')}">${cats.length ? cats.join(', ') : '—'}</span></td>${amountCell(g, opts.accountId)}</tr>`;
   }));
   return html`<table class="tbl feed${opts.select ? ' has-sel' : ''}">${rows}</tbody></table>`;
 }

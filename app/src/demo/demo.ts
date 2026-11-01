@@ -35,7 +35,7 @@ window.fetch = async (input: RequestInfo | URL, init: RequestInit = {}) => {
   const at = u.pathname.indexOf('/api/v1/');
   if (at < 0) return realFetch(input, init);
   await new Promise(r => setTimeout(r, 60 + Math.random() * 120));   // feels like a real server
-  const method = (init.method || 'GET').toUpperCase();
+  const method = (init.method || 'GET').toUpperCase().replace('HEAD', 'GET');      // HEAD: the connection ping
   const q = Object.fromEntries(u.searchParams);
   try {
     let body = {};
