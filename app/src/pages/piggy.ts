@@ -34,12 +34,12 @@ VIEWS.piggy = async (r, paint) => {
   const saved = piggies.reduce((s, p) => s + p.current, 0), goal = piggies.reduce((s, p) => s + p.target, 0);
   piggies.sort((a, b) => a.group.localeCompare(b.group));
   const cards = htmlList(piggies.map((p, i) => {
-    const heading = p.group && (i === 0 || piggies[i - 1].group !== p.group) ? html`<div class="eyebrow" style="grid-column:1/-1;margin:6px 0 -6px">${p.group}</div>` : '';
+    const heading = p.group && (i === 0 || piggies[i - 1].group !== p.group) ? html`<div class="eyebrow full" style="margin:6px 0 -6px">${p.group}</div>` : '';
     const pct = p.target ? Math.min(100, p.current / p.target * 100) : 0;
     return html`${heading}<section class="panel"><div class="panel-head"><h2>${p.name}</h2><button class="btn small" data-onclick="App.piggyForm('${p.id}')">Edit</button></div><p class="lead">${p.accounts.map(a => a.name || (L.byId[a.id] || {}).name).filter(Boolean).join(', ') || 'No account'}${p.targetDate ? ' · by ' + fmtDate(p.targetDate) : ''}</p><div class="goal">${ring(pct, 'good', 'saved')}<div><div class="total num" style="margin-bottom:2px">${money0(p.current)}</div><div class="neutral">of ${money0(p.target)}</div><div class="sub-s" style="margin-top:8px">${paceBits(p).line} ${paceBits(p).chip}</div></div></div><div style="display:flex;gap:8px"><button class="btn small" data-onclick="App.piggyMoney('${p.id}',1)">+ Add money</button><button class="btn small" data-onclick="App.piggyMoney('${p.id}',-1)">− Take out</button></div></section>`;
   }));
   paint(html`${head('Piggy banks', piggies.length ? money0(saved) + ' saved toward ' + money0(goal) + ' in goals' : 'Set money aside for goals', html`<button class="btn primary" data-onclick="App.piggyForm()">+ New piggy bank</button>`)}${cards ?
-    html`<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))">${cards}</div>` :
+    html`<div class="flow" data-min="320">${cards}</div>` :
     html`<section class="panel"><div class="center-empty">No piggy banks yet.<br>Use one to set money aside in an account for a goal — a trip, tuition, an emergency fund.</div></section>`}`);
 };
 function piggyForm(id?: string) {

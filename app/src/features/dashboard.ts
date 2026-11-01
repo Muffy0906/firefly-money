@@ -125,6 +125,29 @@ const viewWidth = () => { const v = el('view'); return (v && v.clientWidth) || i
 // screen, so the cards don't stretch into wide empty boxes; two on a phone).
 const gridMode = (L: DashLayout) => !!L.cols && viewWidth() >= 700;
 const bentoUnits = () => { const w = viewWidth(), most = dashLayout().units === 4 ? 4 : 6; return w >= 1500 ? most : w >= 1000 ? 4 : 2; };
+// Bento tracks: each unit is BENTO_SUB grid columns, so a stretched tile can take part of a unit. Tiles fill rows in
+// order (as the grid places them); in a row with room left over, every tile grows by the same share of its size, like
+// the words on a justified line. Returns the column span of each tile whose span changed, keyed by tile.
+export const BENTO_SUB = 6;
+export function bentoSpans(tiles: [string, Size][], units: number) {
+  const out: Record<string, number> = {}, rows: [string, number][][] = [];
+  let row: [string, number][] = [], used = 0;
+  for (const [k, z] of tiles) {
+    const u = z === 'l' ? units : Math.min(units, z === 'm' ? 2 : 1);
+    if (used + u > units) { rows.push(row); row = []; used = 0; }
+    row.push([k, u]); used += u;
+  }
+  if (row.length) rows.push(row);
+  rows.forEach(r => {
+    const sum = r.reduce((s, t) => s + t[1], 0), total = units * BENTO_SUB;
+    if (sum >= units) return;
+    const want = r.map(t => t[1] * total / sum), got = want.map(Math.floor);
+    let left = total - got.reduce((s, x) => s + x, 0);
+    want.map((x, i) => [x - got[i], i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (left > 0) { got[i]++; left--; } });
+    r.forEach((t, i) => { out[t[0]] = got[i]; });
+  });
+  return out;
+}
 // The cards in your order (the defaults' order for cards you haven't placed)
 const dashOrder = (L: DashLayout, keys: string[]) => {
   const rank = (k: string) => { const i = L.order.indexOf(k), d = DASH_DEFAULT.indexOf(k); return i >= 0 ? i : 1e3 + (d >= 0 ? d : 100 + keys.indexOf(k)); };
@@ -196,18 +219,20 @@ function dashboard(W: [string, unknown][]) {
     // A first guess at the heights so the first paint is close; the real ones are measured right after
     gridSettle(Object.values<any>(spot).filter(t => on(t.k)).map(t => Object.assign(t, { h: Math.ceil(((DASH_EST[t.k] || 250) + 20) / ROW) })));
   }
+  // Outside Customize, bento rows are justified: a row the next tile doesn't fit in has its tiles stretched to fill it
+  const span = grid || edit ? {} : bentoSpans(order.filter(on).map(k => [k, sizeOf(L, k)] as [string, Size]), units);
   const card = (k: string) => {
     const body = map[k]; if (!body || tileOff(L, k)) return '';     // cards that are off wait in Customize's Add cards list
     const g = spot[k], z = sizeOf(L, k), name = DASH_NAMES[k] || k;
     if (grid) return html`<div class="w ${z}" data-w="${k}" data-gx="${g.x}" data-gy="${g.y}" data-gw="${g.w}"${g.float ? html` data-float="1"` : ''} style="grid-column:${g.x + 1} / span ${g.w};grid-row:${g.y + 1} / span ${g.h}">${edit ? html`<div class="wctl"><span class="grip" title="Drag to move" aria-hidden="true">⠿</span><strong>${name}</strong><span class="grow"></span>${optsButton(k)}<button type="button" class="wbtn" data-onclick="App.dashWide('${k}')">${g.w === GRID ? 'Narrow' : 'Wide'}</button><button type="button" class="hbtn" data-onclick="App.dashHide('${k}')">Hide</button></div>${tileOptsPanel(k)}<span class="rsz" title="Drag to resize" aria-hidden="true"></span>` : ''}${body}</div>`;
-    return html`<div class="w ${z}" data-w="${k}">${edit ? html`<div class="wctl"><span class="grip" title="Drag to move" aria-hidden="true">⠿</span><strong>${name}</strong><span class="grow"></span>${optsButton(k)}<button type="button" class="wbtn" data-onclick="App.dashSize('${k}')" title="Change its size">${sizeLabel(z, units)}</button><button type="button" class="hbtn" data-onclick="App.dashHide('${k}')">Hide</button></div>${tileOptsPanel(k)}` : ''}${body}</div>`;
+    return html`<div class="w ${z}" data-w="${k}"${span[k] ? html` style="grid-column:span ${span[k]}"` : ''}>${edit ? html`<div class="wctl"><span class="grip" title="Drag to move" aria-hidden="true">⠿</span><strong>${name}</strong><span class="grow"></span>${optsButton(k)}<button type="button" class="wbtn" data-onclick="App.dashSize('${k}')" title="Change its size">${sizeLabel(z, units)}</button><button type="button" class="hbtn" data-onclick="App.dashHide('${k}')">Hide</button></div>${tileOptsPanel(k)}` : ''}${body}</div>`;
   };
   const tiles = order.filter(on).map(k => [sizeOf(L, k), card(k)] as [Size, unknown]).filter(t => t[1]);
   const body = grid ? htmlList(keys.map(card)) : edit || wideScreen ? htmlList(tiles.map(t => t[1])) : phoneCards(tiles);
   const offs = keys.filter(k => map[k] && tileOff(L, k));
   const adds = edit && offs.length ? html`<div class="dash-add"><div class="eyebrow">Add cards</div><div class="add-list">${htmlList(offs.map(k => html`<button type="button" class="add-card" data-onclick="App.dashHide('${k}')"><span class="plus-i" aria-hidden="true">+</span><span><strong>${DASH_NAMES[k] || k}</strong><span class="sub-s">${DASH_ABOUT[k] || ''}</span></span><span class="pv">${tilePreview(k)}</span></button>`))}</div></div>` : '';
   return html`<div class="dash-wrap" data-n="${n}" style="--n:${n}">${edit ? html`<div class="dash-bar"><span>${grid ? 'Drag a tile anywhere and drag its corner to resize; tiles snap to the grid and push others down.' :
-      'Drag a tile to move it (on a touch screen, by its ⠿ handle). ' + (units === 2 ? 'Half and Full set how wide it is.' : 'Size sets how wide it is: small, medium or the whole row.')}</span><span class="grow"></span>${grid ? html`<button class="link" data-onclick="App.dashTidy()" title="Close the gaps by moving tiles up">Tidy up</button>` : ''}<button class="link" data-onclick="App.dashReset()">Reset</button><button class="btn small primary" data-onclick="App.dashEdit(false)">Done</button>${wideScreen ? html`<div class="dash-opts"><span>Arrange as</span><div class="seg mini" id="dashCols">${htmlList(DASH_COLS.map(c => html`<button type="button" class="${String(L.cols || '') === String(c) ? 'on' : ''}" data-onclick="App.dashCols('${c}')">${c ? c + ' col' + (c === 1 ? '' : 's') : 'Bento'}</button>`))}</div></div>` : ''}${adds}</div>` : ''}<div class="cards ${grid ? 'grid' : 'bento'}${edit ? ' editing' : ''}" id="dash" data-n="${n}" data-mode="${grid ? 'grid' : 'bento'}" data-units="${units}" style="--units:${units}"${L.cols ? html` data-cols="${String(L.cols)}"` : ''}>${body}</div></div>`;
+      'Drag a tile to move it (on a touch screen, by its ⠿ handle). ' + (units === 2 ? 'Half and Full set how wide it is.' : 'Size sets how wide it is: small, medium or the whole row.')}</span><span class="grow"></span>${grid ? html`<button class="link" data-onclick="App.dashTidy()" title="Close the gaps by moving tiles up">Tidy up</button>` : ''}<button class="link" data-onclick="App.dashReset()">Reset</button><button class="btn small primary" data-onclick="App.dashEdit(false)">Done</button>${wideScreen ? html`<div class="dash-opts"><span>Arrange as</span><div class="seg mini" id="dashCols">${htmlList(DASH_COLS.map(c => html`<button type="button" class="${String(L.cols || '') === String(c) ? 'on' : ''}" data-onclick="App.dashCols('${c}')">${c ? c + ' col' + (c === 1 ? '' : 's') : 'Bento'}</button>`))}</div></div>` : ''}${adds}</div>` : ''}<div class="cards ${grid ? 'grid' : 'bento'}${edit ? ' editing' : ''}" id="dash" data-n="${n}" data-mode="${grid ? 'grid' : 'bento'}" data-units="${units}" style="--units:${units};--cols:${units * BENTO_SUB}"${L.cols ? html` data-cols="${String(L.cols)}"` : ''}>${body}</div></div>`;
 }
 // Keep the change `mut` makes, and while customizing on a phone the tile order on the page (hidden tiles are not on it,
 // so they keep their place in the order)
