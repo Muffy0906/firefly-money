@@ -164,15 +164,28 @@ async function pingOnce(): Promise<Response | 'hang' | 'gone' | 'out'> {
   } catch (e) { return ctl.signal.aborted ? 'hang' : 'gone'; }
   finally { clearTimeout(give); }
 }
+// Is Money's own server there? A failed ping doesn't say: a reverse proxy in front of a stopped Money answers 502/504
+// (with a Date) or hangs, exactly like Money's nginx does for a stopped Firefly. Only Money answers /api/money-alive
+// with its X-Money-Server header (app/default.conf.template), so anything else, or nothing, means Money is down.
+// HEAD with no-store: the service worker leaves it alone and no cache can answer for a stopped server.
+async function moneyAlive(): Promise<boolean> {
+  const ctl = new AbortController(), give = setTimeout(() => ctl.abort(), PING_WAIT);
+  try {
+    const r = await fetch('/api/money-alive', { method: 'HEAD', cache: 'no-store', signal: ctl.signal });
+    return r.status === 204 && r.headers.get('X-Money-Server') === '1';
+  } catch (e) { return false; }
+  finally { clearTimeout(give); }
+}
 // A quick failure is tried again three times (a busy Firefly drops the odd request) before the page gives way to the
 // "can't reach" screen; a hang already waited PING_WAIT, so it counts at once.
 const PING_RETRY = [400, 1200, 3000];      // the same waits as a read that fails (core/api.ts NET_RETRY)
 async function ping() {
   for (let k = 0; ; k++) {
-    const r = await pingOnce();
+    let r = await pingOnce();
     if (r === 'out') return;
     const bad = r === 'hang' || r === 'gone' || r.status >= 502 && r.status <= 504 || (r.status === 503 && !r.headers.get('Date'));
     if (bad && r !== 'hang' && k < PING_RETRY.length && navigator.onLine) { await sleep(PING_RETRY[k]); continue; }
+    if (bad && r !== 'gone' && navigator.onLine && !await moneyAlive()) r = 'gone';      // it was Money, not Firefly
     if (!navigator.onLine) ffSeen('offline');
     else if (r === 'hang') ffSeen('down');
     else if (r === 'gone') ffSeen('down', 'money');

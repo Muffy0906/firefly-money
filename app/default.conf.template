@@ -160,6 +160,15 @@ server {
         subrequest_output_buffer_size 4m;
     }
 
+    # "Is Money itself there?" (features/ffstatus.ts). When the Firefly ping fails, the app asks this to tell a
+    # Firefly that's down from a Money that's down: a reverse proxy in front of a stopped Money answers 502/504 or
+    # hangs, just like nginx here does for a stopped Firefly, but only Money answers this one with its header.
+    location = /api/money-alive {
+        add_header X-Money-Server "1" always;
+        add_header Cache-Control "no-store" always;
+        return 204;
+    }
+
     # Proxy to Firefly III. Requires a session; the Firefly token never leaves the server.
     # The page also sends an X-Money header with each call: another site can't add one to a request without
     # asking first (CORS), so a page elsewhere (even another app on this server) can't use your session.
