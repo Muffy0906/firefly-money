@@ -1,5 +1,5 @@
 import { html, htmlList } from './html';
-import { AuthError, CACHE, PAGES, PDB, api } from './api';
+import { AuthError, PAGES, api, dropSavedCopies } from './api';
 import { migrateSavedPassword, rememberedSignIn, showLogin, signIn, signOut } from './auth';
 import { App, S, el, nowMonth } from './base';
 import { closeDrawer, vt } from './dom';
@@ -71,11 +71,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && el('drawer
 (async function boot() {
   await migrateSavedPassword();
   S.remember = S.signedIn = rememberedSignIn();
-  // Signed in before: show the data saved on this device right away, then refresh it in the background.
-  if (S.remember) {
-    try { (await PDB.loadAll()).forEach(([k, e]) => { if (e && e.t > Date.now() - 14 * 864e5 && !CACHE.has(k)) CACHE.set(k, e); }); } catch (e) { /* no saved data */ }
-    if (CACHE.size) { S.bootStale = true; S.lastRefresh = Date.now(); showApp(); return; }
-  }
+  dropSavedCopies();      // left by versions that kept a copy of your data on the device
   try { await api('/about'); S.signedIn = true; showApp(); }
   catch (e) { if (e instanceof AuthError) showLogin(S.remember ? 'Please sign in again.' : ''); else showApp(); }
 })();

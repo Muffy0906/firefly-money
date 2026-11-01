@@ -1842,7 +1842,7 @@
   @media (prefers-reduced-motion: no-preference) { .side-tip.on { transition: opacity .12s ease .06s; } }
 
   /* ---------- Firefly III connection pill (ffstatus.ts): under "Money" in the sidebar, atop the phone's More menu,
-     and floating at the bottom while Firefly can't be reached ---------- */
+     and "connected again" floating at the bottom for a moment once Firefly is back ---------- */
   .ff-slot { display: none; }
   .ff-pill, .ff-alert { --ff: var(--muted); }
   :is(.ff-pill, .ff-alert)[data-ff="ok"] { --ff: var(--good); }
@@ -1861,15 +1861,12 @@
   .ff-pill.wide { height: 32px; padding: 0 14px 0 12px; margin: 0 0 12px; gap: 9px; font-size: 14px; }
   .ff-pill.wide > i { width: 8px; height: 8px; }
   .ff-alert { position: fixed; z-index: 39; bottom: calc(28px + env(safe-area-inset-bottom, 0px)); left: 50%; display: flex; align-items: center; gap: 10px;
-    box-sizing: border-box; height: 42px; max-width: calc(100vw - 32px); padding: 0 5px 0 16px; border: 1px solid var(--line); border-radius: 99px;
+    box-sizing: border-box; height: 42px; max-width: calc(100vw - 32px); padding: 0 16px; border: 1px solid var(--line); border-radius: 99px;
     background: color-mix(in srgb, var(--panel) 88%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
     color: var(--text); box-shadow: var(--shadow); font-size: 13.5px; font-weight: 550; line-height: 1; white-space: nowrap;
     opacity: 0; visibility: hidden; transform: translate(-50%, 10px); transition: opacity .2s ease, transform .32s var(--ease-glide), visibility 0s .32s; }
   .ff-alert.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition: opacity .2s ease, transform .32s var(--ease-glide), visibility 0s; }
-  .ff-alert[data-ff="ok"] { padding-right: 16px; }
   .ff-alert > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-  .ff-alert button { flex: none; height: 30px; padding: 0 14px; border: 0; border-radius: 99px; background: var(--faint); color: var(--text); font-family: inherit; font-size: 13px; font-weight: 600; line-height: 1; cursor: pointer; }
-  .ff-alert button:hover { background: var(--line); }
   @media (max-width: 900px) { .ff-alert { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); } }      /* above the tab bar */
   @media (min-width: 901px) {
     .ff-alert { left: calc(50% + 112px); }      /* the middle of the page, beside the sidebar */
@@ -1880,4 +1877,17 @@
     html.side-mini .side > .ff-pill { gap: 0; padding: 0 7.5px; margin-left: 8px; }
     html.side-mini .side > .ff-pill > span { max-width: 0; opacity: 0; transition: opacity .1s ease, max-width .34s var(--ease-glide); }
   }
+  /* While Firefly can't be reached: the page gives way to this screen (no saved data to show instead) */
+  .app > .ff-out { display: none; }
+  html.ff-out .app > #view, html.ff-out .fab { display: none !important; }
+  html.ff-out .app > .ff-out { display: grid; place-items: center; min-height: 100vh; min-height: 100dvh; box-sizing: border-box; padding: 40px 16px 120px; }
+  .ff-out-card { --ff: var(--spend); display: flex; flex-direction: column; align-items: center; max-width: 420px; text-align: center; }
+  .ff-out[data-ff="auth"] .ff-out-card { --ff: var(--warn); }
+  .ff-out[data-ff="offline"] .ff-out-card { --ff: var(--muted); }
+  .ff-out-ic { display: grid; place-items: center; width: 64px; height: 64px; padding: 0; border-radius: 50%; color: var(--ff); background: color-mix(in srgb, var(--ff) 13%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ff) 28%, transparent) inset; }
+  .ff-out-ic svg { width: 28px; height: 28px; }
+  .ff-out-card h2 { margin: 20px 0 8px; font-size: 22px; font-weight: 600; letter-spacing: -.015em; }
+  .ff-out-card p { margin: 0; color: var(--muted); font-size: 14.5px; line-height: 1.55; }
+  .ff-out-card .btn { margin-top: 22px; }
+  .ff-out-card .ff-out-note { margin-top: 12px; font-size: 12.5px; }
   @media print { .ff-alert, .ff-pill { display: none !important; } }

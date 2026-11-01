@@ -1,5 +1,5 @@
 import { type Html, html, htmlList } from './html';
-import { type ApiError, AuthError, CACHE, INFLIGHT, PAGES, PDB, netBusy, sleep } from './api';
+import { type ApiError, AuthError, CACHE, INFLIGHT, PAGES, dropSavedCopies, netBusy, sleep } from './api';
 import { showLogin } from './auth';
 import { App, S, type State, el, monthOf, nowMonth, setToday, today } from './base';
 import { VT_OK, drawNav, toast, vt, vtName } from './dom';
@@ -231,16 +231,16 @@ export async function refreshAll(opts: { visible?: boolean } = {}) {
   })();
   return S.refreshing;
 }
-// Recalculate: throw away every number this app has kept (responses in memory, saved pages, the copy on this
-// device, the offline cache, the account/category lists, the Categorize history) and redraw from Firefly III.
+// Recalculate: throw away every number this app has kept (responses in memory, saved pages, the account/category
+// lists, the Categorize history) and redraw from Firefly III.
 async function recalcAll(btn?: HTMLButtonElement) {
   if (S.recalcing) return;
   S.recalcing = true;
   const label = btn ? btn.textContent : null; if (btn) { btn.disabled = true; btn.textContent = 'Recalculating…'; }
   try {
-    CACHE.clear(); INFLIGHT.clear(); PAGES.clear(); PDB.clear();
+    CACHE.clear(); INFLIGHT.clear(); PAGES.clear();
     S.lists = null; S.listsAt = 0; S.inboxHist = null; S.linkTypes = null; S.dirtyAt = 0; S.freshAfter = Date.now(); S.lastRefresh = Date.now();
-    try { if (window.caches) await caches.open('money-v1').then(c => c.keys().then(ks => Promise.all(ks.filter(k => new URL(k.url).pathname.startsWith('/api/')).map(k => c.delete(k))))); } catch (e) { /* no Cache Storage */ }
+    await dropSavedCopies();
     await lists(true);
     await route({ quiet: true });
     toast('Recalculated everything from Firefly III');

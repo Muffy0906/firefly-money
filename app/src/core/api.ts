@@ -4,8 +4,8 @@ import { type ApiData, S, arr, todayIso } from './base';
 export class AuthError extends Error {}
 // What api() throws for a failed response: the message to show, and the HTTP status.
 export type ApiError = Error & { status?: number, network?: boolean };
-// Responses are kept until something changes (your edits), you pull to refresh, or the app comes back
-// after a while; they're also saved on the device so the app opens instantly with your last data.
+// Responses are kept in memory until something changes (your edits), you pull to refresh, or the app comes back
+// after a while. Nothing is saved on the device (see dropSavedCopies).
 export type CacheEntry = { t: number, v: ApiData };
 export const CACHE = new Map<string, CacheEntry>(), INFLIGHT = new Map<string, Promise<ApiData>>();
 export const PAGES = new Map();     // page key → { frag, scroll, feed, html, chart }
@@ -14,35 +14,15 @@ export const PAGES = new Map();     // page key → { frag, scroll, feed, html, 
 // then quietly update (see revalidate()).
 export function clearCache() { S.dirtyAt = Date.now(); S.listsAt = 0; PAGES.forEach(p => { p.stale = true; }); }
 
-/* ---------- On-device copy of API responses (IndexedDB) ---------- */
-export const PDB = (() => {
-  let dbp: Promise<IDBDatabase> | null = null, timer: ReturnType<typeof setTimeout> | undefined;
-  const queue = new Map<string, CacheEntry>();
-  const open = () => dbp || (dbp = new Promise<IDBDatabase>((res, rej) => {
-    try {
-      const q = indexedDB.open('money-cache', 1);
-      q.onupgradeneeded = () => q.result.createObjectStore('api');
-      q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
-    } catch (e) { rej(e); }
-  }));
-  const run = async (mode: IDBTransactionMode, fn: (st: IDBObjectStore) => void) => {
-    const db = await open();
-    return new Promise((res, rej) => { const t = db.transaction('api', mode); fn(t.objectStore('api')); t.oncomplete = res; t.onerror = () => rej(t.error); t.onabort = () => rej(t.error); });
-  };
-  const flush = () => { const items = [...queue]; queue.clear(); run('readwrite', st => items.forEach(([k, v]) => st.put(v, k))).catch(() => {}); };
-  return {
-    async loadAll() {
-      const db = await open();
-      return new Promise<[string, CacheEntry][]>(res => {
-        const out: [string, CacheEntry][] = [], c = db.transaction('api', 'readonly').objectStore('api').openCursor();
-        c.onsuccess = () => { const cur = c.result; if (cur) { out.push([cur.key as string, cur.value]); cur.continue(); } else res(out); };
-        c.onerror = () => res(out);
-      });
-    },
-    put(key: string, entry: CacheEntry) { queue.set(key, entry); clearTimeout(timer); timer = setTimeout(flush, 500); },
-    clear() { queue.clear(); clearTimeout(timer); run('readwrite', st => st.clear()).catch(() => {}); },
-  };
-})();
+/* ---------- No copies on the device ----------
+   Money is a layer on top of Firefly III and keeps none of its data: responses live only in this tab's memory.
+   Earlier versions saved a copy (IndexedDB 'money-cache', and /api/ answers in the service worker's cache) so the
+   app could open with old data; whatever is left of those is deleted when the app starts and at sign-out. */
+export function dropSavedCopies() {
+  try { indexedDB.deleteDatabase('money-cache'); } catch (e) { /* no IndexedDB */ }
+  try { if (window.caches) return caches.open('money-v1').then(c => c.keys().then(ks => Promise.all(ks.filter(k => new URL(k.url).pathname.startsWith('/api/')).map(k => c.delete(k))))).then(() => {}, () => {}); } catch (e) { /* no Cache Storage */ }
+  return Promise.resolve();
+}
 export type ApiOpts = {
   params?: Record<string, string | number | boolean | null | undefined>,
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE', body?: unknown, raw?: BodyInit, contentType?: string,
@@ -68,7 +48,7 @@ export async function api(path: string, opt: ApiOpts = {}): Promise<ApiData> {
       if (S.swr && !S.swrOff) { S.staleTok = S.tok; return hit.v; }      // out of date: show it now, update after
     }
     if (INFLIGHT.has(key)) return INFLIGHT.get(key);
-    const pr = apiRaw(u, opt).then(v => { const e = { t: Date.now(), v }; CACHE.set(key, e); if (S.remember) PDB.put(key, e); return v; }).finally(() => INFLIGHT.delete(key));
+    const pr = apiRaw(u, opt).then(v => { const e = { t: Date.now(), v }; CACHE.set(key, e); return v; }).finally(() => INFLIGHT.delete(key));
     INFLIGHT.set(key, pr);
     return pr;
   }
@@ -102,6 +82,16 @@ export function ffSeen(state: FfState, why = '') {
   FF.state = state; FF.why = why;
   dispatchEvent(new Event('money-ff'));
 }
+// What a response says about Firefly. When this server can't be reached, the service worker answers reads with the
+// copy it saved (sent with its old Date) or, with nothing saved, a 503 of its own (no Date at all): neither means
+// Firefly answered, so a saved copy says nothing and the 503 means it's this server that's gone.
+export function ffSeenResponse(r: Response) {
+  const date = r.headers.get('Date'), age = date ? Date.now() - Date.parse(date) : NaN;
+  if (r.status === 503 && !date) ffSeen('down', 'money');
+  else if (r.status === 401) ffSeen('auth');
+  else if (r.status >= 502 && r.status <= 504) ffSeen('down');
+  else if (!(age > 12e4)) ffSeen('ok');      // a reply over two minutes old came from the saved copy
+}
 export const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
 // The browser couldn't reach this server at all (connection dropped, laptop waking up, app restarting):
 // fetch only says "Failed to fetch", so say what that means and mark it so the page can retry by itself.
@@ -130,7 +120,7 @@ async function apiRaw(u: URL, opt: ApiOpts): Promise<ApiData> {
     body: opt.raw ? opt.raw : opt.body ? JSON.stringify(opt.body) : undefined,
   }, opt.as === 'blob');
   if (r.status === 401 && r.headers.get('X-Dash-Auth')) throw new AuthError('Please sign in again.');
-  ffSeen(r.status === 401 ? 'auth' : r.status >= 502 && r.status <= 504 ? 'down' : 'ok');
+  ffSeenResponse(r);
   if (r.status === 204) return null;
   if (opt.as === 'blob' && r.ok) return body;
   const txt = body as string;

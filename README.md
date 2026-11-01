@@ -91,7 +91,7 @@ Firefly III is a great engine for your finances. Money is a faster, friendlier w
   - `N` adds a transaction, `/` searches, `⌘/Ctrl-K` opens the command palette, and `P` hides amounts.
   - `?` lists all the shortcuts.
 - Nine themes (Calm light, dark and auto; Midnight; Neon; Liquid glass neon; Ocean; Sunrise; Carbon neon), a **hide amounts** privacy mode and a **compact** density option.
-- Installable as an app (PWA). Opens instantly with the last data this device saw, refreshes in the background, and works read-only while offline.
+- Installable as an app (PWA). It keeps no copy of your Firefly data on the device: when Firefly III (or the network) can't be reached, it says so instead of showing old numbers, and comes back by itself. A pill in the sidebar (and the phone's More menu) shows whether Firefly is connected.
 
 ## How it works
 
@@ -201,14 +201,14 @@ Then go to **Docker → Add Container**, pick **firefly-money** under **Template
 
 Point your proxy (Caddy, Traefik, Nginx Proxy Manager, Cloudflare Tunnel…) at the container's port. Two things to know:
 - **Use HTTPS** for anything beyond your home network. The session cookie is sent with every request (and marked `Secure` when the proxy says the request came over HTTPS with `X-Forwarded-Proto`).
-- Installing as an app and the offline cache only work over HTTPS (or on `localhost`).
+- Installing as an app only works over HTTPS (or on `localhost`).
 
 ## Security notes
 
 - Money has **one shared password** and no user accounts. Treat it like the key to your finances. The safest setup is on your LAN or behind a VPN (Tailscale, WireGuard), or behind a reverse proxy that adds its own sign-in (Authelia, Cloudflare Access…).
 - Sign-in attempts are limited to 10 a minute (after a first 5) per address, and API calls to 50 a second with large bursts allowed, which only stops floods. Behind a reverse proxy all visitors share the proxy's address, so someone guessing passwords can briefly lock you out of signing in too (an already signed-in device keeps working).
 - The Firefly token isn't exposed to the browser, but anyone with the dashboard password can do anything the token can (read, edit, delete).
-- If you tick *Keep me signed in*, the session lasts 30 days and is renewed while you use the app, and the browser keeps a copy of your Firefly data on the device (IndexedDB and the offline cache) so the app opens instantly. Without it, the session ends when the browser closes (or after 12 hours unused) and no data is kept. **Sign out** (or any trip back to the sign-in screen) ends the session and deletes all of that saved data. Don't tick it on shared computers.
+- If you tick *Keep me signed in*, the session lasts 30 days and is renewed while you use the app. Without it, the session ends when the browser closes (or after 12 hours unused). Either way, no Firefly data is kept on the device: it lives only in the open tab. **Sign out** (or any trip back to the sign-in screen) ends the session. Don't tick it on shared computers.
 - Sessions are signed with a key made from `DASH_PASSWORD` and `FIREFLY_TOKEN`, so changing either one signs out every device. There's no list of sessions on the server, so that's also how to sign out a lost device.
 - The Apple Pay key (Settings → Apple Pay) can only add expenses, not read anything. It's made from `DASH_PASSWORD` and `FIREFLY_TOKEN` too, so changing either one replaces it. Its endpoint allows 20 payments a minute per address.
 - Found a security problem? Please report it privately through this repo's **Security → Report a vulnerability** page rather than a public issue.
