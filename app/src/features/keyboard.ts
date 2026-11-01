@@ -4,6 +4,7 @@ import type { RouteInfo } from '../core/router';
 import { openDrawer } from '../core/dom';
 import { selChanged } from './bulk';
 import { fitSankey } from './charts';
+import { bindFlow } from './flow';
 import { bindDash } from './dashboard';
 import { bindFeed } from './gestures';
 import { pick } from './picker';
@@ -42,7 +43,7 @@ function shortcutsSheet() {
 
 /* ---------- After each page paint ---------- */
 function afterPaint2(r: RouteInfo) {
-  bindFeed(); bindDash(); drawToggles(); fitSankey();
+  bindFeed(); bindDash(); drawToggles(); fitSankey(); bindFlow();
   S.kIdx = -1;
 }
 
