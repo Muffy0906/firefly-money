@@ -30,3 +30,27 @@ describe('monthEnds', () => {
     expect(monthEnds('2026-10-20', 3, 3)).toEqual(['2026-06-30', '2026-09-30', '2026-10-20']);
   });
 });
+
+import { paceForecast } from '../app/src/features/projections';
+describe('paceForecast', () => {
+  // last month: $2,959 by day 6 of $7,200 (rent and bills early)
+  const prev = [...Array(30)].map((_, i) => i === 0 ? 2000 : i < 6 ? 191.8 : 4241 / 24);
+  it('does not extrapolate a front-loaded start in a straight line', () => {
+    const p = paceForecast(2386, 6, 30, prev);
+    expect(p).toBeGreaterThan(2386);
+    expect(p).toBeLessThan(7500);
+  });
+  it('matches last month when this month tracks it exactly', () => {
+    const total = prev.reduce((s, v) => s + v, 0), then = prev.slice(0, 6).reduce((s, v) => s + v, 0);
+    expect(paceForecast(then, 6, 30, prev)).toBeCloseTo(total, 0);
+  });
+  it('falls back to a line only after a week, and never goes below what is spent', () => {
+    expect(paceForecast(300, 5, 30, [])).toBe(0);
+    expect(paceForecast(700, 7, 30, [])).toBeCloseTo(3000, 0);
+    expect(paceForecast(5000, 10, 30, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100])).toBeGreaterThanOrEqual(5000);
+  });
+  it('gives nothing for a finished or not-started month', () => {
+    expect(paceForecast(100, 30, 30, prev)).toBe(0);
+    expect(paceForecast(0, 0, 30, prev)).toBe(0);
+  });
+});

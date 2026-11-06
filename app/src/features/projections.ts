@@ -34,3 +34,17 @@ export function projectMonthly(s: Series, from: string, to: string): Projected[]
   }
   return out;
 }
+
+/* Where this month's spending is heading. Spending is front-loaded (rent and bills land early), so a straight line
+   (spent so far ÷ days so far × days in month) overshoots. With last month's day-by-day spending we blend two
+   estimates: the same share of the month as last month had reached by now (shape), and today's total plus whatever
+   last month still spent after this point (carry-on). No history: a straight line, but only once a week is in. 0 = no estimate. */
+export function paceForecast(spent: number, sofar: number, dim: number, prevDaily: number[]): number {
+  if (!(sofar >= 1) || sofar >= dim || !(spent >= 0)) return 0;
+  const total = prevDaily.reduce((s, v) => s + v, 0), then = prevDaily.slice(0, sofar).reduce((s, v) => s + v, 0);
+  if (total > 0 && then > 0) {
+    const share = then / total, carry = spent + (total - then), shape = share >= .25 ? spent / share : carry;
+    return Math.max(spent, (carry + shape) / 2);
+  }
+  return sofar >= 7 ? spent / sofar * dim : 0;
+}

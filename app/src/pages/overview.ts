@@ -1,5 +1,6 @@
 import { type Html, html, htmlList } from '../core/html';
 import { api, getAll, sleep } from '../core/api';
+import { paceForecast } from '../features/projections';
 import { App, S, absDiff, arr, el, fmtDate, fmtDay, isoDate, money, money0, monthRange, noneHref, nowMonth, num, pad, sumDiff, todayIso, txHref, type ApiData, type Period, viewPeriod, viewYM } from '../core/base';
 import { head, monthNav } from '../core/dom';
 import { normGroup, rankCats, txRows } from '../core/feed';
@@ -22,6 +23,8 @@ import { budgetsLessRefunds, insight, refundsIn } from '../features/refunds';
 /* ================= Overview ================= */
 type CatRow = { name: string, id?: string, amt: number, prev: number };
 type CashMonth = { label: string, income: number, spend: number, go?: string, start?: string, end?: string };
+// Averages leave out a month that hasn't finished (it would pull them down); all of them if none has
+export const fullMonths = (trend: CashMonth[]) => { const t = todayIso(), done = trend.filter(m => !m.end || m.end < t); return done.length ? done : trend; };
 VIEWS[''] = async (r, paint) => {
   const L = await lists();
   const cur = viewPeriod(r), all = !!cur.all, [vy, vm] = viewYM(r), prev = monthRange(vy, vm - 1);
@@ -230,7 +233,7 @@ export function cashFlow(trend: CashMonth[]) {
     const cx = slot * i + slot / 2;
     return html`<g class="col"><rect class="hit" x="${slot * i}" y="0" width="${slot}" height="${H}" fill="transparent" data-i="${i}"${t.go ? html` data-go="${t.go}" style="cursor:pointer"` : ''}></rect><rect class="band" x="${slot * i + 4}" y="${top - 6}" width="${slot - 8}" height="${H - bottom - top + 6}" rx="10"></rect><rect data-i="${i}" x="${cx - bw - 3}" y="${yy(t.income)}" width="${bw}" height="${H - bottom - yy(t.income)}" rx="6" fill="var(--income)" class="bar" style="--j:${i};color:var(--income)${t.go ? ';cursor:pointer' : ''}"><title>Earned ${money0(t.income)}</title></rect><rect data-i="${i}" x="${cx + 3}" y="${yy(t.spend)}" width="${bw}" height="${H - bottom - yy(t.spend)}" rx="6" fill="var(--spend)" class="bar" style="--j:${i};color:var(--spend)${t.go ? ';cursor:pointer' : ''}" opacity=".85"><title>Spent ${money0(t.spend)}</title></rect><text x="${cx}" y="${H - 7}" text-anchor="middle">${t.label}</text></g>`;
   }));
-  const avgS = trend.reduce((s, t) => s + t.spend, 0) / n, avgK = trend.reduce((s, t) => s + t.income - t.spend, 0) / n;
+  const full = fullMonths(trend), avgS = full.reduce((s, t) => s + t.spend, 0) / full.length, avgK = full.reduce((s, t) => s + t.income - t.spend, 0) / full.length;
   S.chartData = trend;
   return html`<h2>Cash flow</h2><p class="lead">Earned vs. spent over the last ${n === 6 ? 'six' : n} months · click a month to open it</p><svg class="flowchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Income and spending by month"><line x1="0" x2="${W}" y1="${H - bottom}" y2="${H - bottom}" stroke="var(--line)"/>${bars}</svg><div style="display:flex;gap:40px;margin-top:18px"><div><div class="eyebrow">Avg. spent / month</div><div class="num" style="font-size:21px">${money0(avgS)}</div></div><div><div class="eyebrow">Avg. kept / month</div><div class="num" style="font-size:21px">${money0(avgK)}</div></div></div><div class="legend"><span><i style="background:var(--income)"></i>Earned</span><span><i style="background:var(--spend)"></i>Spent</span></div>`;
 }
@@ -239,8 +242,8 @@ function cashFlowAs(trend: CashMonth[], style: string) {
   if (style === 'bars') return cashFlow(trend);
   const n = trend.length, months = n === 6 ? 'six' : String(n);
   if (style === 'lines') return html`<h2>Cash flow</h2><p class="lead">Earned vs. spent over the last ${months} months</p>${twoLines(trend.map(t => ({ label: t.label, a: t.income, b: t.spend, go: t.go })), ['Earned', 'Spent'], ['var(--income)', 'var(--spend)'], 'Income and spending by month', { w: window.innerWidth < 600 ? 420 : window.innerWidth >= 1700 ? 1500 : 960, h: 240 })}`;
-  const kept = trend.reduce((s, t) => s + t.income - t.spend, 0);
-  return html`<h2>Cash flow</h2><p class="lead">What you kept each month · ${money0(kept / Math.max(1, n))} a month on average</p>${barChart(trend.map(t => ({ label: t.label, v: t.income - t.spend, go: t.go })), v => (v < 0 ? '−' : '') + money0(Math.abs(v)), 'Earned minus spent by month', { w: window.innerWidth < 600 ? 420 : window.innerWidth >= 1700 ? 1500 : 960, h: 220 })}`;
+  const full = fullMonths(trend), kept = full.reduce((s, t) => s + t.income - t.spend, 0);
+  return html`<h2>Cash flow</h2><p class="lead">What you kept each month · ${money0(kept / full.length)} a month on average</p>${barChart(trend.map(t => ({ label: t.label, v: t.income - t.spend, go: t.go })), v => (v < 0 ? '−' : '') + money0(Math.abs(v)), 'Earned minus spent by month', { w: window.innerWidth < 600 ? 420 : window.innerWidth >= 1700 ? 1500 : 960, h: 220 })}`;
 }
 // Spending pace: where this month's running total is against the same day last month, and where it's heading
 function pacePanel(cur: Period, prev: Period, now: { date: string, total: number }[], before: { date: string, total: number }[]) {
@@ -249,15 +252,15 @@ function pacePanel(cur: Period, prev: Period, now: { date: string, total: number
   const dim = daysIn(cur), t = todayIso(), sofar = cur.start.slice(0, 7) === t.slice(0, 7) ? +t.slice(8, 10) : t < cur.start ? 0 : dim;
   const a = byDay(now, dim).slice(0, sofar), b = byDay(before, daysIn(prev));
   const spent = a.reduce((s, v) => s + v, 0), then = b.slice(0, sofar).reduce((s, v) => s + v, 0), d = spent - then;
-  const ahead = sofar < dim && sofar > 3 ? spent / sofar * dim : 0;
-  const line = !sofar ? 'This month hasn’t started yet.' : !then ? html`<strong class="num">${money0(spent)}</strong> spent so far` :
+  const ahead = paceForecast(spent, sofar, dim, b);
+  const line = !sofar ? 'This month hasn’t started yet.' : !then ? html`<strong class="num">${money0(spent)}</strong> spent so far${ahead ? html` · heading for about <strong class="num">${money0(ahead)}</strong>` : ''}` :
     html`<strong class="num">${money0(spent)}</strong> by day ${sofar}: <span class="${d > 0 ? 'up' : 'down'}">${money0(Math.abs(d))} ${d > 0 ? 'more' : 'less'}</span> than by this day last month${ahead ? html` · heading for about <strong class="num">${money0(ahead)}</strong>` : ''}`;
   return html`<section class="panel chart"><h2>Spending pace</h2><p class="lead">${line}</p>${sofar ? paceChart(a, b, dim, [cur.short, prev.short], d => { const iso = cur.start.slice(0, 8) + pad(d); return txHref({ type: 'withdrawal' }, { start: iso, end: iso }); }) : ''}</section>`;
 }
 // Savings rate: the share of each month's income you kept
 function savingsRate(trend: CashMonth[]) {
   const pts = trend.map(t => ({ label: t.label, v: t.income > 0 ? Math.round((t.income - t.spend) / t.income * 100) : null, go: t.go }));
-  const got = pts.filter(p => p.v != null) as { v: number }[], avg = got.length ? Math.round(got.reduce((s, p) => s + p.v, 0) / got.length) : 0;
+  const fm = fullMonths(trend), all = pts.filter(p => p.v != null) as { v: number }[], part = pts.filter((p, i) => p.v != null && fm.includes(trend[i])) as { v: number }[], got = part.length ? part : all, avg = got.length ? Math.round(got.reduce((s, p) => s + p.v, 0) / got.length) : 0;
   return html`<h2>Savings rate</h2><p class="lead">${got.length ? html`How much of each month’s income you kept · <strong>${avg}%</strong> on average` : 'Shows up once income is recorded'}</p>${got.length ? barChart(pts, v => v + '%', 'Share of income kept each month') : ''}`;
 }
 // Category trends: the biggest categories over the chart's months, this month against their usual
