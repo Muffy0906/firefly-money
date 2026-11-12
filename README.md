@@ -101,7 +101,7 @@ Firefly III is a great engine for your finances. Money is a faster, friendlier w
   - `C` and `B` change the category or budget, and `X` selects.
   - `N` adds a transaction, `/` searches, `⌘/Ctrl-K` opens the command palette, and `P` hides amounts.
   - `?` lists all the shortcuts.
-- Twelve themes (Calm light, dark and auto; Frosted glass; Liquid glass neon; Matte glass; Carbon neon; Midnight; Neon; Ocean; Sunrise; Forest; Nord; Rosé), a **hide amounts** privacy mode and a **compact** density option.
+- Twelve themes (Calm light, dark and auto; Frosted glass; Liquid glass neon; Matte glass; Polar glass; Carbon neon; Midnight; Neon; Ocean; Sunrise; Forest; Nord; Rosé), a **hide amounts** privacy mode and a **compact** density option.
 - Installable as an app (PWA). It keeps no copy of your Firefly data on the device: when Firefly III (or the network) can't be reached, it says so instead of showing old numbers, and comes back by itself. A pill in the sidebar (and the phone's More menu) shows whether Firefly is connected.
 
 ## How it works

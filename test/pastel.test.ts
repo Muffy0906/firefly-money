@@ -14,10 +14,10 @@ const block = (k: string) => { const at = css.indexOf('html[data-theme="' + k + 
 const v = (b: string, name: string) => new RegExp('--' + name + ': (#[0-9a-f]{6})', 'i').exec(b)![1].toLowerCase();
 
 describe('Pastel themes', () => {
-  it('has 20 themes plus Auto and the picker groups every one of them once', () => {
-    expect(THEMES).toHaveLength(21);
+  it('has 21 themes plus Auto and the picker groups every one of them once', () => {
+    expect(THEMES).toHaveLength(22);
     const grouped = THEME_GROUPS.flatMap(g => g[1].map(x => x[0]));
-    expect(new Set(grouped).size).toBe(21);
+    expect(new Set(grouped).size).toBe(22);
     expect([...grouped].sort()).toEqual(THEMES.map(t => t[0]).sort());
     expect(THEME_GROUPS.map(g => g[0])).toEqual(['Calm', 'Pastel', 'Bold', 'Glass']);
   });
@@ -86,13 +86,36 @@ describe('Matte glass theme', () => {
   });
 });
 
+describe('Polar glass theme', () => {
+  const b = block('polar');
+  it('is in the Glass group with a Polar White, Glacier Blue and Racing Red swatch', () => {
+    expect(THEME_GROUPS.find(g => g[0] === 'Glass')![1].map(x => x[0])).toContain('polar');
+    const sw = THEMES.find(t => t[0] === 'polar')![2];
+    for (const c of ['#f5f8fb', '#b3d3e8', '#e4002b']) expect(sw).toContain(c);
+    expect(v(b, 'accent')).toBe('#e4002b');
+  });
+  it('keeps text, amounts and the red accent at 4.5:1 on the page and the cards', () => {
+    for (const surface of [v(b, 'bg'), '#ffffff']) {
+      for (const c of ['text', 'muted', 'accent', 'good-t', 'spend-t', 'warn-t']) expect(ratio(v(b, c), surface), c + ' on ' + surface).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(ratio(v(b, 'text'), v(b, 'faint'))).toBeGreaterThanOrEqual(4.5);
+    expect(ratio(v(b, 'on-accent'), v(b, 'accent'))).toBeGreaterThanOrEqual(4.5);
+  });
+  it('has frosted blue cards, a CSS-only backdrop, and no blur under cards', () => {
+    expect(css).toMatch(/html\[data-theme="polar"\] body::after \{[^}]*radial-gradient/);
+    expect(css).not.toMatch(/html\[data-theme="polar"\][^{]*\{[^}]*url\(/);
+    expect(css).toMatch(/html\[data-theme="polar"\] \.tabbar \{[^}]*backdrop-filter: blur/);
+    expect(css).toMatch(/html\[data-theme="polar"\] :is\(\.panel[^{]*\{ -webkit-backdrop-filter: none/);
+  });
+});
+
 describe('Theme picker', () => {
   it('is one radio group with a single tab stop and a swatch and name for every theme', () => {
     document.documentElement.setAttribute('data-theme', 'mint');
     const host = document.createElement('div'); host.innerHTML = String(themeButtons()); document.body.append(host);
     expect(host.querySelector('[role=radiogroup]')).not.toBeNull();
     const radios = [...host.querySelectorAll<HTMLElement>('[role=radio]')];
-    expect(radios).toHaveLength(21);
+    expect(radios).toHaveLength(22);
     expect(radios.filter(r => r.tabIndex === 0)).toHaveLength(1);
     expect(radios.filter(r => r.getAttribute('aria-checked') === 'true').map(r => r.getAttribute('aria-label'))).toEqual(['Mint Cream']);
     for (const r of radios) { expect(r.querySelector('.tp-sw')).not.toBeNull(); expect(r.querySelector('.tp-name')!.textContent).not.toBe(''); }
