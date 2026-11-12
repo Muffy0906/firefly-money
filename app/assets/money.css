@@ -1221,11 +1221,53 @@
   html[data-theme="spatial"] .tabbar { background: rgba(52, 61, 75, .78); border: 1px solid rgba(255, 255, 255, .2); box-shadow: var(--frost-edge), 0 16px 44px rgba(6, 10, 18, .45);
     -webkit-backdrop-filter: blur(32px) saturate(150%); backdrop-filter: blur(32px) saturate(150%); }
   html[data-theme="spatial"] .tabbar a { color: var(--muted); }
+  /* ---------- Theme: Matte glass (Storm Grey page 60%, Matte Black layered cards 30%, Safety Orange accent 10%; low-gloss, soft blur, stacked depth; all CSS, works offline) ---------- */
+  html[data-theme="matte"] { --bg: #292c32; --panel: rgba(14, 15, 17, .72); --line: rgba(255, 255, 255, .08); --text: #eceef1; --muted: #b4bac4; --faint: rgba(255, 255, 255, .05);
+    --good: #74d9a6; --spend: #ff9d80; --income: #74d9a6; --warn: #f0c96b; --accent: #ff5f00; --on-accent: #120a05;
+    --shadow: 0 18px 44px rgba(0, 0, 0, .38); --radius: 18px; color-scheme: dark;
+    --ink: #eceef1; --frost-edge: inset 0 1px 0 rgba(255, 255, 255, .07), inset 0 0 0 1px rgba(255, 255, 255, .03);
+    --stack: 0 5px 0 -2px rgba(10, 11, 13, .72), 0 10px 0 -4px rgba(10, 11, 13, .42);
+    --glow1: #2f3339; --glow2: #2d3036; --glow3: #1d1f23; --glass-base: #0e0f11; --glass-tint: 72%; --glass-blur: 14px;
+    background: var(--bg); }
+  html[data-theme="matte"] body { background: transparent; }
+  html[data-theme="matte"] body::after { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(50vmax 28vmax at 78% 0%, color-mix(in srgb, var(--glow2) 80%, transparent), transparent 70%),
+      radial-gradient(36vmax 30vmax at 4% 20%, color-mix(in srgb, var(--glow1) 70%, transparent), transparent 70%),
+      radial-gradient(60vmax 26vmax at 40% 106%, var(--glow3), transparent 72%),
+      linear-gradient(180deg, #2a2d33, var(--bg) 50%, #24272c); }
+  html[data-theme="matte"] :is(.panel, .daycards tbody.day, .daycards > .center-empty, .kpi, .insight, .extra, .split, .login form, .dash-bar) {
+    background: linear-gradient(180deg, rgba(255, 255, 255, .035), rgba(255, 255, 255, 0)), color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent);
+    border: 1px solid rgba(255, 255, 255, .08); border-radius: 18px; box-shadow: var(--frost-edge), var(--stack), 0 16px 30px rgba(0, 0, 0, .3); margin-bottom: 10px; }
+  html[data-theme="matte"] :is(.drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar, .ff-pop) {
+    background: rgba(20, 21, 24, .94); border-color: rgba(255, 255, 255, .1); border-radius: 18px;
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+  html[data-theme="matte"] .drawer footer { background: transparent; border-top-color: rgba(255, 255, 255, .08); }
+  html[data-theme="matte"] :is(input[type=text], input[type=number], input[type=date], input[type=password], input[type=search], select, textarea, .round, .wctl button, .btn, .seg, .tabs) {
+    background: rgba(255, 255, 255, .05); border-color: rgba(255, 255, 255, .1); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04); }
+  html[data-theme="matte"] select option { background: #1b1d21; }
+  html[data-theme="matte"] :is(input, select, textarea):focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent); }
+  html[data-theme="matte"] :is(.btn.primary, .seg button.on, .tabs a.on, .tabbar .plus, .fab) { background: var(--accent); color: var(--on-accent); border-color: var(--accent); box-shadow: 0 6px 16px rgba(255, 95, 0, .22); }
+  html[data-theme="matte"] .tbl.feed td { background: rgba(255, 255, 255, .035); border-color: rgba(255, 255, 255, .06); }
+  html[data-theme="matte"] .tbl.feed tr.dayhead div { background: rgba(20, 21, 24, .86); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+  html[data-theme="matte"] .tbl tr.click:hover td { background: rgba(255, 255, 255, .07); }
+  html[data-theme="matte"] .track { background: rgba(255, 255, 255, .1); }
+  html[data-theme="matte"] .big { color: var(--text); }
+  html[data-theme="matte"] .appbar.scrolled { background: rgba(26, 28, 32, .78); }
+  html[data-theme="matte"] .scrim { background: rgba(4, 5, 7, .5); }
+  html[data-theme="matte"] .side { background: rgba(14, 15, 17, .66); border: 1px solid rgba(255, 255, 255, .08); border-radius: 22px; box-shadow: var(--frost-edge), 0 14px 34px rgba(0, 0, 0, .3);
+    -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+  html[data-theme="matte"] :is(.tab-pill, .nav a.on) { background: rgba(255, 95, 0, .16); box-shadow: inset 0 0 0 1px rgba(255, 95, 0, .35); }
+  html[data-theme="matte"] :is(.tabbar a.on, .nav a.on) { color: var(--accent); }
+  html[data-theme="matte"] .tabbar { background: rgba(16, 17, 20, .9); border: 1px solid rgba(255, 255, 255, .09); box-shadow: var(--frost-edge), 0 14px 36px rgba(0, 0, 0, .5);
+    -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+  html[data-theme="matte"] .tabbar a { color: var(--muted); }
+  html[data-theme="matte"] .tabbar a.on { color: var(--accent); }
   /* Both glass themes: what's behind a card is only soft light (no card overlaps another), so a live blur under every card
      looks the same but makes the browser re-blur each card on every scroll frame, every entrance animation and, in
      Liquid glass, every frame of the moving light. Only floating things keep it (tab bar, sheets, menus).
      Same selector list as the rules that add the blur: :is() takes its most specific entry, so a shorter list loses. */
-  html:is([data-theme="glass"], [data-theme="frosted"], [data-theme="spatial"]) :is(.panel, .daycards tbody.day, .daycards > .center-empty, .kpi, .insight, .extra, .split, .dash-bar) { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  html:is([data-theme="glass"], [data-theme="frosted"], [data-theme="spatial"], [data-theme="matte"]) :is(.panel, .daycards tbody.day, .daycards > .center-empty, .kpi, .insight, .extra, .split, .dash-bar) { -webkit-backdrop-filter: none; backdrop-filter: none; }
   html[data-theme="glass"] .side { -webkit-backdrop-filter: none; backdrop-filter: none; }
   @media (max-width: 900px) {
     .tbl.feed tr.dayhead div { -webkit-backdrop-filter: none; backdrop-filter: none; }     /* one blur per day header adds up on a long feed */
@@ -1233,6 +1275,7 @@
     html[data-theme="frosted"] .tbl.feed tr.dayhead div { background: rgba(255, 248, 240, .88); }
     html[data-theme="frosted"][data-scene="night"] .tbl.feed tr.dayhead div { background: rgba(30, 25, 40, .92); }
     html[data-theme="spatial"] .tbl.feed tr.dayhead div { background: rgba(48, 56, 69, .94); }
+    html[data-theme="matte"] .tbl.feed tr.dayhead div { background: rgba(20, 21, 24, .96); }
   }
   /* ---------- iPhone: notch / home bar, no accidental zoom, native-app shell ---------- */
   body { touch-action: manipulation; }
@@ -2386,6 +2429,7 @@ html[data-theme="glass"] .ag-c.l3, html[data-theme="glass"] .ag-c.l4 { box-shado
 html[data-theme="carbon"] .opill { box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 45%, transparent); }
 html[data-theme="glass"] .opill { background: rgba(255, 255, 255, .14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2); }
 html[data-theme="frosted"] .opill { background: var(--ink); }
+html[data-theme="matte"] .opill { background: var(--accent); }
 html[data-theme="spatial"] .opill { background: rgba(255, 255, 255, .18); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25); }
 /* A soft press on tappable cards, desktop and phone alike; it springs back on release */
 .insight, .list a.row, .hm-cell { transition: transform .22s var(--ease-out), opacity var(--t-hover); }

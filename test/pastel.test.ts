@@ -14,10 +14,10 @@ const block = (k: string) => { const at = css.indexOf('html[data-theme="' + k + 
 const v = (b: string, name: string) => new RegExp('--' + name + ': (#[0-9a-f]{6})', 'i').exec(b)![1].toLowerCase();
 
 describe('Pastel themes', () => {
-  it('has 19 themes plus Auto and the picker groups every one of them once', () => {
-    expect(THEMES).toHaveLength(20);
+  it('has 20 themes plus Auto and the picker groups every one of them once', () => {
+    expect(THEMES).toHaveLength(21);
     const grouped = THEME_GROUPS.flatMap(g => g[1].map(x => x[0]));
-    expect(new Set(grouped).size).toBe(20);
+    expect(new Set(grouped).size).toBe(21);
     expect([...grouped].sort()).toEqual(THEMES.map(t => t[0]).sort());
     expect(THEME_GROUPS.map(g => g[0])).toEqual(['Calm', 'Pastel', 'Bold', 'Glass']);
   });
@@ -62,13 +62,37 @@ describe('Spatial glass theme', () => {
   });
 });
 
+describe('Matte glass theme', () => {
+  const b = block('matte');
+  it('is in the Glass group with a Storm Grey, Matte Black and Safety Orange swatch', () => {
+    expect(THEME_GROUPS.find(g => g[0] === 'Glass')![1].map(x => x[0])).toContain('matte');
+    const sw = THEMES.find(t => t[0] === 'matte')![2];
+    for (const c of ['#3a3f47', '#14151a', '#ff5f00']) expect(sw).toContain(c);
+    expect(v(b, 'accent')).toBe('#ff5f00');
+  });
+  it('keeps text, muted text and the orange accent at 4.5:1 on the page and on the card glass', () => {
+    const card = (bg: string) => { const a = .72, base = [14, 15, 17], px = [1, 3, 5].map(i => parseInt(bg.slice(i, i + 2), 16)); return '#' + px.map((x, i) => Math.round(base[i] * a + x * (1 - a)).toString(16).padStart(2, '0')).join(''); };
+    for (const surface of [v(b, 'bg'), '#2a2d33', card('#2a2d33')]) {
+      for (const c of ['text', 'muted', 'accent', 'good', 'spend', 'warn']) expect(ratio(v(b, c), surface), c + ' on ' + surface).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(ratio(v(b, 'on-accent'), v(b, 'accent'))).toBeGreaterThanOrEqual(4.5);
+  });
+  it('is matte: stacked cards, modest blur, CSS-only backdrop, no blur under cards', () => {
+    expect(css).toMatch(/html\[data-theme="matte"\] :is\(\.panel[^{]*\{[^}]*var\(--stack\)/);
+    expect(css).toMatch(/html\[data-theme="matte"\] body::after \{[^}]*radial-gradient/);
+    expect(css).not.toMatch(/html\[data-theme="matte"\][^{]*\{[^}]*url\(/);
+    expect(css).toMatch(/html\[data-theme="matte"\] \.tabbar \{[^}]*backdrop-filter: blur\(\d+px\)/);
+    expect(css).toMatch(/\[data-theme="matte"\]\) :is\(\.panel[^{]*\{ -webkit-backdrop-filter: none/);
+  });
+});
+
 describe('Theme picker', () => {
   it('is one radio group with a single tab stop and a swatch and name for every theme', () => {
     document.documentElement.setAttribute('data-theme', 'mint');
     const host = document.createElement('div'); host.innerHTML = String(themeButtons()); document.body.append(host);
     expect(host.querySelector('[role=radiogroup]')).not.toBeNull();
     const radios = [...host.querySelectorAll<HTMLElement>('[role=radio]')];
-    expect(radios).toHaveLength(20);
+    expect(radios).toHaveLength(21);
     expect(radios.filter(r => r.tabIndex === 0)).toHaveLength(1);
     expect(radios.filter(r => r.getAttribute('aria-checked') === 'true').map(r => r.getAttribute('aria-label'))).toEqual(['Mint Cream']);
     for (const r of radios) { expect(r.querySelector('.tp-sw')).not.toBeNull(); expect(r.querySelector('.tp-name')!.textContent).not.toBe(''); }
