@@ -26,6 +26,14 @@ const ICONS: Record<string, Html> = {
 };
 type Notes = { lead: string, items: [string, string, string][] };
 const NOTES: Record<string, Notes> = {
+  '2.3.0': { lead: 'Smarter insights, new themes, a Places tab, and more privacy and speed when you add transactions.', items: [
+    ['pulse', 'Look ahead', 'A 30-day cash flow calendar, a subscription audit, unusual charges, budget history and pace, and a Money health card.'],
+    ['glass', 'Seven new themes', 'Six pastel themes and Spatial glass, a dark visionOS-style theme. All 18 themes now pass a text contrast check.'],
+    ['bento', 'Places tab', 'Match payees to real stores, see pin suggestions on the Map, and pin several stores at once.'],
+    ['list', 'Faster to add', 'Add transaction starts from your last account and category, and warns before saving a duplicate. Swipe a To do card right to accept its suggestion.'],
+    ['lens', 'Private in the app switcher', 'Optionally blur amounts when you leave the app, so the iPhone app switcher shows no numbers.'],
+    ['phone', 'Smoother everywhere', 'Smoother month changes, a steadier page title and Overview scrolling, and a Reports activity grid.'],
+  ] },
   '2.2.1': { lead: 'A polish release: easier taps, readable hints, and cards that fill properly.', items: [
     ['phone', 'Easier to tap', 'Buttons and controls now have full-size tap areas, with clearer hint text and no tiny print.'],
     ['bento', 'Cards that fill', 'Top payees, Income sources, Savings goals and Safe to spend now fill and centre in their cards.'],
