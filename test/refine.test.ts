@@ -32,10 +32,11 @@ describe('elevation scale', () => {
 });
 
 describe('spring sheets', () => {
-  it('settles the drawer without overshoot and only the phone sheet may overshoot', () => {
+  it('settles the drawer without overshoot and nothing overshoots', () => {
     expect(block).toMatch(/--ease-settle: linear\(0, [^)]*1\)/);
     expect(block).not.toMatch(/--ease-settle: linear\([^)]*1\.0\d/);
     expect(block).toMatch(/@media \(max-width: 700px\) \{ \.drawer \{ transition-timing-function: var\(--ease-spring\)/);
+    expect(block).toMatch(/\.drawer \{ transition-duration: \.3s/);
   });
   it('still stops all motion when reduced motion is asked for', () => {
     expect(css).toMatch(/prefers-reduced-motion: reduce\) \{ \*, \*::before, \*::after \{ animation: none !important; transition: none !important; \} \}/);
