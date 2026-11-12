@@ -30,7 +30,7 @@ export function applyCustom(theme?: string) {
   else if (t === 'frosted' && SCENES.some(x => x[0] === c.scene) && c.scene !== 'room') d.setAttribute('data-scene', c.scene!);
   if (isHex(c.bg)) d.style.setProperty('--bg', c.bg);
   if (isHex(c.accent)) { d.style.setProperty('--accent', c.accent); d.style.setProperty('--on-accent', onAccent(c.accent)); }
-  if (t !== 'glass' && t !== 'frosted' && t !== 'spatial') return;
+  if (t !== 'glass' && t !== 'frosted' && t !== 'spatial' && t !== 'matte' && t !== 'polar') return;
   (['glow1', 'glow2', 'glow3'] as const).forEach(k => { if (isHex(c[k])) d.style.setProperty('--' + k, c[k]); });
   if (isHex(c.tint)) d.style.setProperty('--glass-base', c.tint);
   if (typeof c.frost === 'number') d.style.setProperty('--glass-tint', Math.max(0, Math.min(95, c.frost)) + '%');
