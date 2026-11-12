@@ -40,7 +40,7 @@ describe('Motion polish', () => {
     expect(css).not.toMatch(/\.sk \{[^}]*animation: shimmer /);
   });
   it('gives dialogs a spring only when linear() easing and motion are allowed', () => {
-    expect(css).toMatch(/@supports \(animation-timing-function: linear\(0, 1\)\) \{ @media \(prefers-reduced-motion: no-preference\) \{ dialog:not\(\.whatsnew\)\[open\] \{ animation: wn-in \.42s var\(--ease-spring\)/);
+    expect(css).toMatch(/@supports \(animation-timing-function: linear\(0, 1\)\) \{ @media \(prefers-reduced-motion: no-preference\) \{ dialog:not\(\.whatsnew\)\[open\] \{ animation: wn-in \.26s var\(--ease-spring\)/);
   });
   it('shares one hover duration token and gives donut segments press feedback', () => {
     expect(css).toContain('--t-hover: .14s');
@@ -89,5 +89,17 @@ describe('Money flow table alternative', () => {
     expect(src).toContain('${skTable(d)}</section>');
     expect(src).toContain('<details class="sk-table"><summary>Show as table</summary>');
     expect(css).toContain('.sk-table summary:focus-visible');
+  });
+});
+
+describe('calm motion for a money app', () => {
+  it('never overshoots: no cubic-bezier above 1 and no linear() spring above 1', () => {
+    for (const m of css.matchAll(/cubic-bezier\(([^)]*)\)/g)) { const v = m[1].split(',').map(Number); expect(v[1] <= 1 && v[3] <= 1, m[0]).toBe(true); }
+    for (const m of css.matchAll(/--ease-[a-z]+: linear\(([^)]*)\)/g)) for (const n of m[1].split(',').map(x => parseFloat(x))) expect(n <= 1, m[0]).toBe(true);
+  });
+  it('keeps the sheet, dialog, tab bar and toast motion fast (<= 300ms)', () => {
+    expect(css).not.toMatch(/\.drawer \{ transition-duration: \.5s/);
+    expect(css).not.toMatch(/transform \.42s cubic-bezier\(\.3, 1/);
+    expect(css).toMatch(/dialog\.whatsnew\[open\] \{ display: flex; animation: wn-in \.26s/);
   });
 });

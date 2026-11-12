@@ -71,14 +71,14 @@ describe('Matte glass theme', () => {
     expect(v(b, 'accent')).toBe('#ff5f00');
   });
   it('keeps text, muted text and the orange accent at 4.5:1 on the page and on the card glass', () => {
-    const card = (bg: string) => { const a = .72, base = [14, 15, 17], px = [1, 3, 5].map(i => parseInt(bg.slice(i, i + 2), 16)); return '#' + px.map((x, i) => Math.round(base[i] * a + x * (1 - a)).toString(16).padStart(2, '0')).join(''); };
+    const card = (bg: string) => { const a = .62, base = [14, 15, 17], px = [1, 3, 5].map(i => parseInt(bg.slice(i, i + 2), 16)); return '#' + px.map((x, i) => Math.round(base[i] * a + x * (1 - a)).toString(16).padStart(2, '0')).join(''); };
     for (const surface of [v(b, 'bg'), '#2a2d33', card('#2a2d33')]) {
       for (const c of ['text', 'muted', 'accent', 'good', 'spend', 'warn']) expect(ratio(v(b, c), surface), c + ' on ' + surface).toBeGreaterThanOrEqual(4.5);
     }
     expect(ratio(v(b, 'on-accent'), v(b, 'accent'))).toBeGreaterThanOrEqual(4.5);
   });
-  it('is matte: stacked cards, modest blur, CSS-only backdrop, no blur under cards', () => {
-    expect(css).toMatch(/html\[data-theme="matte"\] :is\(\.panel[^{]*\{[^}]*var\(--stack\)/);
+  it('is matte: glass-lift cards, modest blur, CSS-only backdrop, no blur under cards', () => {
+    expect(css).toMatch(/html\[data-theme="matte"\] :is\(\.panel[^{]*\{[^}]*var\(--glass-lift\)/);
     expect(css).toMatch(/html\[data-theme="matte"\] body::after \{[^}]*radial-gradient/);
     expect(css).not.toMatch(/html\[data-theme="matte"\][^{]*\{[^}]*url\(/);
     expect(css).toMatch(/html\[data-theme="matte"\] \.tabbar \{[^}]*backdrop-filter: blur\(\d+px\)/);

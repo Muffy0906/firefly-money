@@ -19,7 +19,7 @@
   html[data-theme="rose"] { --spend-t: #b8335b; --good-t: #1b7552; --warn-t: #855808; }
   @media (prefers-color-scheme: light) { html:not([data-theme]) { --spend-t: #a64d2a; --good-t: #3f6b54; --warn-t: #86600f; } }
   :root { --accent: var(--text); --on-accent: var(--bg); color-scheme: light dark; --ease-glide: cubic-bezier(.32, .72, 0, 1); --ease-out: cubic-bezier(.2, .8, .2, 1); --t-hover: .14s; --ease-enter: cubic-bezier(.2, .8, .2, 1); --ease-exit: cubic-bezier(.4, 0, 1, 1);
-    --ease-spring: linear(0, .22 6%, .62 14%, .92 24%, 1.04 33%, 1.05 40%, 1.02 52%, .995 66%, 1); }
+    --ease-spring: cubic-bezier(.32, .72, 0, 1); }
   html[data-theme="light"] { --bg: #f6f5f1; --panel: #ffffff; --line: #e9e7e0; --text: #22221f; --muted: #6a665c; --faint: #efede7;
     --good: #4f7260; --spend: #a85a38; --income: #9fb8a8; --warn: #b8893a; --shadow: 0 18px 50px rgba(34,34,31,.12); color-scheme: light; }
   html[data-theme="dark"] { --bg: #151614; --panel: #1d1e1b; --line: #2b2c28; --text: #ecebe6; --muted: #8f8d85; --faint: #262723;
@@ -371,9 +371,9 @@
   dialog .btns { display: flex; justify-content: flex-end; gap: 10px; }
   /* What's new (features/whatsnew.ts): the release's highlights, once after an update */
   dialog.whatsnew { width: min(440px, calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 48px); padding: 0; overflow: hidden; flex-direction: column; }
-  dialog.whatsnew[open] { display: flex; animation: wn-in .32s cubic-bezier(.2, .9, .3, 1.15); }
+  dialog.whatsnew[open] { display: flex; animation: wn-in .26s var(--ease-glide); }
   dialog.whatsnew[open]::backdrop { animation: wn-fade .25s ease; }
-  @supports (animation-timing-function: linear(0, 1)) { @media (prefers-reduced-motion: no-preference) { dialog:not(.whatsnew)[open] { animation: wn-in .42s var(--ease-spring); } } }
+  @supports (animation-timing-function: linear(0, 1)) { @media (prefers-reduced-motion: no-preference) { dialog:not(.whatsnew)[open] { animation: wn-in .26s var(--ease-spring); } } }
   @keyframes wn-in { from { opacity: 0; transform: translateY(14px) scale(.97); } }
   @keyframes wn-fade { from { opacity: 0; } }
   .whatsnew header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 22px 24px 0; }
@@ -527,7 +527,7 @@
   .goal-bar .track { height: 10px; margin: 12px 0 10px; }
   /* ---------- Page entrance (polish.ts playIn adds .anim; a card that arrives late gets .pop) ---------- */
   @media (prefers-reduced-motion: no-preference) {
-    #view.anim:not(.calm) :is(.hero, .kpi, .panel, .insight) { animation: riseIn .5s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 45ms); }
+    #view.anim:not(.calm) :is(.hero, .kpi, .panel, .insight) { animation: riseIn .3s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 45ms); }
     :is(#view.anim, .pop) .draw { stroke-dasharray: 1; animation: drawIn 1.1s .2s cubic-bezier(.45, 0, .2, 1) both; }
     :is(#view.anim, .pop) .draw.late { animation-delay: .4s; }
     :is(#view.anim, .pop) .area { animation: fadeIn .9s .55s ease both; }
@@ -1045,10 +1045,10 @@
   .tabbar .plus { margin: 0 auto; width: 48px; height: 48px; }
   .tab-pill { display: block; position: absolute; left: 0; top: 6px; bottom: 6px; border-radius: 999px; pointer-events: none; background: color-mix(in srgb, var(--accent) 15%, transparent); }
   .tab-pill.off { opacity: 0; }
-  .pill-ready .tab-pill { transition: transform .42s cubic-bezier(.3, 1.3, .5, 1), width .42s cubic-bezier(.3, 1.3, .5, 1), opacity .2s; }
+  .pill-ready .tab-pill { transition: transform .28s var(--ease-glide), width .28s var(--ease-glide), opacity .2s; }
   /* Folded while scrolling down (phone.ts): the bar shrinks away into the + button at the bottom right (#fab).
      Only transform and opacity move, so the phone never has to lay out or re-blur anything per frame. */
-  .tabbar { transform-origin: calc(100% - 30px) 50%; transition: transform .34s cubic-bezier(.3, 1.1, .4, 1), opacity .22s ease, visibility 0s; }
+  .tabbar { transform-origin: calc(100% - 30px) 50%; transition: transform .28s var(--ease-glide), opacity .22s ease, visibility 0s; }
   .tabbar.mini { transform: scale(.18, .7); opacity: 0; visibility: hidden; pointer-events: none;
     transition: transform .3s cubic-bezier(.5, 0, .7, .4), opacity .2s ease .06s, visibility 0s .3s; }
   @media (max-width: 900px) {
@@ -1226,8 +1226,8 @@
     --good: #74d9a6; --spend: #ff9d80; --income: #74d9a6; --warn: #f0c96b; --accent: #ff5f00; --on-accent: #120a05;
     --shadow: 0 18px 44px rgba(0, 0, 0, .38); --radius: 18px; color-scheme: dark;
     --ink: #eceef1; --frost-edge: inset 0 1px 0 rgba(255, 255, 255, .07), inset 0 0 0 1px rgba(255, 255, 255, .03);
-    --stack: 0 5px 0 -2px rgba(10, 11, 13, .72), 0 10px 0 -4px rgba(10, 11, 13, .42);
-    --glow1: #2f3339; --glow2: #2d3036; --glow3: #1d1f23; --glass-base: #0e0f11; --glass-tint: 72%; --glass-blur: 14px;
+    --glass-lift: inset 0 1px 0 rgba(255, 255, 255, .15), inset 0 -1px 0 rgba(0, 0, 0, .4), inset 0 0 28px rgba(255, 255, 255, .02), 0 1px 2px rgba(0, 0, 0, .45), 0 14px 30px -8px rgba(0, 0, 0, .55);
+    --glow1: #2f3339; --glow2: #2d3036; --glow3: #1d1f23; --glass-base: #0e0f11; --glass-tint: 62%; --glass-blur: 14px;
     background: var(--bg); }
   html[data-theme="matte"] body { background: transparent; }
   html[data-theme="matte"] body::after { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
@@ -1235,10 +1235,12 @@
       radial-gradient(50vmax 28vmax at 78% 0%, color-mix(in srgb, var(--glow2) 80%, transparent), transparent 70%),
       radial-gradient(36vmax 30vmax at 4% 20%, color-mix(in srgb, var(--glow1) 70%, transparent), transparent 70%),
       radial-gradient(60vmax 26vmax at 40% 106%, var(--glow3), transparent 72%),
+      radial-gradient(36vmax 26vmax at 100% 100%, rgba(255, 95, 0, .06), transparent 70%),
       linear-gradient(180deg, #2a2d33, var(--bg) 50%, #24272c); }
   html[data-theme="matte"] :is(.panel, .daycards tbody.day, .daycards > .center-empty, .kpi, .insight, .extra, .split, .login form, .dash-bar) {
-    background: linear-gradient(180deg, rgba(255, 255, 255, .035), rgba(255, 255, 255, 0)), color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent);
-    border: 1px solid rgba(255, 255, 255, .08); border-radius: 18px; box-shadow: var(--frost-edge), var(--stack), 0 16px 30px rgba(0, 0, 0, .3); margin-bottom: 10px; }
+    background: linear-gradient(160deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 38%, rgba(255, 255, 255, 0) 70%), color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent);
+    border: 1px solid rgba(255, 255, 255, .07); border-radius: 18px; box-shadow: var(--glass-lift); }
+  html[data-theme="matte"] .dash-wrap .insights { padding-bottom: 22px; margin-bottom: calc(var(--gap, 14px) - 24px); }
   html[data-theme="matte"] :is(.drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar, .ff-pop) {
     background: rgba(20, 21, 24, .94); border-color: rgba(255, 255, 255, .1); border-radius: 18px;
     -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
@@ -1255,11 +1257,11 @@
   html[data-theme="matte"] .big { color: var(--text); }
   html[data-theme="matte"] .appbar.scrolled { background: rgba(26, 28, 32, .78); }
   html[data-theme="matte"] .scrim { background: rgba(4, 5, 7, .5); }
-  html[data-theme="matte"] .side { background: rgba(14, 15, 17, .66); border: 1px solid rgba(255, 255, 255, .08); border-radius: 22px; box-shadow: var(--frost-edge), 0 14px 34px rgba(0, 0, 0, .3);
+  html[data-theme="matte"] .side { background: linear-gradient(160deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, 0) 50%), rgba(14, 15, 17, .62); border: 1px solid rgba(255, 255, 255, .07); border-radius: 22px; box-shadow: var(--glass-lift);
     -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
   html[data-theme="matte"] :is(.tab-pill, .nav a.on) { background: rgba(255, 95, 0, .16); box-shadow: inset 0 0 0 1px rgba(255, 95, 0, .35); }
   html[data-theme="matte"] :is(.tabbar a.on, .nav a.on) { color: var(--accent); }
-  html[data-theme="matte"] .tabbar { background: rgba(16, 17, 20, .9); border: 1px solid rgba(255, 255, 255, .09); box-shadow: var(--frost-edge), 0 14px 36px rgba(0, 0, 0, .5);
+  html[data-theme="matte"] .tabbar { background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, 0)), rgba(16, 17, 20, .86); border: 1px solid rgba(255, 255, 255, .08); box-shadow: var(--glass-lift);
     -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
   html[data-theme="matte"] .tabbar a { color: var(--muted); }
   html[data-theme="matte"] .tabbar a.on { color: var(--accent); }
@@ -1332,7 +1334,7 @@
     html.native-tabs main#view { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 49px + 28px) !important; }
     html.native-tabs .undo, html.native-tabs .toast { bottom: calc(env(safe-area-inset-bottom, 0px) + 62px); }
     /* iOS page sheet: the page behind steps back while a sheet is open */
-    html.shell #app { transform-origin: 50% var(--sy, 0px); transition: transform .42s cubic-bezier(.2,.9,.25,1), filter .42s; }
+    html.shell #app { transform-origin: 50% var(--sy, 0px); transition: transform .3s var(--ease-glide), filter .3s; }
     html.shell.sheet-open #app { transform: scale(.94); filter: brightness(.9); }
     html.shell.sheet-open, html.shell.sheet-open body { background: #000; }
     html.shell .scrim { background: rgba(0, 0, 0, .25); }
@@ -1427,7 +1429,7 @@
     .tabbar:not([hidden]) { display: grid; }
     .fab { right: calc(14px + env(safe-area-inset-right, 0px)); bottom: calc(13px + env(safe-area-inset-bottom, 0px)); z-index: 17;
       opacity: 0; visibility: hidden; transform: scale(.4); pointer-events: none; transition: transform .2s ease, opacity var(--t-hover) ease, visibility 0s .2s; }
-    .fab.on { opacity: 1; visibility: visible; transform: none; pointer-events: auto; transition: transform .42s cubic-bezier(.3, 1.5, .5, 1) .1s, opacity .2s ease .1s, visibility 0s; }
+    .fab.on { opacity: 1; visibility: visible; transform: none; pointer-events: auto; transition: transform .28s var(--ease-glide) .08s, opacity .2s ease .1s, visibility 0s; }
     .side { display: none !important; }
     main { padding-bottom: 110px !important; }
     .btn { padding: 10px 16px; } .btn.small { padding: 8px 13px; }
@@ -2569,7 +2571,7 @@ html[data-theme="dark"] { --e1: var(--rim), var(--lift); --e2: 0 1px 0 rgba(0,0,
    may, because the sheet fills in under itself (.drawer::after) */
 @supports (animation-timing-function: linear(0, 1)) {
   :root { --ease-settle: linear(0, .3 7%, .6 15%, .8 25%, .92 36%, .975 50%, .995 68%, 1); }
-  .drawer { transition-duration: .5s; transition-timing-function: var(--ease-settle); }
+  .drawer { transition-duration: .3s; transition-timing-function: var(--ease-settle); }
   @media (max-width: 700px) { .drawer { transition-timing-function: var(--ease-spring); } }
 }
 
