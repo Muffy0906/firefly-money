@@ -1,5 +1,5 @@
 import { html, htmlList, raw } from '../core/html';
-import { AuthError, PAGES, api, getAll, type ApiError } from '../core/api';
+import { AuthError, CACHE, PAGES, api, clearCache, getAll, type ApiError } from '../core/api';
 import { withAuth } from '../core/auth';
 import { App, cycleDay, el, fmtD, fmtDate, isoDate, money, monthRange, nowMonth, num, S, todayIso, weekStart } from '../core/base';
 import { confirmBox, head, opt, toast } from '../core/dom';
@@ -47,6 +47,7 @@ VIEWS.settings = async (r, paint) => {
   const months = group('months', 'Months & budgets', html`
     ${row('Month starts on', 'Your payday, if you like', html`<select aria-label="Month starts on" data-onchange="App.setCycleDay(this.value)">${htmlList([...Array(28)].map((_, i) => opt(i + 1, 'the ' + ordinal(i + 1), day)))}</select>`)}
     ${row('Budget warning', 'When a budget is this full', html`<select aria-label="Warn when a budget reaches" data-onchange="App.setBudgetAlert(this.value)">${htmlList([50, 60, 70, 75, 80, 85, 90, 95].map(p => opt(p, p + '%', alertPct)))}</select>`)}
+    ${row('Leave out closed accounts', 'Transactions to or from an inactive account stay out of lists, totals and charts. Its own page still shows them.', html`<input ${SWITCH} aria-label="Leave out closed accounts"${LS.get('hideInactive', false) ? ' checked' : ''} data-onchange="App.toggleHideClosed(this.checked)">`)}
     ${row('Leave out one-offs', 'Spending tagged “One-off” stays out of Spent, trends, pace and reports', html`<input ${SWITCH} aria-label="Leave out one-offs"${skipOneOffs() ? ' checked' : ''} data-onchange="App.toggleOneOffs(this.checked)">`)}`,
     'This month runs ' + fmtDate(ex.start) + ' – ' + fmtDate(ex.end) + '. Budgets, the Overview, recaps and reports all use it.' +
       (day > 1 ? ' Firefly’s own pages still use calendar months, and auto-budgets still reset on the 1st.' : ''));
@@ -375,6 +376,7 @@ function showKey(btn: HTMLElement | null) {
 }
 
 function toggleOneOffs(on: boolean) { LS.set('skipOneOffs', !!on); PAGES.clear(); toast(on ? 'One-offs left out of spending' : 'One-offs counted again'); }
+function toggleHideClosed(on: boolean) { LS.set('hideInactive', !!on); CACHE.clear(); clearCache(); PAGES.clear(); toast(on ? 'Closed accounts left out' : 'Closed accounts counted again'); }
 function toggleLogos(on: boolean) { LS.set('logos', !!on); toast(on ? 'Logos on' : 'Logos off'); }
 function toggleHaptics(on: boolean) { LS.set('haptics', !!on); if (on) buzz(); toast(on ? 'Haptics on' : 'Haptics off'); }
 // The month start day: stay on the current month, and redraw every page with the new ranges
@@ -402,6 +404,7 @@ const methods = {
   currency,
   toggleLogos,
   toggleOneOffs,
+  toggleHideClosed,
   toggleHaptics,
   toggleWorkLens,
   setLocale,
