@@ -221,10 +221,18 @@ async function billPay(id: string) {
     category: last && last.category_name || '', budget: last && last.budget_id ? String(last.budget_id) : '', ...(own ? { account: own } : {}) });
 }
 
+// Pay now on a credit card (Overview): a transfer into the card for what is owed; nothing is saved until the form is confirmed
+async function cardPay(id: string) {
+  await lists();
+  const a = S.lists!.accounts.find(x => String(x.id) === String(id)); if (!a) return;
+  newTx({ type: 'transfer', description: 'Payment to ' + a.name, amount: String(Math.round(Math.max(0, -a.balance) * 100) / 100), dest: String(a.id) });
+}
+
 // The methods markup handlers call (see events.ts), added to App and to its type
 const methods = {
   billForm,
   billPay,
+  cardPay,
   saveBill,
   subAdd,
   subIgnore,

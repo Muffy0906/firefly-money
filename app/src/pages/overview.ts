@@ -1,4 +1,3 @@
-import { payUrl } from '../core/paylink';
 import { type Html, html, htmlList } from '../core/html';
 import { api, getAll, sleep } from '../core/api';
 import { paceForecast } from '../features/projections';
@@ -242,12 +241,11 @@ function spendingPanel(cats: CatRow[], future: boolean, all: boolean, count = 6,
   const chart = shareChart(items, html`<span class="eyebrow">Spent</span><strong class="num">${money0(total)}</strong>`, 'Spending by category', { limit: count, ring: tileOpt('spending', 'style') !== 'bars', go: txHref({ type: 'withdrawal' }), rest: '#/categories' });
   return html`<section class="panel"><h2>Where it went</h2><p class="lead">Spending by category ${all ? 'of all time' : 'this month'}${cmp ? ', against last month' : ''}</p>${chart || html`<p class="empty">${future ? 'This month hasn’t started yet.' : 'No spending recorded ' + (all ? 'yet.' : 'this month.')}</p>`}</section>`;
 }
-// A card row: the whole row opens the account, and a Pay now button (owed > 0 and a known/own pay link) opens the issuer in a new tab
+// A card row: the whole row opens the account; Pay now (owed > 0) opens a transfer to the card for what is owed, like Pay now on a bill
 export function payRow(a: Account, v: number, paidOff: boolean, sparks: any = {}) {
   const main = html`<span class="name">${a.name}</span>${sparks[a.id] ? App.sparkline(sparks[a.id], paidOff) : ''}<span class="num">${paidOff && !v ? html`<span class="down">Paid off</span>` : money(v)}</span>`;
-  const url = paidOff && v > 0 ? payUrl(a.id, a.name) : '';
-  if (!url) return html`<a class="row" href="#/account/${a.id}">${main}</a>`;
-  return html`<div class="row payrow"><a class="rowmain" href="#/account/${a.id}">${main}</a><a class="paynow" href="${url}" target="_blank" rel="noopener noreferrer" aria-label="Pay ${a.name} now">Pay now</a></div>`;
+  if (!(paidOff && v > 0)) return html`<a class="row" href="#/account/${a.id}">${main}</a>`;
+  return html`<div class="row payrow"><a class="rowmain" href="#/account/${a.id}">${main}</a><button type="button" class="btn small primary" data-onclick="App.cardPay('${a.id}')" aria-label="Pay ${a.name} now">Pay now</button></div>`;
 }
 function balancesPanel(title: string, lead: string, items: Account[], val: (a: Account) => number, paidOff: boolean, sparks: any = {}, invest: Account[] = []) {
   const rows = htmlList([...items].sort((a, b) => val(b) - val(a)).map(a => payRow(a, val(a), paidOff, sparks)));

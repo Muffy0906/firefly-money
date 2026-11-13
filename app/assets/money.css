@@ -2586,6 +2586,5 @@ html[data-theme="dark"] { --e1: var(--rim), var(--lift); --e2: 0 1px 0 rgba(0,0,
 .row.payrow .rowmain .name { flex: 0 1 auto; min-width: 0; }
 .row.payrow .rowmain .spark { margin-left: auto; margin-right: 0; }
 .row.payrow .rowmain .num { flex: none; }
-.paynow { flex: none; white-space: nowrap; padding: 4px 10px; font-size: 12px; font-weight: 600; line-height: 1.3; border-radius: 999px; border: 1px solid var(--line); color: var(--accent, inherit); text-decoration: none; background: transparent; }
-.paynow:hover, .paynow:focus-visible { border-color: currentColor; }
-@media (max-width: 340px) { .row.payrow { gap: 8px; } .row.payrow .rowmain { gap: 8px; } .row.payrow .rowmain .spark { display: none; } .paynow { padding: 4px 8px; } }
+.row.payrow .btn { flex: none; white-space: nowrap; }
+@media (max-width: 340px) { .row.payrow { gap: 8px; } .row.payrow .rowmain { gap: 8px; } .row.payrow .rowmain .spark { display: none; } .row.payrow .btn { padding-inline: 11px; } }
