@@ -1,4 +1,5 @@
 import { type ApiData, S, arr, todayIso } from './base';
+import { LS } from './helpers';
 import { progPages, progReq } from './progress';
 
 /* ================= API ================= */
@@ -39,10 +40,25 @@ function settled(u: URL) {
   const q = u.searchParams, end = q.get('end') || q.get('date');
   return !!end && /^\d{4}-\d{2}-\d{2}$/.test(end) && end < todayIso().slice(0, 8) + '01' && !q.has('query');
 }
+// Settings → "Leave out closed accounts": transactions to or from an inactive account stay out of lists and totals.
+// lists() fills the two sets; a closed account's own page still shows everything it has.
+export const HIDE = { active: [] as string[], inactive: new Set<string>() };
+export const hideClosed = () => !!LS.get('hideInactive', false) && HIDE.inactive.size > 0;
+// Insight totals take the accounts to count, so ask for the open ones only; lists drop the groups that touch a closed one.
+export function hideParams(path: string, u: URL) {
+  if (!hideClosed() || !path.startsWith('/insight/') || u.searchParams.has('accounts[]')) return;
+  HIDE.active.forEach(id => u.searchParams.append('accounts[]', id));
+}
+export function hideGroups(path: string, res: ApiData): ApiData {
+  if (!hideClosed() || !/^\/(transactions|search\/transactions|(budgets|categories|tags|bills)\/[^/]+\/transactions)$/.test(path) || !res || !Array.isArray(res.data)) return res;
+  const closed = (t: ApiData) => HIDE.inactive.has(String(t.source_id)) || HIDE.inactive.has(String(t.destination_id));
+  return { ...res, data: res.data.filter((g: ApiData) => !((g.attributes && g.attributes.transactions) || []).some(closed)) };
+}
 export async function api(path: string, opt: ApiOpts = {}): Promise<ApiData> {
   const u = new URL('/api/v1' + path, location.origin);
   for (const [k, v] of Object.entries(opt.params || {})) if (v !== undefined && v !== null && v !== '') u.searchParams.set(k, String(v));
   const method = opt.method || 'GET';
+  if (method === 'GET') hideParams(path, u);
   if (method === 'GET' && !opt.as && !opt.fresh) {
     const key = u.toString(), hit = CACHE.get(key);
     if (hit && (hit.t >= S.freshAfter || (hit.t >= (S.settledAfter || 0) && Date.now() - hit.t < SETTLED_FOR && settled(u)))) {
@@ -50,7 +66,7 @@ export async function api(path: string, opt: ApiOpts = {}): Promise<ApiData> {
       if (S.swr && !S.swrOff) { S.staleTok = S.tok; return hit.v; }      // out of date: show it now, update after
     }
     if (INFLIGHT.has(key)) return INFLIGHT.get(key);
-    const pr = apiRaw(u, opt).then(v => { const e = { t: Date.now(), v }; CACHE.set(key, e); return v; }).finally(() => INFLIGHT.delete(key));
+    const pr = apiRaw(u, opt).then(v => hideGroups(path, v)).then(v => { const e = { t: Date.now(), v }; CACHE.set(key, e); return v; }).finally(() => INFLIGHT.delete(key));
     INFLIGHT.set(key, pr);
     return pr;
   }

@@ -1,4 +1,4 @@
-import { clearCache, getAll } from './api';
+import { HIDE, clearCache, getAll } from './api';
 import { type ApiData, S, money, num, parseAmount } from './base';
 
 /* ================= Reference lists (cached) ================= */
@@ -68,6 +68,7 @@ export async function lists(force?: boolean): Promise<Lists> {
   };
   S.currency = (L.currencies.find(c => c.primary) || {} as { code?: string }).code || (acc.find(a => isAsset(a) && a.currency) || {}).currency || S.currency;
   L.foreign = L.currencies.filter(c => c.enabled && c.code !== S.currency);
+  HIDE.inactive = new Set(acc.filter(a => !a.active).map(a => a.id)); HIDE.active = acc.filter(a => (isAsset(a) || isLiab(a)) && a.active).map(a => a.id);
   S.lists = L; S.listsAt = Date.now();
   return L;
 }
