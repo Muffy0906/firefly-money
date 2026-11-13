@@ -24,7 +24,7 @@ export const safeUrl = (s: string): string => {
   if (!/^[a-z][a-z0-9+.-]*:/i.test(t)) t = 'https://' + t;
   try { const u = new URL(t); return u.protocol === 'https:' && u.hostname.includes('.') ? u.href : ''; } catch (e) { return ''; }
 };
-export const issuerUrl = (name: string): string => (ISSUERS.find(([re]) => re.test(name)) || [, ''])[1] as string;
+export const issuerUrl = (name: string): string => ISSUERS.find(([re]) => re.test(name))?.[1] ?? '';
 // Your own link for this card if set, else the known issuer's; '' when neither (no button)
 export function payUrl(id: string, name: string): string {
   const own = safeUrl((LS.get('payUrls', {}) as Record<string, string>)[id]);
