@@ -5,6 +5,7 @@ import { App, S, absDiff, arr, el, fmtDate, fmtDay, isoDate, money, money0, mont
 import { closeDrawer, confirmBox, formError, head, monthNav, openDrawer, opt, toast } from '../core/dom';
 import { type Group, nameAvatar, normGroup, signed, txRows } from '../core/feed';
 import { logoDomain, setLogoSite } from '../core/logo';
+import { customPayUrl, issuerUrl, safeUrl, setPayUrl } from '../core/paylink';
 import { LS, addDays, daysBetween } from '../core/helpers';
 import { type Account, invalidate, isAsset, isCard, isLiab, lists, normAccount, planText, stripPlan, withPlan } from '../core/lists';
 import { VIEWS, hashWith, route } from '../core/router';
@@ -173,6 +174,7 @@ async function accountForm(id: string | null, kind: string) {
     f = html`${f}<div class="grid2"><label>${k === 'asset' ? 'Opening balance' : 'Opening amount owed'}<input type="number" step="0.01" id="a-open" value="${a!.opening ? ob : ''}" placeholder="None"></label><label>Opening date<input type="date" id="a-opendate" value="${a!.openingDate ? String(a!.openingDate).slice(0, 10) : ''}"></label></div>`;
   }
   f = html`${f}<label>Website (for its logo)<input type="text" id="a-site" value="${a ? logoDomain(a.name) : ''}" placeholder="e.g. walmart.com" autocapitalize="off" spellcheck="false"></label><p class="hint">Guessed from the name. Clear it to show initials instead.</p>`;
+  if (k === 'card') f = html`${f}<label>Pay now link<input type="text" id="a-payurl" value="${id ? customPayUrl(id) : ''}" placeholder="${a && issuerUrl(a.name) ? 'Using ' + new URL(issuerUrl(a.name)).hostname : 'e.g. mybank.com/pay'}" autocapitalize="off" spellcheck="false"></label><p class="hint">Opens in a new tab from the Pay now button on Overview. Leave blank to use the known issuer; nothing is paid in the app.</p>`;
   f = html`${f}<label>Notes<textarea id="a-notes" rows="3">${a ? (k === 'liability' ? stripPlan(a.notes) : a.notes) : ''}</textarea></label>`;
   if (id) f = html`${f}<label class="check"><input type="checkbox" id="a-active"${a!.active ? ' checked' : ''}> Active</label>`;
   if (id && (k === 'asset' || k === 'card' || k === 'liability')) f = html`${f}<label class="check"><input type="checkbox" id="a-networth"${a!.netWorth ? ' checked' : ''}> Include in net worth</label>`;
@@ -186,6 +188,8 @@ async function saveAccount() {
   if (!b.name) return formError('Give the account a name.');
   const site = v('a-site').toLowerCase().replace(/^[a-z]+:\/\//, '').replace(/^www\./, '').split(/[/?#]/)[0];
   if (site && !/^[a-z0-9][a-z0-9.-]*\.[a-z]{2,12}$/.test(site)) return formError('The website should look like walmart.com.');
+  const pay = v('a-payurl');
+  if (pay && !safeUrl(pay)) return formError('The pay link should look like mybank.com/pay.');
   if (kind === 'asset') { b.type = 'asset'; b.account_role = v('a-role'); b.account_number = v('a-number'); }
   if (kind === 'card') { b.type = 'asset'; b.account_role = 'ccAsset'; b.credit_card_type = 'monthlyFull'; b.monthly_payment_date = v('a-paydate'); }
   if (kind === 'liability') {
@@ -215,6 +219,7 @@ async function saveAccount() {
   await busy(el('accSave'), async () => {
     const res = id ? await api('/accounts/' + id, { method: 'PUT', body: b }) : await api('/accounts', { method: 'POST', body: b });
     setLogoSite(b.name, site, name);
+    if (id && kind === 'card') setPayUrl(id, pay);
     invalidate(); closeDrawer(); toast(id ? 'Account saved' : 'Account created');
     if (!id && res && res.data) location.hash = '#/account/' + res.data.id; else route();
   });
