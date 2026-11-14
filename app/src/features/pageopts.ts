@@ -20,7 +20,7 @@ export const PAGE_OPTS: Record<string, { title: string, opts: PageOpt[] }> = {
     { id: 'share', label: 'Breakdowns', hint: 'The category, budget, tag and payee cards', def: 'donut', choices: STYLE_SHARE },
     { id: 'rows', label: 'Rows in each breakdown', def: 12, choices: [[6, '6'], [8, '8'], [12, '12'], [20, '20']] },
     on('kpis', 'Totals'), on('lines', 'Earned vs. spent'), on('ring', 'Where it went'), on('months', 'Cash flow by month', true, 'For periods longer than a month'),
-    on('activity', 'Activity grid', true, 'A year of days, darker when you spend more'),
+    on('activity', 'Activity grid', true, 'A year of days, stronger colour when you spend more'),
     on('weekday', 'Spending by weekday', false, 'Which days of the week you spend the most'),
     on('daily', 'Average day', false, 'What a typical day cost, and your biggest days'),
     on('creep', 'Lifestyle creep', true, 'Income against fixed and everyday spending over 12 months'),
