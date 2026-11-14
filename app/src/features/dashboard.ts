@@ -21,7 +21,7 @@ export const DASH_NAMES: Record<string, string> = { safe: 'Safe to spend', atten
 // One line on each card, for the Add cards list in Customize
 const DASH_ABOUT: Record<string, string> = { safe: 'What you can spend until payday', attention: 'Drafts, bills due, budgets running out',
   spending: 'Spending by category', budgets: 'How each budget is doing', cash: 'Bank account balances', cards: 'What you owe on each card',
-  loans: 'Loan balances and payoff', bills: 'Bills due soon', heatmap: 'A calendar of what you spent each day', activity: 'A grid of every day you spent, darker when you spend more', flow: 'Income flowing into spending',
+  loans: 'Loan balances and payoff', bills: 'Bills due soon', heatmap: 'A calendar of what you spent each day', activity: 'A grid of every day you spent, stronger colour when you spend more', flow: 'Income flowing into spending',
   cashflow: 'Earned vs. spent by month', recent: 'Your latest transactions', payees: 'Who you paid the most', income: 'Where your money came from',
   goals: 'Piggy bank progress', networth: 'Net worth over time', pace: 'This month’s spending against last month, day by day',
   savings: 'How much of your income you kept, month by month', trends: 'Your biggest categories over the last months',

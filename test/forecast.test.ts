@@ -103,3 +103,17 @@ describe('forecast: bills paid from another account', () => {
     expect(run([], bills, { '40': 'amex', '41': '1' }, ['amex']).map(e => e.label)).toContain('Claude (Anthropic)');
   });
 });
+
+describe('bill paid before its due date', () => {
+  const monthlyBill = (pay: string[], paid: string[]) => bill('50', 'Phone', 80, pay, paid).attributes;
+  it('is not overdue once the date has passed', () => {
+    const at = monthlyBill(['2026-01-10', '2026-02-10'], ['2026-01-05']);
+    at.repeat_freq = 'monthly';
+    expect(billDueDates(at)).toEqual(['2026-02-10']);
+  });
+  it('stays overdue when nothing was paid in its cycle', () => {
+    const at = monthlyBill(['2026-01-10'], ['2025-11-20']);
+    at.repeat_freq = 'monthly';
+    expect(billDueDates(at)).toEqual(['2026-01-10']);
+  });
+});

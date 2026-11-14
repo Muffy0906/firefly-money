@@ -20,7 +20,18 @@ export const billAmount = (at: ApiData) => at.amount_avg != null ? num(at.amount
    range (a yearly bill's next date), so a page about one period keeps only the dates in it. */
 export function billDueDates(at: ApiData, range?: { start?: string, end?: string }) {
   const due = [...new Set<string>((at.pay_dates || []).map((d: unknown) => String(d).slice(0, 10)))].sort();
-  return due.filter(d => (!range || !range.start || d >= range.start) && (!range || !range.end || d <= range.end));
+  const paid = (at.paid_dates || []).map((p: ApiData) => String(p.date).slice(0, 10)), t = todayIso();
+  // Firefly keeps a due date that was paid early (the charge is before it), so it'd read as overdue: a date already past with a payment in its own cycle is settled
+  const settled = (d: string) => d < t && paid.some((x: string) => x <= d && x > cycleBefore(at, d));
+  return due.filter(d => (!range || !range.start || d >= range.start) && (!range || !range.end || d <= range.end) && !settled(d));
+}
+function cycleBefore(at: ApiData, d: string): string {
+  const st = STEP[at.repeat_freq], k = (at.skip || 0) + 1;
+  if (!st) return d;
+  const [mo, dd] = st;
+  if (!mo) return addDays(d, -dd * k);
+  const y = +d.slice(0, 4), m = +d.slice(5, 7) - 1 - mo * k, day = +d.slice(8, 10);
+  return isoDate(new Date(y, m, Math.min(day, new Date(y, m + 1, 0).getDate()), 12));
 }
 /* The next date a bill is due on or after `from`. Firefly doesn't always send next_expected_match, and pay_dates only covers the range asked
    for, so the date is worked out from the bill's own schedule (first date, how often, how many to skip) when neither has one. null when the bill has ended. */

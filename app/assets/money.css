@@ -2412,7 +2412,7 @@ html[data-theme="sakura"] .panel,html[data-theme="mint"] .panel,html[data-theme=
 .tp-name { min-width: 0; overflow-wrap: anywhere; line-height: 1.2; }
 .tp.on::after { content: ""; flex: none; margin-left: auto; width: 7px; height: 12px; border: solid var(--accent); border-width: 0 2px 2px 0; transform: translate(-1px, -2px) rotate(45deg); }
 
-/* ---------- Activity grid: a year of days, a week to a column, darker = more spent ---------- */
+/* ---------- Activity grid: a year of days, a week to a column, stronger colour = more spent ---------- */
 html { --ag: var(--spend); }
 .ag-scroll { height: 143px; margin: -6px; overflow-y: hidden; box-sizing: border-box; align-items: flex-start; display: flex; flex-direction: row-reverse; overflow-x: auto; padding: 6px; -webkit-mask-image: linear-gradient(to right, transparent 0, #000 14px); mask-image: linear-gradient(to right, transparent 0, #000 14px); scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .ag-wrap { --agm: 14px; flex: none; margin-right: auto; min-width: 0; display: grid; gap: 3px; }
