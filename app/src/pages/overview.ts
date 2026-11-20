@@ -15,7 +15,7 @@ import { SC_KEYS, SC_TILES, loadScore, scorecardOn, scorecardTile, scoreTile } f
 import type { Score } from '../features/scorecard';
 import { type Buy, HABIT_DAYS, habitStats, habitsHiddenToday, habitsOn, habitsPanel } from '../features/habits';
 import { DASH_NAMES, tileOn, tileOpt } from '../features/dashboard';
-import { activityPanel, activityRange, barChart, paceChart, ring, shareChart, sparkBars, twoLines } from '../features/charts';
+import { activityPanel, activityRange, barChart, categoryTagBreakdown, paceChart, ring, shareChart, sparkBars, twoLines } from '../features/charts';
 import { type NetWorthPoint, nwGear, nwLine, nwOptsForm, nwWords } from '../features/networth';
 import { bindSwipe } from '../features/phone';
 import { drafts } from '../features/txform';
@@ -92,7 +92,11 @@ VIEWS[''] = async (r, paint) => {
     // Habits work from the last 13 weeks of purchases, whatever month is showing (from Firefly only, nothing when it is down)
     // The scorecard works from the last 12 months and shows nothing when Firefly is down
     scorecardShown() ? loadScore() : none,
-    habitsShown() ? getAll('/transactions', { start: addDays(t0, -(HABIT_DAYS - 1)), end: t0, type: 'withdrawal' }).then(tx => tx.map(normGroup).flatMap(g => g.splits.filter(x => x.type === 'withdrawal').map(x => ({ date: String(x.date), amount: x.amount, category: x.category || '' })))).catch(() => null) : none]);
+    habitsShown() ? getAll('/transactions', { start: addDays(t0, -(HABIT_DAYS - 1)), end: t0, type: 'withdrawal' }).then(tx => tx.map(normGroup).flatMap(g => g.splits.filter(x => x.type === 'withdrawal').map(x => ({ date: String(x.date), amount: x.amount, category: x.category || '' })))).catch(() => null) : none,
+    on('spending') && tileOpt('spending', 'style') !== 'bars' ? coreP.then(c => categoryTagBreakdown(cur.start, cur.end, [
+      ...arr(c[1]).map(x => ({ name: String(x.name), v: absDiff(x) })),
+      ...(sumDiff(c[3]) ? [{ name: 'Uncategorized', v: sumDiff(c[3]) }] : []),
+    ])).catch(() => new Map<string, Map<string, number>>()) : none]);
   slowP.catch(() => {});
   if (r.at) { await Promise.all([coreP, slowP]).catch(() => {}); return; }     // loading a month ahead: the data is all it needs
   const [summary, catNow, catPrev, noCatNow, noCatPrev, trend, recent, budgets, limits, bills, uncat, allTot, prevSoFar] = await coreP;
@@ -114,7 +118,7 @@ VIEWS[''] = async (r, paint) => {
   let unusual: Unusual | null = null, lastSlow: ApiData[] | null = null;     // odd charges: found after the page is up (below)
   const build = (slow: ApiData[] | null) => {
     lastSlow = slow;
-    const [prog, safe, insights, sparks, dayTx, incomeSrc, payNow, payPrev, piggies, nw, prevTx, monthCats, actTx, subAudit, scoreData, habTx] = slow || [];
+    const [prog, safe, insights, sparks, dayTx, incomeSrc, payNow, payPrev, piggies, nw, prevTx, monthCats, actTx, subAudit, scoreData, habTx, tagTotals] = slow || [];
     const wait = (k: string) => slow ? null : skeletonPanel(k);
     // A card with nothing to show for this month says so rather than vanishing, so the cards around it stay put
     const idle = (k: string, why = future ? 'Fills in once this month starts.' : 'Shows for one month at a time: pick a month at the top.') => quietPanel(k, why);
@@ -125,7 +129,7 @@ VIEWS[''] = async (r, paint) => {
       ['insights', monthOnly ? idle('insights') : wait('insights') ?? (insights || quietPanel('insights', 'Nothing unusual this month.'))],
       ['safe', future ? idle('safe') : wait('safe') ?? (safe || idle('safe'))],
       ['attention', attentionPanel({ uncat, uncatQ, bills: arr(bills), budgets: arr(budgets), limits, future, unusual })],
-      ['spending', spendingPanel([...cats.values()], future, all, tileOpt('spending', 'count'), tileOpt('spending', 'compare'), noneHref('category', cur))],
+      ['spending', spendingPanel([...cats.values()], future, all, tileOpt('spending', 'count'), tileOpt('spending', 'compare'), noneHref('category', cur), tagTotals)],
       ['budgets', budgetsMini(arr(budgets), limits, all, tileOpt('budgets', 'unset'), all || future ? null : cur)],
       ['cash', balancesPanel('Cash & savings', 'Bank account balances', cashShown.filter(a => !INVEST_RE.test(a.name)), a => a.balance, false, tileOpt('cash', 'sparks') ? sparks : {}, cashShown.filter(a => INVEST_RE.test(a.name)))],
       ['cards', balancesPanel('Credit cards', 'Current balances owed', cardsShown, a => Math.max(0, -a.balance), true, tileOpt('cards', 'sparks') ? sparks : {})],
@@ -279,12 +283,12 @@ function earnedTile(income: number, spend: number, part = false) {
   const sub = !income && !spend ? 'Nothing came in yet' : kept >= 0 ? html`Kept <span class="down num">${money0(kept)}</span>${income ? html` · <span class="${part ? 'neutral' : ''}"${part ? html` title="Not final: the month isn't over"` : ''}>${pct}%</span>` : ''}` : html`<span class="up num">${money0(-kept)}</span> more out than in`;
   return html`<section class="panel stat earned"><div class="eyebrow">Earned${part ? ' so far' : ''}</div><div class="stat-v num go-num" data-count="${income}" data-go="${txHref({ type: 'deposit' })}" title="See this income">${money0(income)}</div><div class="sub-s">${sub}</div><div class="io">${bar('In', income, 'in')}${bar('Out', spend, kept < 0 ? 'over' : 'out')}</div></section>`;
 }
-function spendingPanel(cats: CatRow[], future: boolean, all: boolean, count = 6, compare = true, uncat = '') {
+function spendingPanel(cats: CatRow[], future: boolean, all: boolean, count = 6, compare = true, uncat = '', tagTotals?: Map<string, Map<string, number>>) {
   const cmp = compare && !all, total = cats.reduce((t, c) => t + c.amt, 0);
   const items = cats.map(c => {
     const d = c.amt - c.prev;
     const vs = !cmp ? '' : !c.prev ? ' · new' : Math.abs(d) < 1 ? ' · same' : html` · <span class="${d > 0 ? 'up' : 'down'}">${money0(Math.abs(d))} ${d > 0 ? 'more' : 'less'}</span>`;
-    return { name: c.name, v: c.amt, href: c.id ? '#/transactions?category=' + c.id : c.name === 'Uncategorized' ? uncat || undefined : undefined, sub: html`${money0(c.amt)}${vs}` };
+    return { name: c.name, v: c.amt, href: c.id ? '#/transactions?category=' + c.id : c.name === 'Uncategorized' ? uncat || undefined : undefined, sub: html`${money0(c.amt)}${vs}`, children: [...(tagTotals?.get(c.name) || new Map())].map(([name, v]) => ({ name, v })) };
   });
   const chart = shareChart(items, html`<span class="eyebrow">Spent</span><strong class="num">${money0(total)}</strong>`, 'Spending by category', { limit: count, ring: tileOpt('spending', 'style') !== 'bars', go: txHref({ type: 'withdrawal' }), rest: '#/categories' });
   return html`<section class="panel">${panelHead('Where it went', html`Spending by category ${all ? 'of all time' : 'this month'}${cmp ? ', against last month' : ''}`)}${chart || html`${emptyNote(html`${future ? 'This month hasn’t started yet.' : 'No spending recorded ' + (all ? 'yet.' : 'this month.')}`)}`}</section>`;

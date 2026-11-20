@@ -489,17 +489,21 @@
   :is(.donut, .ring) circle { fill: none; }
   .donut .base { stroke: var(--faint); stroke-width: 14; }
   .donut .seg { stroke-width: 14; }
+  .nested-donut .cat-seg.cat-expanded { opacity: 0; pointer-events: none; }
+  .nested-donut .tag-seg { stroke-width: 14; opacity: 0; pointer-events: none; transition: opacity var(--t-hover), stroke-width var(--t-hover); }
+  .nested-donut .tag-seg.tag-show { opacity: 1; pointer-events: stroke; }
   .donut .seg { transition: stroke-width var(--t-hover), opacity var(--t-hover); cursor: pointer; }
   .donut .seg:hover, .donut.hot .seg.on { stroke-width: 18; }
   .donut .seg:active { stroke-width: 20; }
   .chart .pt:active .dot { r: 5; }
-  .donut.hot .seg:not(.on) { opacity: .35; }
+  .donut.hot .seg:not(.on):not(.tag-seg) { opacity: .35; }
   .share .part { transition: opacity var(--t-hover); }
   .share:has(.donut.hot) .part:not(.hot) { opacity: .45; }
   :is(.donut, .ring) .mid { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; line-height: 1.2; pointer-events: none; }
   .donut .mid strong { font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
   .donut .mid .eyebrow { margin: 0 0 2px; }
   .parts { display: flex; flex-direction: column; gap: 12px; }
+  .part-wrap { min-width: 0; }
   .part { display: grid; grid-template-columns: 10px minmax(0, 8fr) minmax(0, 5fr) 38px; gap: 12px; align-items: center; font-size: var(--fs-sm); }
   .part > i { width: 9px; height: 9px; border-radius: 50%; }
   .part .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

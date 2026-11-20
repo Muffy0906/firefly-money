@@ -5,6 +5,7 @@ import { SERIES, normGroup, signed, type Group } from '../core/feed';
 import { addDays, LS, daysBetween } from '../core/helpers';
 import type { Account } from '../core/lists';
 import { panelHead } from '../core/ui';
+import { t } from '../core/spanish';
 
 /* ---------- Shapes the charts share: smooth lines, donuts and progress rings ---------- */
 // A smooth line through the points. Monotone (as d3's curveMonotoneX), so it never bulges past a peak or dips
@@ -29,23 +30,25 @@ export function smoothPath(pts: [number, number][]) {
   return d;
 }
 export { SERIES };
-export type Part = { name: string, v: number, color?: string, go?: string };
+export type Part = { name: string, v: number, color?: string, go?: string, detail?: string, key?: string };
 // A ring split into parts, with something (the total) in the middle. Each slice is a dashed circle, so it can sweep
 // in (see .anim in money.css): --at is when it starts, as a share of the sweep.
 // go: where the total in the middle leads; each part's own go is where its slice does
 export function donut(parts: Part[], middle: Html | string, label: string, go?: string) {
+  return html`<div class="donut"><svg viewBox="0 0 120 120" role="img" aria-label="${label}"><circle class="base" cx="60" cy="60" r="48"/>${donutSegments(parts, 48)}</svg><div class="mid"${go ? html` data-go="${go}" title="See these transactions"` : ''}>${middle}</div></div>`;
+}
+function donutSegments(parts: Part[], radius: number) {
   const total = parts.reduce((s, p) => s + p.v, 0) || 1, gap = parts.length > 1 ? .9 : 0;
   let at = 0;
-  const segs = htmlList(parts.map((p, i) => {
+  return htmlList(parts.map((p, i) => {
     const len = Math.max(0, p.v / total * 100 - gap), off = at; at += p.v / total * 100;
-    return html`<circle class="seg" cx="60" cy="60" r="48" pathLength="100" stroke="${p.color || SERIES[i % SERIES.length]}" stroke-dasharray="${len.toFixed(2)} ${(100 - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" style="--at:${(off / 100).toFixed(3)}" data-tip="${p.name + ' · ' + money0(p.v) + ' · ' + Math.round(p.v / total * 100) + '%'}" data-i="${i}"${p.go ? html` data-go="${p.go}"` : ''}></circle>`;
+    return html`<circle class="seg${p.key ? ' cat-seg' : ''}" cx="60" cy="60" r="${radius}" pathLength="100" stroke="${p.color || SERIES[i % SERIES.length]}" stroke-dasharray="${len.toFixed(2)} ${(100 - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" style="--at:${(off / 100).toFixed(3)}" data-tip="${p.name + ' · ' + money0(p.v) + ' · ' + Math.round(p.v / total * 100) + '%'}${p.detail ? '\n' + p.detail : ''}" data-i="${i}"${p.key ? html` data-cat="${p.key}"` : ''}${p.go ? html` data-go="${p.go}"` : ''}></circle>`;
   }));
-  return html`<div class="donut"><svg viewBox="0 0 120 120" role="img" aria-label="${label}"><circle class="base" cx="60" cy="60" r="48"/>${segs}</svg><div class="mid"${go ? html` data-go="${go}" title="See these transactions"` : ''}>${middle}</div></div>`;
 }
 // A breakdown of a whole (spending by category, payees, income sources): a donut with the total in the middle, then
 // a row for each part with its colour, a bar and its share. The biggest six get colours and their own slice; the rest
 // are grey and share one slice. limit: rows listed (the others are summed into one); ring false: the rows only.
-export type Share = { name: string, v: number, href?: string, sub?: Html | string };
+export type Share = { name: string, v: number, href?: string, sub?: Html | string, children?: { name: string, v: number }[] };
 // go: where the total leads (all of it); a row's href is where its slice, name and bar lead; rest: where the grouped row does
 export function shareChart(rows: Share[], middle: Html | string, label: string, o: { limit?: number, ring?: boolean, other?: string, go?: string, rest?: string } = {}) {
   rows = rows.filter(r => r.v > 0).sort((a, b) => b.v - a.v);
@@ -53,12 +56,51 @@ export function shareChart(rows: Share[], middle: Html | string, label: string, 
   const limit = o.limit || 6, total = rows.reduce((s, r) => s + r.v, 0), shown: (Share & { c: string })[] = rows.slice(0, limit).map((r, i) => ({ ...r, c: i < 6 ? SERIES[i] : 'var(--muted)' }));
   const rest = rows.slice(limit);
   if (rest.length === 1) shown.push({ ...rest[0], c: 'var(--muted)' });
-  else if (rest.length) shown.push({ name: o.other || 'Everything else', v: rest.reduce((s, r) => s + r.v, 0), c: 'var(--muted)', sub: rest.length + ' more', href: o.rest });
-  const slices: Part[] = shown.slice(0, 6).map(r => ({ name: r.name, v: r.v, color: r.c, go: r.href })), grey = shown.slice(6).reduce((s, r) => s + r.v, 0);
-  if (grey) slices.push({ name: shown.length > 7 ? 'Everything else' : shown[6].name, v: grey, color: 'var(--muted)', go: shown.length > 7 ? o.rest : shown[6].href });
+  else if (rest.length) {
+    const sums = new Map<string, number>(), untagged: { name: string, v: number }[] = [];
+    for (const r of rest) for (const child of r.children || []) {
+      if (child.name === r.name) untagged.push({ name: r.name, v: child.v });
+      else sums.set(child.name, (sums.get(child.name) || 0) + child.v);
+    }
+    const ranked = [...sums].sort((a, b) => b[1] - a[1]), top = ranked.slice(0, 4), other = ranked.slice(4).reduce((s, x) => s + x[1], 0);
+    const children = [...untagged, ...top.map(([name, v]) => ({ name, v })), ...(other > 0 ? [{ name: t('Other tags'), v: other }] : [])];
+    shown.push({ name: o.other || t('Everything else'), v: rest.reduce((s, r) => s + r.v, 0), c: 'var(--muted)', sub: t('{count} more', { count: rest.length }), href: o.rest, children });
+  }
+  const tagDetail = (r: Share) => (r.children || []).filter(x => x.name !== r.name).map(x => x.name + ' · ' + money0(x.v)).join('\n');
+  const slices: Part[] = shown.slice(0, 6).map(r => ({ name: r.name, v: r.v, color: r.c, go: r.href, detail: tagDetail(r), key: r.name })), greyRows = shown.slice(6), grey = greyRows.reduce((s, r) => s + r.v, 0);
+  const greyName = shown.length > 7 ? t('Everything else') : shown[6]?.name;
+  if (grey) slices.push({ name: greyName!, v: grey, color: 'var(--muted)', go: shown.length > 7 ? o.rest : shown[6].href, detail: greyRows.map(tagDetail).filter(Boolean).join('\n'), key: greyName });
   const most = Math.max(1, ...shown.map(r => r.v));
-  const list = html`<div class="parts">${htmlList(shown.map(r => html`<div class="part"${r.href ? html` data-go="${r.href}"` : ''}><i style="background:${r.c}"></i><span class="name">${r.href ? html`<a href="${r.href}">${r.name}</a>` : r.name}${r.sub ? html`<span class="sub-s">${r.sub}</span>` : ''}</span><span class="track"><span class="fill" style="width:${(r.v / most * 100).toFixed(1)}%;background:${r.c}"></span></span><span class="num">${(r.v / total * 100).toFixed(0)}%</span></div>`))}</div>`;
-  return o.ring === false ? list : html`<div class="share">${donut(slices, middle, label, o.go)}${list}</div>`;
+  const list = html`<div class="parts">${htmlList(shown.map(r => html`<div class="part-wrap"><div class="part" data-cat="${r.name}"${r.href ? html` data-go="${r.href}"` : ''}${r.children && r.children.length ? html` data-tip="${r.name}\n${tagDetail(r)}"` : ''}><i style="background:${r.c}"></i><span class="name">${r.href ? html`<a href="${r.href}">${r.name}</a>` : r.name}${r.sub ? html`<span class="sub-s">${r.sub}</span>` : ''}</span><span class="track"><span class="fill" style="width:${(r.v / most * 100).toFixed(1)}%;background:${r.c}"></span></span><span class="num">${(r.v / total * 100).toFixed(0)}%</span></div></div>`))}</div>`;
+  const children = shown.flatMap((r, i) => (r.children || []).filter(x => x.v > 0).map(x => ({ ...x, parent: i > 5 ? greyName! : r.name, color: r.c })));
+  const inner = children.length ? nestedTagRing(children, total) : '';
+  return o.ring === false ? list : html`<div class="share">${inner ? html`<div class="donut nested-donut"><svg viewBox="0 0 120 120" role="img" aria-label="${label}"><circle class="base" cx="60" cy="60" r="48"/>${donutSegments(slices, 48)}${inner}</svg><div class="mid"${o.go ? html` data-go="${o.go}" title="See these transactions"` : ''}>${middle}</div></div>` : donut(slices, middle, label, o.go)}${list}</div>`;
+}
+function nestedTagRing(children: ({ name: string, v: number, parent: string, color: string })[], total: number) {
+  const gap = .9; let at = 0;
+  return htmlList(children.map((x, i) => {
+    const len = Math.max(0, x.v / total * 100 - gap), off = at; at += x.v / total * 100;
+    const tip = x.name === x.parent ? x.parent + ' · ' + money0(x.v) + ' · ' + Math.round(x.v / total * 100) + '%' : x.parent + '\n' + x.name + ' · ' + money0(x.v) + ' · ' + Math.round(x.v / total * 100) + '%';
+    return html`<circle class="seg tag-seg" cx="60" cy="60" r="48" pathLength="100" stroke="${x.color}" stroke-opacity="${i % 3 === 0 ? '.62' : i % 3 === 1 ? '.82' : '1'}" stroke-dasharray="${len.toFixed(2)} ${(100 - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" style="--at:${(off / 100).toFixed(3)}" data-parent="${x.parent}" data-tip="${tip}"></circle>`;
+  }));
+}
+// Tag amounts for the movements represented by category insight totals. Insights already net refunds and exclusions;
+// reconciling raw movements here keeps each category's tag ring equal to the amount shown by its outer slice.
+export async function categoryTagBreakdown(start: string, end: string, categories: { name: string, v: number }[]) {
+  const groups = await getAll('/transactions', { start, end, type: 'withdrawal' }), totals = new Map<string, Map<string, number>>();
+  for (const rawGroup of groups) for (const s of normGroup(rawGroup).splits) {
+    if (s.type !== 'withdrawal') continue;
+    const category = s.category || 'Uncategorized', tags = s.tags.length ? s.tags : [category], amount = Math.abs(s.amount) / tags.length;
+    let sums = totals.get(category); if (!sums) totals.set(category, sums = new Map());
+    for (const tag of tags) sums.set(tag, (sums.get(tag) || 0) + amount);
+  }
+  for (const category of categories) {
+    let sums = totals.get(category.name); if (!sums) totals.set(category.name, sums = new Map());
+    const actual = [...sums.values()].reduce((sum, value) => sum + value, 0);
+    if (actual > category.v && actual > 0) for (const [tag, value] of sums) sums.set(tag, value * category.v / actual);
+    else if (actual < category.v) sums.set(category.name, (sums.get(category.name) || 0) + category.v - actual);
+  }
+  return totals;
 }
 // A small trend line with a soft fill under it, stretched to its box (a number tile's picture)
 export function miniLine(vals: number[], color: string, label: string) {
