@@ -1,6 +1,7 @@
 import { html } from '../core/html';
 import { getAll } from '../core/api';
 import { todayIso } from '../core/base';
+import { t } from '../core/spanish';
 import { head, todoTabs } from '../core/dom';
 import { normGroup } from '../core/feed';
 import { addDays } from '../core/helpers';
@@ -16,6 +17,6 @@ VIEWS.places = async (r, paint) => {
   await lists();
   const groups = (await getAll('/transactions', { type: 'withdrawal', start: addDays(todayIso(), -365), end: todayIso() })).map(normGroup);
   const n = wantedStores(groups).reduce((a, w) => a + w.groups.length, 0);
-  paint(html`${head('To do', n ? n + ' purchase' + (n === 1 ? '' : 's') + ' to pin to a store' : 'Nothing to pin', '')}${todoTabs('places')}<section class="panel" id="storeList"></section>`);
+  paint(html`${head('To do', n ? t(n === 1 ? '{count} purchase to pin to a store' : '{count} purchases to pin to a store', { count: n }) : 'Nothing to pin', '')}${todoTabs('places')}<section class="panel" id="storeList"></section>`);
   suggestStores(groups, true, false);
 };

@@ -5,6 +5,7 @@
 // the API calls in the browser with made-up data, as plain files for GitHub Pages (or any static host).
 // GOATCOUNTER=<site code> adds GoatCounter visitor stats (cookie-free) to the demo; the Docker image never has them.
 import * as esbuild from 'esbuild';
+import { createHash } from 'node:crypto';
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 
 const demo = process.argv.includes('--demo');
@@ -45,7 +46,11 @@ if (demo) {
   const gcHost = `https://${gc}.goatcounter.com`;
   if (gc) csp = csp.replace("script-src 'self'", "script-src 'self' https://gc.zgo.at")
     .replace("connect-src 'self'", `connect-src 'self' ${gcHost}`).replace("img-src 'self'", `img-src 'self' ${gcHost}`);
-  const version = 'demo · ' + new Date().toISOString().slice(0, 10);
+  // Hash the shipped UI assets so a same-day rebuild cannot keep serving stale browser-cached files.
+  const assetHash = createHash('sha256');
+  for (const asset of ['app.js', 'demo.js', 'boot.js']) assetHash.update(readFileSync(`site/assets/js/${asset}`));
+  assetHash.update(readFileSync('app/assets/money.css'));
+  const version = 'demo-' + assetHash.digest('hex').slice(0, 12);
   const page = readFileSync('app/index.html', 'utf8')
     .replaceAll('${MONEY_VERSION}', version)
     .replaceAll('${FIREFLY_URL}', '')
@@ -62,7 +67,7 @@ if (demo) {
 <style>.demo-badge { position: fixed; left: 50%; transform: translateX(-50%); bottom: 12px; white-space: nowrap; z-index: 50; padding: 6px 12px; border-radius: 999px; font: 600 12px/1.4 system-ui, sans-serif;
   background: #1c1c1e; color: #fff; border: 1px solid rgba(255,255,255,.22); text-decoration: none; box-shadow: 0 4px 14px rgba(0,0,0,.3); }
   @media (max-width: 900px) { .demo-badge { left: 50%; transform: translateX(-50%); bottom: calc(96px + env(safe-area-inset-bottom)); } }</style>
-<script src="assets/js/demo.js"></script>
+<script src="assets/js/demo.js?v=${version}"></script>
 ${gc ? `<script data-goatcounter="${gcHost}/count" async src="https://gc.zgo.at/count.js"></script>\n` : ''}<script src="assets/js/boot.js`);
   mkdirSync('site', { recursive: true });
   writeFileSync('site/index.html', page);

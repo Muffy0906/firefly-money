@@ -6,6 +6,7 @@ import { type Account, isAsset, isLiab, lists } from '../core/lists';
 import { VIEWS, parseHash } from '../core/router';
 import { insight, refundsIn } from '../features/refunds';
 import { type NetWorthPoint, netWorthOn } from '../features/networth';
+import { t } from '../core/spanish';
 
 /* ================= Timeline =================
    Your money as a story, one month at a time down a line: the newest month on top, and older ones load as you
@@ -22,17 +23,17 @@ let startAcc: Account | undefined, shown = BATCH, floor = '', loading = false, d
 const MARKS = [1e3, 5e3, 1e4, 2.5e4, 5e4, 7.5e4, 1e5, 1.5e5, 2e5, 2.5e5, 5e5, 7.5e5, 1e6, 1.5e6, 2e6, 2.5e6, 5e6, 1e7];
 const short$ = (v: number) => v >= 1e6 ? '$' + +(v / 1e6).toFixed(2) + 'm' : '$' + +(v / 1e3).toFixed(1) + 'k';
 export function crossed(before: number, now: number) {
-  if (before < 0 && now >= 0) return 'Net worth turned positive';
+  if (before < 0 && now >= 0) return t('Net worth turned positive');
   const up = MARKS.filter(t => before < t && now >= t).pop(), down = MARKS.filter(t => before >= t && now < t)[0];
-  return up ? 'Net worth passed ' + short$(up) : down ? 'Dipped below ' + short$(down) : '';
+  return up ? t('Net worth passed {amount}', { amount: short$(up) }) : down ? t('Dipped below {amount}', { amount: short$(down) }) : '';
 }
 // What made the month stand out, best news first
 function momentsOf(o: { start: string, end: string, earned: number, spent: number, nw: NetWorthPoint, before: NetWorthPoint, accounts: Account[] }) {
   const out: Html[] = [], chip = (cls: string, text: string) => html`<li class="${cls}">${text}</li>`;
   const c = crossed(o.before.net, o.nw.net); if (c) out.push(chip(c.startsWith('Dipped') ? 'neg' : 'pos', c));
-  o.accounts.filter(a => isLiab(a) && (o.before.by?.[a.id] ?? 0) <= -1 && (o.nw.by?.[a.id] ?? -1) > -1).forEach(a => out.push(chip('pos', 'Paid off ' + a.name)));
-  o.accounts.filter(a => a.openingDate && a.openingDate.slice(0, 10) >= o.start && a.openingDate.slice(0, 10) <= o.end).forEach(a => out.push(chip('', 'Opened ' + a.name)));
-  if (o.earned > 0 && o.spent > o.earned) out.push(chip('neg', 'Spent ' + money0(o.spent - o.earned) + ' more than came in'));
+  o.accounts.filter(a => isLiab(a) && (o.before.by?.[a.id] ?? 0) <= -1 && (o.nw.by?.[a.id] ?? -1) > -1).forEach(a => out.push(chip('pos', t('Paid off {account}', { account: a.name }))));
+  o.accounts.filter(a => a.openingDate && a.openingDate.slice(0, 10) >= o.start && a.openingDate.slice(0, 10) <= o.end).forEach(a => out.push(chip('', t('Opened {account}', { account: a.name }))));
+  if (o.earned > 0 && o.spent > o.earned) out.push(chip('neg', t('Spent {amount} more than came in', { amount: money0(o.spent - o.earned) })));
   return out;
 }
 

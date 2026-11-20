@@ -5,6 +5,7 @@ import { vt, vtName } from '../core/dom';
 import { buzz } from '../core/haptics';
 import { LS } from '../core/helpers';
 import { route } from '../core/router';
+import { t } from '../core/spanish';
 import { GRID, ROW, type Tile, gridDrop, gridSettle, snapStep } from './grid';
 import { tilePreview } from './tilepreview';
 
@@ -190,11 +191,11 @@ function phoneCards(cards: [Size, unknown][]) {
   let used = 0; const cut = cards.findIndex(([z]) => (used += z === 's' ? 1 : 2) > PHONE_SLOTS);
   if (cut < 0 || cut >= cards.length - 1) return htmlList(cards.map(c => c[1]));
   const more = cards.length - cut;
-  return html`${htmlList(cards.slice(0, cut).map(c => c[1]))}<div class="dash-rest" id="dashRest"${S.dashMore ? '' : ' hidden'}>${htmlList(cards.slice(cut).map(c => c[1]))}</div><button type="button" class="btn dash-more" data-more="${more}" data-onclick="App.dashMore(this)">${S.dashMore ? 'Show fewer' : 'Show ' + more + ' more'}</button>`;
+  return html`${htmlList(cards.slice(0, cut).map(c => c[1]))}<div class="dash-rest" id="dashRest"${S.dashMore ? '' : ' hidden'}>${htmlList(cards.slice(cut).map(c => c[1]))}</div><button type="button" class="btn dash-more" data-more="${more}" data-onclick="App.dashMore(this)">${S.dashMore ? t('Show fewer') : t('Show {count} more', { count: more })}</button>`;
 }
 function dashMore(b: HTMLElement) {
   S.dashMore = !S.dashMore; el('dashRest').hidden = !S.dashMore;
-  b.textContent = S.dashMore ? 'Show fewer' : 'Show ' + b.dataset.more + ' more';
+  b.textContent = S.dashMore ? t('Show fewer') : t('Show {count} more', { count: b.dataset.more || '0' });
   if (!S.dashMore) el('dash').scrollIntoView({ block: 'start' });
 }
 function dashButton() { return S.dashEdit ? '' : html`<button class="btn small dash-edit" data-onclick="App.dashEdit(true)" title="Move, resize or hide cards" aria-label="Customize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>Customize</span></button>`; }
@@ -233,8 +234,8 @@ function dashboard(W: [string, unknown][]) {
   const body = grid ? htmlList(keys.map(card)) : edit || wideScreen ? htmlList(tiles.map(t => t[1])) : phoneCards(tiles);
   const offs = keys.filter(k => map[k] && tileOff(L, k));
   const adds = edit && offs.length ? html`<div class="dash-add"><div class="eyebrow">Add cards</div><div class="add-list">${htmlList(offs.map(k => html`<button type="button" class="add-card" data-onclick="App.dashHide('${k}')"><span class="plus-i" aria-hidden="true">+</span><span><strong>${DASH_NAMES[k] || k}</strong><span class="sub-s">${DASH_ABOUT[k] || ''}</span></span><span class="pv">${tilePreview(k)}</span></button>`))}</div></div>` : '';
-  return html`<div class="dash-wrap" data-n="${n}" style="--n:${n}">${edit ? html`<div class="dash-bar"><span>${grid ? 'Drag a tile anywhere and drag its corner to resize; tiles snap to the grid and push others down.' :
-      'Drag a tile to move it (on a touch screen, by its ⠿ handle). ' + (units === 2 ? 'Half and Full set how wide it is.' : 'Size sets how wide it is: small, medium or the whole row.')}</span><span class="grow"></span>${grid ? html`<button class="link" data-onclick="App.dashTidy()" title="Close the gaps by moving tiles up">Tidy up</button>` : ''}<button class="link" data-onclick="App.dashReset()">Reset</button><button class="btn small" data-onclick="App.dashCancel()">Cancel</button><button class="btn small primary" data-onclick="App.dashEdit(false)">Done</button>${wideScreen ? html`<div class="dash-opts"><span>Arrange as</span><div class="seg mini" id="dashCols">${htmlList(DASH_COLS.map(c => html`<button type="button" class="${String(L.cols || '') === String(c) ? 'on' : ''}" data-onclick="App.dashCols('${c}')">${c ? c + ' col' + (c === 1 ? '' : 's') : 'Bento'}</button>`))}</div></div>` : ''}${adds}</div>` : ''}<div class="cards ${grid ? 'grid' : 'bento'}${edit ? ' editing' : ''}" id="dash" data-n="${n}" data-mode="${grid ? 'grid' : 'bento'}" data-units="${units}" style="--units:${units};--cols:${units * BENTO_SUB}"${L.cols ? html` data-cols="${String(L.cols)}"` : ''}>${body}</div></div>`;
+  return html`<div class="dash-wrap" data-n="${n}" style="--n:${n}">${edit ? html`<div class="dash-bar"><span>${grid ? t('Drag a tile anywhere and drag its corner to resize; tiles snap to the grid and push others down.') :
+      t(units === 2 ? 'Drag a tile to move it (on a touch screen, by its ⠿ handle). Half and Full set how wide it is.' : 'Drag a tile to move it (on a touch screen, by its ⠿ handle). Size sets how wide it is: small, medium or the whole row.')}</span><span class="grow"></span>${grid ? html`<button class="link" data-onclick="App.dashTidy()" title="Close the gaps by moving tiles up">Tidy up</button>` : ''}<button class="link" data-onclick="App.dashReset()">Reset</button><button class="btn small" data-onclick="App.dashCancel()">Cancel</button><button class="btn small primary" data-onclick="App.dashEdit(false)">Done</button>${wideScreen ? html`<div class="dash-opts"><span>Arrange as</span><div class="seg mini" id="dashCols">${htmlList(DASH_COLS.map(c => html`<button type="button" class="${String(L.cols || '') === String(c) ? 'on' : ''}" data-onclick="App.dashCols('${c}')">${c ? t(c === 1 ? '{count} column' : '{count} columns', { count: c }) : 'Bento'}</button>`))}</div></div>` : ''}${adds}</div>` : ''}<div class="cards ${grid ? 'grid' : 'bento'}${edit ? ' editing' : ''}" id="dash" data-n="${n}" data-mode="${grid ? 'grid' : 'bento'}" data-units="${units}" style="--units:${units};--cols:${units * BENTO_SUB}"${L.cols ? html` data-cols="${String(L.cols)}"` : ''}>${body}</div></div>`;
 }
 // Keep the change `mut` makes, and while customizing on a phone the tile order on the page (hidden tiles are not on it,
 // so they keep their place in the order)

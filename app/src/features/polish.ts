@@ -9,6 +9,7 @@ import { type RouteInfo, VIEWS, parseHash, route } from '../core/router';
 import { openPalette } from './palette';
 import { bindSwipe } from './phone';
 import { newTx } from './txform';
+import { t } from '../core/spanish';
 
 /* Polish: prefetch on hover, after-paint effects, chart tooltips, quick add and keyboard shortcuts,
    payee memory, undo for deletes, instant rules filter. */
@@ -101,18 +102,38 @@ document.addEventListener('scroll', () => { const tip = el('tip'); if (tip.datas
 // Ring charts: the slice under the pointer stands out, with its row in the list beside it; on a phone a tap on any chart point shows its tip above the finger
 let ringT: ReturnType<typeof setTimeout> | undefined;
 function ringHot(seg: Element | null) {
-  document.querySelectorAll('.donut.hot').forEach(d => { if (!seg || !d.contains(seg)) { d.classList.remove('hot'); d.closest('.share')?.querySelectorAll('.part.hot').forEach(p => p.classList.remove('hot')); } });
+  if (seg instanceof HTMLElement && seg.matches('.part[data-cat]')) {
+    const d = seg.closest('.share')?.querySelector('.donut');
+    seg = d ? [...d.querySelectorAll<HTMLElement>('.seg:not(.tag-seg)')].find(x => x.dataset.cat === (seg as HTMLElement).dataset.cat) || null : null;
+  }
+  document.querySelectorAll('.donut.hot').forEach(d => { if (!seg || !d.contains(seg)) {
+    d.classList.remove('hot'); d.querySelectorAll('.cat-expanded,.tag-show').forEach(x => x.classList.remove('cat-expanded', 'tag-show'));
+    d.closest('.share')?.querySelectorAll('.part.hot').forEach(p => p.classList.remove('hot'));
+  } });
   if (!seg) return;
-  const d = seg.closest('.donut')!, i = Number((seg as HTMLElement).dataset.i);
-  d.classList.add('hot'); d.querySelectorAll('.seg').forEach(x => x.classList.toggle('on', x === seg));
-  d.closest('.share')?.querySelectorAll('.part').forEach((p, k) => p.classList.toggle('hot', k === i));
+  const d = seg.closest('.donut')!;
+  d.classList.add('hot'); d.querySelectorAll('.seg:not(.tag-seg)').forEach(x => x.classList.toggle('on', x === seg));
+  const cat = (seg as HTMLElement).dataset.cat;
+  const tags = [...d.querySelectorAll<HTMLElement>('.tag-seg')].filter(x => !!cat && x.dataset.parent === cat);
+  (seg as HTMLElement).classList.toggle('cat-expanded', tags.length > 0);
+  d.querySelectorAll<HTMLElement>('.tag-seg').forEach(x => x.classList.toggle('tag-show', !!cat && x.dataset.parent === cat));
+  d.closest('.share')?.querySelectorAll<HTMLElement>('.part').forEach(p => p.classList.toggle('hot', p.dataset.cat === cat));
 }
-document.addEventListener('pointerover', e => { if (e.pointerType === 'mouse') ringHot(e.target instanceof Element ? e.target.closest('.donut .seg[data-tip]') : null); });
+document.addEventListener('pointerover', e => {
+  if (e.pointerType !== 'mouse') return;
+  const target = e.target instanceof Element ? e.target : null;
+  if (target?.closest('.donut .tag-seg.tag-show')) return;
+  ringHot(target?.closest('.donut .seg:not(.tag-seg)[data-tip], .share .part[data-cat]') || null);
+});
 document.addEventListener('pointerup', e => {
   if (e.pointerType === 'mouse') return;
   touchAt = Date.now();
   const seg = e.target instanceof Element ? e.target.closest<HTMLElement>('[data-tip]') : null, tip = el('tip');
-  ringHot(seg && seg.matches('.donut .seg') ? seg : null); clearTimeout(ringT);
+  if (!seg?.matches('.donut .tag-seg.tag-show')) {
+    const category = seg && (seg.matches('.donut .seg:not(.tag-seg), .share .part[data-cat]')) ? seg : null;
+    ringHot(category);
+  }
+  clearTimeout(ringT);
   if (!seg) { if (tip.dataset.src === 'ring' || tip.dataset.src === 'pt') tip.hidden = true; return; }
   tip.textContent = seg.getAttribute('data-tip'); tip.dataset.src = 'ring'; tip.hidden = false;
   const w = tip.offsetWidth, hgt = tip.offsetHeight;
@@ -142,6 +163,9 @@ document.addEventListener('click', e => {
   const inner = (e.target as Element).closest('a[href], button, input, select, label');
   if (inner && t.contains(inner) && inner !== t) return;
   const go = t.getAttribute('data-go'); if (!go) return;
+  // On touch, the first tap expands a category into its tags. Keep the chart open so the next tap can inspect a tag;
+  // category transactions remain available from the category name in the legend.
+  if (lastPointer !== 'mouse' && t.matches('.donut .cat-seg.cat-expanded')) { e.preventDefault(); return; }
   if (lastPointer !== 'mouse' && t.hasAttribute('data-tip')) {
     if (!goArm || goArm.node !== t || Date.now() - goArm.at > 2500) {
       goArm = { node: t, at: Date.now() };
@@ -197,16 +221,16 @@ function softDeleteTx(ids: string[]) {
     if (undone) return;
     let failed = 0;
     await eachLimited(ids, 4, async id => { try { await api('/transactions/' + id, { method: 'DELETE', keepalive: leaving }); } catch (e) { failed++; } S.pendingDel.delete(id); });
-    if (failed) toast(failed + ' couldn’t be deleted');
+    if (failed) toast(t('{count} items couldn’t be deleted', { count: failed }));
     if (['', 'transactions', 'account'].includes(parseHash().name)) route();
   };
   if (S.undoCommit) S.undoCommit();              // finish any earlier pending delete first
   S.undoCommit = (leaving?: boolean) => { clearTimeout(S.undoT); S.undoCommit = null; commit(leaving === true); };
-  box.innerHTML = String(html`<span>${ids.length === 1 ? 'Transaction deleted' : ids.length + ' transactions deleted'}</span><button type="button">Undo</button><span class="bar"></span>`);
+  box.innerHTML = String(html`<span>${ids.length === 1 ? t('Transaction deleted') : t('{count} transactions deleted', { count: ids.length })}</span><button type="button">${t('Undo')}</button><span class="bar"></span>`);
   box.hidden = false;
   box.querySelector('button')!.onclick = () => {
     undone = true; clearTimeout(S.undoT); S.undoCommit = null; box.hidden = true;
-    ids.forEach(id => S.pendingDel.delete(id)); toast('Restored'); route();
+    ids.forEach(id => S.pendingDel.delete(id)); toast(t('Restored')); route();
   };
   S.undoT = setTimeout(() => S.undoCommit && S.undoCommit(), 5000);
 }

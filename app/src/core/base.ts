@@ -94,7 +94,7 @@ export const spentSum = (b: ApiData): number => Math.abs((((b && b.attributes) |
 export const sumDiff = (r: ApiData): number => arr(r).reduce((s, x) => s + absDiff(x), 0);
 /* ---------- Regional formats ----------
    Every amount and date goes through these, in the locale picked in Settings → Appearance → Number & date format
-   ("Automatic" follows the browser). Interface text stays English; only how numbers and dates are written changes. */
+   ("Automatic" follows the browser). The interface language is Spanish. */
 export const LOCALE_KEY = 'money.locale';
 let locCache: [string | null, string] | null = null;
 // Read on every format call (a setting synced from another device can change it), so the parsed value is kept

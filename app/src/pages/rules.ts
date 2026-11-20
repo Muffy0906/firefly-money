@@ -6,6 +6,7 @@ import { closeDrawer, confirmBox, formError, head, emptyState, icon, ICON_X, ope
 import { normGroup } from '../core/feed';
 import { invalidate, lists } from '../core/lists';
 import { VIEWS, route } from '../core/router';
+import { t } from '../core/spanish';
 
 /* ================= Rules ================= */
 const TRIGGERS = [
@@ -34,9 +35,10 @@ const ACTIONS = [
 const trigLabel = Object.fromEntries(TRIGGERS.map(t => [t[0], t[1]])), actLabel = Object.fromEntries(ACTIONS.map(t => [t[0], t[1]]));
 const noVal = new Set([...TRIGGERS, ...ACTIONS].filter(t => t[2]).map(t => t[0]));
 function ruleSummary(at: ApiData) {
-  const tr = (at.triggers || []).filter((t: ApiData) => t.active !== false && t.type !== 'user_action').map((t: ApiData) => (t.prohibited ? 'NOT ' : '') + (trigLabel[t.type] || t.type).toLowerCase() + (noVal.has(t.type) ? '' : ' “' + t.value + '”'));
-  const ac = (at.actions || []).filter((t: ApiData) => t.active !== false).map((t: ApiData) => (actLabel[t.type] || t.type).toLowerCase() + (noVal.has(t.type) || !t.value ? '' : ' “' + t.value + '”'));
-  return (tr.length ? 'When ' + tr.join(at.strict ? ' and ' : ' or ') : 'Every transaction') + ' → ' + (ac.join(', ') || 'nothing');
+  const tr = (at.triggers || []).filter((trigger: ApiData) => trigger.active !== false && trigger.type !== 'user_action').map((trigger: ApiData) => (trigger.prohibited ? 'NO ' : '') + t(trigLabel[trigger.type] || trigger.type).toLowerCase() + (noVal.has(trigger.type) ? '' : ' “' + trigger.value + '”'));
+  const ac = (at.actions || []).filter((action: ApiData) => action.active !== false).map((action: ApiData) => t(actLabel[action.type] || action.type).toLowerCase() + (noVal.has(action.type) || !action.value ? '' : ' “' + action.value + '”'));
+  const conditions = tr.join(at.strict ? t(' and ') : t(' or '));
+  return (tr.length ? t('When {conditions}', { conditions }) : t('Every transaction')) + ' → ' + (ac.join(', ') || t('nothing'));
 }
 VIEWS.rules = async (r, paint) => {
   await lists();
@@ -55,7 +57,7 @@ VIEWS.rules = async (r, paint) => {
         return html`<tr${at.active ? '' : html` style="opacity:.55"`}><td class="sel"><input type="checkbox" title="Active"${at.active ? ' checked' : ''} data-onchange="App.toggleRule('${x.id}',this.checked)"></td><td data-text="${(at.title + ' ' + ruleSummary(at)).toLowerCase()}"><div class="desc">${at.title}${at.stop_processing ? html` <span class="chip">Stops group</span>` : ''}${at.trigger === 'update-journal' ? html` <span class="chip">On update</span>` : ''}</div><div class="sub-s">${ruleSummary(at)}</div></td><td class="act"><button class="btn small" data-onclick="App.runRules('rule','${x.id}')">Run…</button> <button class="btn small" data-onclick="App.ruleForm('${x.id}')">Edit</button></td></tr>`;
       }))}</tbody></table>` : html`<div class="center-empty" style="padding:24px">No rules in this group.</div>`}</details>`;
   }));
-  paint(html`${head('Rules', rules.length + ' rule' + (rules.length === 1 ? '' : 's') + ' in ' + groups.length + ' group' + (groups.length === 1 ? '' : 's') + '. Groups run top to bottom when a transaction is added.',
+  paint(html`${head('Rules', t(rules.length === 1 ? '{count} rule in {groups} group. Groups run top to bottom when a transaction is added.' : '{count} rules in {groups} groups. Groups run top to bottom when a transaction is added.', { count: rules.length, groups: groups.length }),
       html`<button class="btn" data-onclick="App.groupForm()">+ New group</button><button class="btn primary" data-onclick="App.ruleForm()">+ New rule</button>`)}<div class="toolbar"><form class="search" data-onsubmit="event.preventDefault();App.rulesSearch(this)">${icon('search')}<input type="search" name="q" placeholder="Search rules by name, text or category" value="${r.q.q || ''}" data-oninput="App.liveRuleFilter(this.value)"></form>${q ? html`<a class="link" href="#/rules">Clear</a>` : ''}</div>${ruleHtml || (q ? html`<section class="panel"><div class="center-empty">No rules match.</div></section>` : html`<section class="panel">${emptyState('rules', 'No rules yet', 'A rule files transactions for you: when a description contains “Starbucks”, set the category to Dining. Set it once, never touch it again.', html`<button class="btn primary" data-onclick="App.ruleForm()">+ New rule</button>`)}</section>`)}`);
 };
 async function toggleRule(id: string, on: boolean) {
@@ -90,9 +92,9 @@ async function saveRule() {
   const triggers = read('#r-trig .editor-row'), actions = read('#r-act .editor-row');
   if (!el<HTMLInputElement>('r-title').value.trim()) return formError('Give the rule a name.');
   if (!triggers.length) return formError('Add at least one condition.');
-  if (!actions.length) return formError('Add at least one action.');
+  if (!actions.length) return formError(t('Add at least one action.'));
   const missing = [...triggers, ...actions].find(t => !noVal.has(t.type) && !t.value);
-  if (missing) return formError('Fill in a value for “' + (trigLabel[missing.type] || actLabel[missing.type] || missing.type) + '”.');
+  if (missing) return formError(t('Fill in a value for “{field}”.', { field: trigLabel[missing.type] || actLabel[missing.type] || missing.type }));
   triggers.forEach(t => { if (noVal.has(t.type)) t.value = 'true'; });
   const body = { title: el<HTMLInputElement>('r-title').value.trim(), rule_group_id: el<HTMLSelectElement>('r-group').value, trigger: el<HTMLSelectElement>('r-when').value, strict: el<HTMLSelectElement>('r-strict').value === '1',
     stop_processing: el<HTMLInputElement>('r-stop').checked, active: el<HTMLInputElement>('r-active').checked, triggers, actions };
@@ -114,20 +116,20 @@ function groupForm(id?: string) {
 }
 async function saveGroup() {
   const id = S.form.id, body = { title: el<HTMLInputElement>('g-title').value.trim(), description: el<HTMLInputElement>('g-desc').value.trim(), active: el<HTMLInputElement>('g-active').checked };
-  if (!body.title) return formError('Give the group a name.');
+  if (!body.title) return formError(t('Give the group a name.'));
   await busy(el('grpSave'), async () => { await api(id ? '/rule-groups/' + id : '/rule-groups', { method: id ? 'PUT' : 'POST', body }); closeDrawer(); toast('Group saved'); route(); });
 }
 async function deleteGroup(id: string) {
   const n = Object.values<any>(S.rules!).filter(r => String(r.rule_group_id) === id).length;
-  if (!await confirmBox('Delete this group?', n ? 'Its ' + n + ' rule' + (n === 1 ? '' : 's') + ' will be deleted too.' : 'The group is empty.')) return;
+  if (!await confirmBox(t('Delete this group?'), n ? t(n === 1 ? 'Its {count} rule will be deleted too.' : 'Its {count} rules will be deleted too.', { count: n }) : t('The group is empty.'))) return;
   await withAuth(async () => { await api('/rule-groups/' + id, { method: 'DELETE' }); closeDrawer(); toast('Group deleted'); route(); });
 }
 function runRules(kind: string, id: string) {
   const name = kind === 'rule' ? S.rules![id].title : S.ruleGroups!.find(x => String(x.id) === id).attributes.title;
   S.form = { kind, id };
   const cur = monthRange(S.y, S.m);
-  openDrawer('Run “' + name + '”',
-    html`<p class="sub-s" style="margin-top:0">Apply ${kind === 'rule' ? 'this rule' : 'every rule in this group'} to transactions that already exist. Preview first to see what would change.</p><div class="grid2"><label>From<input type="date" id="rr-start" value="${cur.start}"></label><label>To<input type="date" id="rr-end" value="${cur.end}"></label></div><div id="rr-out"></div>`,
+  openDrawer(t('Run “{name}”', { name }),
+    html`<p class="sub-s" style="margin-top:0">${t('Apply {scope} to transactions that already exist. Preview first to see what would change.', { scope: t(kind === 'rule' ? 'this rule' : 'every rule in this group') })}</p><div class="grid2"><label>From<input type="date" id="rr-start" value="${cur.start}"></label><label>To<input type="date" id="rr-end" value="${cur.end}"></label></div><div id="rr-out"></div>`,
     html`<span class="grow"></span><button class="btn" data-onclick="App.previewRules()">Preview matches</button><button class="btn primary" id="rrGo" data-onclick="App.applyRules()">Run now</button>`);
 }
 async function previewRules() {
@@ -141,7 +143,7 @@ async function previewRules() {
 }
 async function applyRules() {
   const { kind, id } = S.form;
-  if (!await confirmBox('Run it now?', 'Matching transactions between these dates will be changed by the rule actions.', 'Run')) return;
+  if (!await confirmBox('Run it now?', 'Matching transactions between these dates will be changed by the rule actions.', t('Run'))) return;
   await busy(el('rrGo'), async () => {
     await api((kind === 'rule' ? '/rules/' : '/rule-groups/') + id + '/trigger', { method: 'POST', params: { start: el<HTMLInputElement>('rr-start').value, end: el<HTMLInputElement>('rr-end').value } });
     invalidate(); closeDrawer(); toast('Done — Firefly applied the rules');

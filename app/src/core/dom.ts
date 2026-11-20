@@ -1,6 +1,7 @@
 import { type Html, html, htmlList, raw } from './html';
 import { App, S, type State, el, fmtDate, fmtDay, monthRange, nowMonth } from './base';
 import { BUZZ_DELETE, buzz } from './haptics';
+import { t } from './spanish';
 
 /* ================= UI plumbing ================= */
 const ICONS: Record<string, Html> = {
@@ -30,14 +31,14 @@ const ICONS: Record<string, Html> = {
   density: html`<path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>`,
 };
 export const icon = (k: string) => html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg>`;
-export const NAV = [['', 'Overview', 'overview'], ['forecast', 'Forecast', 'forecast'], ['transactions', 'Transactions', 'transactions'], ['review', 'To do', 'review'],
-  ['accounts', 'Accounts', 'accounts'], ['loans', 'Loan planner', 'loans'],
-  ['budgets', 'Budgets', 'budgets'], ['categories', 'Categories & tags', 'categories'], ['bills', 'Bills', 'bills'], ['recurring', 'Recurring', 'recurring'],
-  ['piggy', 'Piggy banks', 'piggy'], ['rules', 'Rules', 'rules'], ['recap', 'Monthly recap', 'recap'], ['year', 'Year in Money', 'year'], ['timeline', 'Timeline', 'timeline'], ['ask', 'Ask', 'spark'], ['unusual', 'Unusual', 'eye'], ['map', 'Map', 'map'], ['reports', 'Reports', 'reports'], ['settings', 'Settings', 'settings']];
+export const NAV = [['', 'Resumen', 'overview'], ['forecast', 'Previsión', 'forecast'], ['transactions', 'Movimientos', 'transactions'], ['review', 'Pendientes', 'review'],
+  ['accounts', 'Cuentas', 'accounts'], ['loans', 'Planificador de préstamos', 'loans'],
+  ['budgets', 'Presupuestos', 'budgets'], ['categories', 'Categorías y etiquetas', 'categories'], ['bills', 'Facturas', 'bills'], ['recurring', 'Recurrentes', 'recurring'],
+  ['piggy', 'Huchas', 'piggy'], ['rules', 'Reglas', 'rules'], ['recap', 'Resumen mensual', 'recap'], ['year', 'El año en Money', 'year'], ['timeline', 'Cronología', 'timeline'], ['ask', 'Preguntar', 'spark'], ['unusual', 'Anomalías', 'eye'], ['map', 'Mapa', 'map'], ['reports', 'Informes', 'reports'], ['settings', 'Ajustes', 'settings']];
 // How the sidebar and the phone's More menu group the pages (Settings sits at the bottom of the sidebar)
 export const NAV_GROUPS: [string, string[]][] = [['', ['', 'transactions', 'review']],
-  ['Plan', ['budgets', 'bills', 'recurring', 'piggy', 'forecast', 'loans']], ['Insights', ['reports', 'timeline', 'recap', 'year', 'unusual', 'ask', 'map']],
-  ['Manage', ['accounts', 'categories', 'rules']]];
+  ['Planificación', ['budgets', 'bills', 'recurring', 'piggy', 'forecast', 'loans']], ['Análisis', ['reports', 'timeline', 'recap', 'year', 'unusual', 'ask', 'map']],
+  ['Administración', ['accounts', 'categories', 'rules']]];
 export const navItem = (r: string) => NAV.find(n => n[0] === r)!;
 // To do: Review (new transactions to look over) and Categorize (ones without a category), as two tabs of one page
 export const todoTabs = (on: string) => html`<div class="tabs"><a href="#/review" class="${on === 'review' ? 'on' : ''}">Review new</a><a href="#/inbox" class="${on === 'inbox' ? 'on' : ''}">Categorize</a><a href="#/places" class="${on === 'places' ? 'on' : ''}">Places</a></div>`;
@@ -158,9 +159,12 @@ export function monthNav() {
   const isNow = ahead >= 12;   // allow planning up to a year ahead
   return html`<div class="month"><button class="round" data-onclick="App.shiftMonth(-1)" aria-label="Previous month">${ICON_PREV}</button><span title="${fmtDate(r.start)} – ${fmtDate(r.end)}"><i class="ml">${r.label}</i><i class="ms">${r.short} ${r.y}</i>${r.start.endsWith('-01') ? '' : html`<small class="cycle">${fmtDay(r.start)} – ${fmtDay(r.end)}</small>`}</span><button class="round" data-onclick="App.shiftMonth(1)" aria-label="Next month"${isNow ? ' disabled' : ''}>${ICON_NEXT}</button>${ahead !== 0 ? html`<button class="btn small" style="margin-left:6px" data-onclick="App.thisMonth()">Today</button>` : html`<button class="btn small today-gap" style="margin-left:6px" aria-hidden="true" tabindex="-1" disabled>Today</button>`}<button class="btn small" style="margin-left:6px" data-onclick="App.allTime()">All time</button></div>`;
 }
+const FIXED_HEADINGS = new Set(['Overview', 'Forecast', 'Transactions', 'To do', 'Accounts', 'Loan planner', 'Budgets', 'Categories & tags', 'Bills', 'Recurring', 'Piggy banks', 'Rules', 'Monthly recap', 'Year in Money', 'Timeline', 'Ask', 'Unusual', 'Map', 'Reports', 'Settings', 'Clean up', 'Reconcile']);
 export function head(title: string | Html, sub: string | Html, actions?: string | Html) {
   // Under the title, when an account is in another currency: the rate the page's totals use (features/fxnote.ts)
-  return html`<div class="head"><div><h1>${title}</h1>${sub ? html`<p class="sub">${sub}</p>` : ''}${App.fxNote ? App.fxNote() : ''}</div><div class="actions">${actions || ''}</div></div>`;
+  const label = typeof title === 'string' && FIXED_HEADINGS.has(title) ? t(title) : title;
+  const description = typeof sub === 'string' ? t(sub) : sub;
+  return html`<div class="head"><div><h1 data-user-content>${label}</h1>${description ? html`<p class="sub"${typeof sub === 'string' ? ' data-user-content' : ''}>${description}</p>` : ''}${App.fxNote ? App.fxNote() : ''}</div><div class="actions">${actions || ''}</div></div>`;
 }
 /* ---------- Empty states: a drawn icon, what the page is for, and the one thing to do next ---------- */
 const EMPTY_ICONS: Record<string, string> = {

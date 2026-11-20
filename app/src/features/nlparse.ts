@@ -7,6 +7,7 @@ import { nlDate } from './nldate';
 import { payeeFill } from './polish';
 import { REFUND_TAG, isRefundTag } from './refunds';
 import { collectTx, renderTxForm } from './txform';
+import { t } from '../core/spanish';
 
 /* ---------- Natural-language quick add ---------- */
 const FILLER = new Set(['on', 'with', 'via', 'using', 'at', 'for', 'to', 'from', 'paid', 'spent', 'bought', 'got', 'and', 'the', 'a', 'my', 'in']);
@@ -59,7 +60,7 @@ export function nlParse(text: string, submit?: boolean) {
   if (type === 'transfer') {
     const from = accs.find(x => x.from) || accs.find(x => !x.to) || accs[0], to = accs.find(x => x !== from);
     if (from) f.src = from.a.id; if (to) f.dst = to.a.id;
-    if (!payee && from && to) sp.description = 'Transfer to ' + to.a.name;
+    if (!payee && from && to) sp.description = t('Transfer to {account}', { account: to.a.name });
   } else if (accs[0]) f.main = accs[0].a.id;
   const chip = (l: string, v: string) => html`<span class="nlchip"><em>${l}</em>${v}</span>`;
   f.nl = text;

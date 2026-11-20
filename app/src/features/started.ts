@@ -2,6 +2,7 @@ import { html, htmlList } from '../core/html';
 import { App, S } from '../core/base';
 import { LS } from '../core/helpers';
 import { ICON_X } from '../core/dom';
+import { t } from '../core/spanish';
 
 /* ================= Getting started: a checklist on Overview for a brand-new install =================
    Not a modal, so it never blocks anything. It only appears on a device that had never used Money (boot.ts sets
@@ -12,10 +13,10 @@ type Step = { id: string, title: string, sub: string, act: string, href?: string
 function steps(): Step[] {
   const L = S.lists;
   const s: Step[] = [
-    { id: 'look', title: 'Pick your look', sub: 'Six themes, your own colors, or a photo background.', act: 'Choose', href: '#/settings?s=look' },
-    { id: 'tx', title: 'Add a transaction', sub: 'Type it in plain words, like “coffee 4.50 yesterday”.', act: 'Add', btn: 'add' },
-    { id: 'budget', title: 'Set a budget', sub: 'A monthly limit for the thing you want to watch.', act: 'Set up', href: '#/budgets', auto: !!L && L.budgets.length > 0 },
-    { id: 'bill', title: 'Add a bill', sub: 'Rent, subscriptions, insurance: Money shows what is due next.', act: 'Add', href: '#/bills', auto: !!L && L.bills.length > 0 },
+    { id: 'look', title: t('Pick your look'), sub: t('Six themes, your own colors, or a photo background.'), act: t('Choose'), href: '#/settings?s=look' },
+    { id: 'tx', title: t('Add a transaction'), sub: t('Type it in plain words, like “coffee 4.50 yesterday”.'), act: t('Add'), btn: 'add' },
+    { id: 'budget', title: t('Set a budget'), sub: t('A monthly limit for the thing you want to watch.'), act: t('Set up'), href: '#/budgets', auto: !!L && L.budgets.length > 0 },
+    { id: 'bill', title: t('Add a bill'), sub: t('Rent, subscriptions, insurance: Money shows what is due next.'), act: t('Add'), href: '#/bills', auto: !!L && L.bills.length > 0 },
   ];
   if (IOS_TAB) s.push({ id: 'home', title: 'Add Money to your Home Screen', sub: 'Tap Share, then Add to Home Screen, for the full-screen app.', act: 'Done', btn: 'home' });
   return s;
@@ -28,7 +29,7 @@ export function gettingStarted() {
   const list = steps(), n = list.filter(isDone).length;
   if (n === list.length) return '';
   const check = html`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>`;
-  return html`<section class="panel started" id="started"><div class="panel-head"><div><h2>Get started with Money</h2><p class="lead">${n} of ${list.length} done</p></div><button type="button" class="round" aria-label="Hide getting started" data-onclick="App.startedHide()">${ICON_X}</button></div>
+  return html`<section class="panel started" id="started"><div class="panel-head"><div><h2>Get started with Money</h2><p class="lead">${t('{done} of {total} done', { done: n, total: list.length })}</p></div><button type="button" class="round" aria-label="Hide getting started" data-onclick="App.startedHide()">${ICON_X}</button></div>
 <div class="track st-track" aria-hidden="true"><div class="fill good" style="width:${Math.round(n / list.length * 100)}%"></div></div>
 <ol class="st-list">${htmlList(list.map(st => { const d = isDone(st); return html`<li class="${d ? 'done' : ''}"><span class="st-ck" aria-hidden="true">${d ? check : ''}</span><div class="st-t"><strong>${st.title}</strong><span>${st.sub}</span></div>${d ? '' : st.href ? html`<a class="btn small" href="${st.href}" data-onclick="App.startedDone('${st.id}')">${st.act}</a>` : st.btn === 'add' ? html`<button type="button" class="btn small" data-onclick="App.startedAdd()">${st.act}</button>` : html`<button type="button" class="btn small" data-onclick="App.startedDone('home')">${st.act}</button>`}</li>`; }))}</ol></section>`;
 }

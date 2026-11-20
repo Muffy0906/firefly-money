@@ -61,18 +61,20 @@ export function loadView(): LoadView {
   // finished ÷ known, never going backwards and never reaching 100 before the page is drawn
   L.shown = Math.max(L.shown, L.total ? Math.min(99, Math.floor(L.done / L.total * 100)) : 0);
   const reqs = [...L.reqs], retry = reqs.find(r => r.stage === 'retrying');
-  let text = 'Starting';
-  if (retry) text = 'Firefly is slow, retrying (' + Math.min(RETRIES, retry.retry) + ' of ' + RETRIES + ')';
-  else if (!L.total) text = 'Starting';
-  else if (!reqs.length) text = 'Processing';
+  let text = t('Starting');
+  if (retry) text = t('Firefly is slow, retrying ({attempt} of {total})', { attempt: Math.min(RETRIES, retry.retry), total: RETRIES });
+  else if (!L.total) text = t('Starting');
+  else if (!reqs.length) text = t('Processing');
   else {
     // a list being paged through says which page; otherwise the furthest-along request says what it's doing
     let page: [string, Pages] | null = null;
     for (const [k, p] of L.pages) if (p.done < p.of && reqs.some(r => r.label === k) && (!page || p.of - p.done > page[1].of - page[1].done)) page = [k, p];
     const front = reqs.find(r => r.stage === 'receiving') || reqs.find(r => r.stage === 'sending') || reqs[0];
-    if (page) text = 'Fetching ' + page[0] + ' (page ' + Math.min(page[1].of, page[1].done + 1) + ' of ' + page[1].of + ')';
-    else if (front.stage === 'receiving') text = 'Receiving ' + front.label + ' from Firefly';
-    else text = 'Sending request to Firefly';
+    if (page) text = t('Fetching {name} (page {page} of {total})', { name: t(page[0]), page: Math.min(page[1].of, page[1].done + 1), total: page[1].of });
+    else if (front.stage === 'receiving') text = t('Receiving {name} from Firefly', { name: t(front.label) });
+    else text = t('Sending request to Firefly');
   }
-  return { on: true, pct: L.shown, text, detail: L.total ? Math.min(L.done, L.total) + ' of ' + L.total + ' requests' : '', retrying: !!retry };
+  return { on: true, pct: L.shown, text, detail: L.total ? t('{done} of {total} requests', { done: Math.min(L.done, L.total), total: L.total }) : '', retrying: !!retry };
 }
+
+import { t } from './spanish';

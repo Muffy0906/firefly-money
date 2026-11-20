@@ -4,6 +4,7 @@ import { openDrawer } from '../core/dom';
 import { buzz } from '../core/haptics';
 import { LS } from '../core/helpers';
 import { route } from '../core/router';
+import { t } from '../core/spanish';
 
 /* ---------- Each page's own options: Customize in a page's header ----------
    Like the Overview's tile settings (dashboard.ts TILE_OPTS), but for a whole page: how its charts are drawn, what
@@ -94,7 +95,7 @@ let before: { page: string, v: Record<string, Val> | undefined } | null = null; 
 function pageCustomize(page: string) {
   const P = PAGE_OPTS[page]; if (!P) return;
   if (!before || before.page !== page || !document.getElementById('drawer')?.classList.contains('open')) { const o = saved()[page]; before = { page, v: o && { ...o } }; }
-  openDrawer('Customize ' + P.title, sheet(page), html`<button class="btn" type="button" data-onclick="App.pageReset('${page}')">Reset</button><span class="grow"></span><button class="btn" type="button" data-onclick="App.pageCancel('${page}')">Cancel</button><button class="btn primary" type="button" data-onclick="App.closeDrawer()">Done</button>`);
+  openDrawer(t('Customize {page}', { page: t(P.title) }), sheet(page), html`<button class="btn" type="button" data-onclick="App.pageReset('${page}')">Reset</button><span class="grow"></span><button class="btn" type="button" data-onclick="App.pageCancel('${page}')">Cancel</button><button class="btn primary" type="button" data-onclick="App.closeDrawer()">Done</button>`);
 }
 // Save one option (a select's value comes as text: matched back to its choice) and redraw the page behind the sheet
 function pageSet(page: string, key: string, raw: string | boolean) {

@@ -2,6 +2,7 @@ import { type Html, html, htmlList } from '../core/html';
 import { money0 } from '../core/base';
 import { type Share, barChart, shareChart, twoLines } from './charts';
 import type { Tone } from './budgetinsight';
+import { t } from '../core/spanish';
 
 /* ================= Money health: runway, debt payoff, fees and interest =================
    Three read-outs worked out from what Firefly already holds, nothing kept: how many months the cash and savings would
@@ -21,7 +22,7 @@ export type Runway = {
   fund: number, fundName: string, target: number, targetMonths: number, pct: number, gap: number,
   tone: Tone, head: string, text: string,
 };
-export const monthsText = (m: number) => m < 1 ? 'under a month' : m >= 120 ? '10+ years' : (m >= 10 ? String(Math.round(m)) : String(Math.round(m * 10) / 10)) + ' months';
+export const monthsText = (m: number) => m < 1 ? t('under a month') : m >= 120 ? t('10+ years') : Math.round(m * 10) / 10 === 1 ? t('1 month') : t('{count} months', { count: m >= 10 ? Math.round(m) : Math.round(m * 10) / 10 });
 // monthly: the spending of each full month, oldest first (months before the first spending don't count)
 export function runway(accts: Acct[], monthly: number[], targetMonths: number): Runway | null {
   const spend = monthly.slice(Math.max(0, monthly.findIndex(v => v > 0)));
@@ -34,7 +35,7 @@ export function runway(accts: Acct[], monthly: number[], targetMonths: number): 
   const total = cash + savings, months = total / avg, target = avg * targetMonths;
   const tone: Tone = months < 3 ? 'over' : months < 6 ? 'warn' : 'good';
   const head = tone === 'over' ? 'Thin cushion' : tone === 'warn' ? 'Building up' : 'Well covered';
-  const text = 'Cash and savings cover about ' + monthsText(months) + ' of your usual ' + money0(avg) + ' a month.';
+  const text = t('Cash and savings cover about {months} of your usual {amount} a month.', { months: monthsText(months), amount: money0(avg) });
   return { cash, savings, total, avg, monthsUsed: spend.length, months, cashMonths: cash / avg, fund, fundName, target, targetMonths,
     pct: target > 0 ? Math.min(100, fund / target * 100) : 0, gap: Math.max(0, target - fund), tone, head, text };
 }
@@ -42,11 +43,13 @@ export function runwayPanel(r: Runway): Html {
   const stat = (label: string, val: string, cls = '') => html`<div><dt>${label}</dt><dd class="num ${cls}">${val}</dd></div>`;
   const done = r.gap <= 0;
   return html`<section class="panel mh" aria-label="Savings runway"><header class="mh-head"><div><h2>Savings runway</h2><p class="lead">How long your cash and savings would last</p></div><span class="chip ${r.tone === 'over' ? 'bad' : r.tone}">${r.head}</span></header>
-<div class="mh-big"><strong class="num">${monthsText(r.months)}</strong><span class="sub-s">of spending covered · ${money0(r.total)}</span></div>
-<dl class="bi-stats">${stat('Usual month', money0(r.avg) + ' · avg of ' + r.monthsUsed)}${stat('Cash alone lasts', monthsText(r.cashMonths))}${stat('In cash', money0(r.cash))}${stat('In savings', money0(r.savings))}</dl>
-<div class="mh-fund"><div class="mh-line"><span>Emergency fund</span><label class="sub-s">Goal<select class="mh-sel" data-onchange="App.fundMonths(this.value)" aria-label="Emergency fund goal in months of spending">${htmlList(TARGETS.map(m => html`<option value="${m}"${m === r.targetMonths ? ' selected' : ''}>${m} months</option>`))}</select></label></div>
-<div class="track" role="img" aria-label="${Math.round(r.pct)}% of the emergency fund goal"><div class="fill ${done ? 'good' : ''}" style="width:${r.pct.toFixed(1)}%"></div></div>
-<div class="sub-s">${money0(r.fund)} of ${money0(r.target)} (${r.fundName})${done ? ' · goal reached' : ' · ' + money0(r.gap) + ' to go'}</div></div></section>`;
+<div class="mh-big"><strong class="num">${monthsText(r.months)}</strong><span class="sub-s">${t('of spending covered · {amount}', { amount: money0(r.total) })}</span></div>
+<dl class="bi-stats">${stat('Usual month', t('{amount} · average of {count}', { amount: money0(r.avg), count: r.monthsUsed }))}${stat('Cash alone lasts', monthsText(r.cashMonths))}${stat('In cash', money0(r.cash))}${stat('In savings', money0(r.savings))}</dl>
+<div class="mh-fund"><div class="mh-line"><span>Emergency fund</span><label class="sub-s">Goal<select class="mh-sel" data-onchange="App.fundMonths(this.value)" aria-label="Emergency fund goal in months of spending">${htmlList(TARGETS.map(m => html`<option value="${m}"${m === r.targetMonths ? ' selected' : ''}>${t('{count} months', { count: m })}</option>`))}</select></label></div>
+<div class="track" role="img" aria-label="${t('{percent}% of the emergency fund goal', { percent: Math.round(r.pct) })}"><div class="fill ${done ? 'good' : ''}" style="width:${r.pct.toFixed(1)}%"></div></div>
+<div class="sub-s">${done
+    ? t('{fund} of {target} ({name}) · goal reached', { fund: money0(r.fund), target: money0(r.target), name: r.fundName })
+    : t('{fund} of {target} ({name}) · {gap} to go', { fund: money0(r.fund), target: money0(r.target), name: r.fundName, gap: money0(r.gap) })}</div></div></section>`;
 }
 
 /* ---------- Debt payoff ---------- */
@@ -79,9 +82,9 @@ export function debtPanel(d: DebtInsight, plan: number[], now: number[], label: 
   const stat = (lab: string, val: string, cls = '') => html`<div><dt>${lab}</dt><dd class="num ${cls}">${val}</dd></div>`;
   const pts = d.months === null ? [] : balancePoints(plan, now, d.months, label);
   const chart = pts.length > 2 ? html`<div class="bi-chart"><h3>Owed over time</h3>${twoLines(pts, ['Your plan', 'Payments as they are'], ['var(--good)', 'var(--spend)'], 'What is owed month by month, with your plan and paying as now')}<div class="legend"><span><i style="background:var(--good)"></i>Your plan</span><span><i style="background:var(--spend)"></i>Payments as they are</span></div></div>` : '';
-  const sooner = (m: number) => m + ' month' + (m === 1 ? '' : 's') + ' sooner';
+  const sooner = (m: number) => m === 1 ? t('1 month sooner') : t('{count} months sooner', { count: m });
   return html`<section class="panel mh" aria-label="Interest and payoff"><header class="mh-head"><div><h2>Interest and payoff</h2><p class="lead">What the loans have cost, and what finishing sooner saves</p></div></header>
-<dl class="bi-stats">${stat('Interest paid so far', money0(d.paid))}${stat('Interest still to pay', money0(d.left))}${stat('Debt-free', d.months === null ? 'Not yet' : date, d.months === null ? 'up' : '')}${d.saved ? stat('Your plan saves', money0(d.saved.interest) + (d.saved.months ? ' · ' + sooner(d.saved.months) : ''), 'down') : ''}${d.more ? stat('Another ' + money0(d.more.extra) + ' a month', 'saves ' + money0(d.more.interest) + (d.more.months ? ' · ' + sooner(d.more.months) : ''), 'down') : ''}</dl>${chart}</section>`;
+<dl class="bi-stats">${stat('Interest paid so far', money0(d.paid))}${stat('Interest still to pay', money0(d.left))}${stat('Debt-free', d.months === null ? 'Not yet' : date, d.months === null ? 'up' : '')}${d.saved ? stat('Your plan saves', money0(d.saved.interest) + (d.saved.months ? ' · ' + sooner(d.saved.months) : ''), 'down') : ''}${d.more ? stat(t('Another {amount} a month', { amount: money0(d.more.extra) }), t('saves {amount}{sooner}', { amount: money0(d.more.interest), sooner: d.more.months ? ' · ' + sooner(d.more.months) : '' }), 'down') : ''}</dl>${chart}</section>`;
 }
 
 /* ---------- Fees and interest paid ---------- */
@@ -122,8 +125,8 @@ export function feesPanel(f: Fees): Html | string {
   const stat = (lab: string, val: string) => html`<div><dt>${lab}</dt><dd class="num">${val}</dd></div>`;
   const rows = f.sources.map(s => ({ ...s, sub: money0(s.v) }));
   const chart = shareChart(rows, '', 'Fees and interest by payee', { limit: 5, ring: false, other: 'Others' });
-  return html`<section class="panel mh" aria-label="Fees and interest"><header class="mh-head"><div><h2>Fees and interest</h2><p class="lead">Last 12 months · ${f.count} charge${f.count === 1 ? '' : 's'}</p></div><strong class="num mh-total">${money0(f.total)}</strong></header>
+  return html`<section class="panel mh" aria-label="Fees and interest"><header class="mh-head"><div><h2>Fees and interest</h2><p class="lead">${t(f.count === 1 ? 'Last 12 months · {count} charge' : 'Last 12 months · {count} charges', { count: f.count })}</p></div><strong class="num mh-total">${money0(f.total)}</strong></header>
 <dl class="bi-stats">${stat('Per month', money0(f.avg))}${stat('Interest', money0(f.interest))}${stat('Fees', money0(f.fees))}${f.biggest ? stat('Biggest', money0(f.biggest.amount) + ' · ' + f.biggest.what) : ''}</dl>
-<div class="bi-chart"><h3>Month by month</h3>${barChart(f.months.map(m => ({ label: m.label, v: m.v })), v => money0(v), 'Fees and interest paid in each of the last 12 months')}</div>
+<div class="bi-chart"><h3>Month by month</h3>${barChart(f.months.map(m => ({ label: t(m.label), v: m.v })), v => money0(v), 'Fees and interest paid in each of the last 12 months')}</div>
 <div class="bi-chart"><h3>Biggest sources</h3>${chart}</div></section>`;
 }

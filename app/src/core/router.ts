@@ -7,6 +7,7 @@ import { lists } from './lists';
 import { loadBegin } from './progress';
 import { pagedHtml } from './pagescroll';
 import { labelHtml, monthLabel, morph, morphOk, sameLayout, slideLabel, snapshot } from './morph';
+import { t } from './spanish';
 
 /* ================= Router ================= */
 // The placeholder shows the shape of the page that's coming (KPI row, chart, list rows, table), so nothing jumps when it arrives
@@ -235,7 +236,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
   } catch (e) {
     if (e instanceof AuthError) return showLogin(e.message);
     const onError = !!v.querySelector(':scope > .pg > .error');
-    if (opts.quiet && S.pageLive && !onError) { toast('Couldn’t refresh: ' + (e as Error).message); return; }
+    if (opts.quiet && S.pageLive && !onError) { toast(t('Couldn’t refresh: {error}', { error: (e as Error).message })); return; }
     if ((e as ApiError).network) {
       paint(html`<div class="error"><strong>Couldn’t load this page.</strong><br>${(e as Error).message}<br>Trying again by itself…<br><br><button class="btn small" data-onclick="App.reload()">Try again now</button></div>`);
       if (tok === S.tok) retryWhenBack(tok);
@@ -310,7 +311,7 @@ async function recalcAll(btn?: HTMLButtonElement) {
     toast('Recalculated everything from Firefly III');
   } catch (e) {
     if (e instanceof AuthError) return showLogin(e.message);
-    toast('Couldn’t recalculate: ' + (e as Error).message);
+    toast(t('Couldn’t recalculate: {error}', { error: (e as Error).message }));
   } finally {
     S.recalcing = false; endLoad();
     if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = label; }

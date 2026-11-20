@@ -108,7 +108,7 @@ export function createMockApi(now = new Date()) {
     TX.push({ id: gid, type: 'transactions', attributes: { group_title: null, created_at: iso(d) + 'T18:00:00-05:00', transactions: [{
       transaction_journal_id: gid, type, date: iso(d) + 'T12:00:00-05:00', amount: amt.toFixed(2), description,
       source_id: src, source_name: s.name, source_type: s.type, destination_id: dst, destination_name: t.name, destination_type: t.type,
-      category_name: cat, category_id: CAT_ID[cat ?? ''] ?? null, budget_id: BUDGETS[bud ?? ''] ?? null, budget_name: bud, bill_id: bill ? bill[0] : null, bill_name: bill ? bill[1] : null, tags: [], notes: '',
+      category_name: cat, category_id: CAT_ID[cat ?? ''] ?? null, budget_id: BUDGETS[bud ?? ''] ?? null, budget_name: bud, bill_id: bill ? bill[0] : null, bill_name: bill ? bill[1] : null, tags: cat === 'Utilities' ? [t.name === 'City Power & Light' ? 'Electricidad' : t.name === 'Mobile Co' ? 'Telecomunicaciones' : 'Internet'] : [], notes: '',
       foreign_amount: null, foreign_currency_code: null, reconciled: false, latitude: spot ? spot[0] : null, longitude: spot ? spot[1] : null,
       source_balance_after: src in BAL ? BAL[src].toFixed(2) : null, destination_balance_after: dst in BAL ? BAL[dst].toFixed(2) : null }] } });
   };

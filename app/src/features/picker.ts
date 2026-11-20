@@ -7,6 +7,7 @@ import { type Group, type TxMeta, type TxRowsOpts, groupUpdate, txRows } from '.
 import { buzz } from '../core/haptics';
 import { invalidate } from '../core/lists';
 import { bindSwipe } from './phone';
+import { t } from '../core/spanish';
 
 /* ---------- Inline category / budget picker ---------- */
 type PickItem = { v: string, l: string, create?: boolean };
@@ -34,7 +35,7 @@ function pickList(): PickItem[] {
   const c = pickCtx!, q = c.q.trim().toLowerCase();
   let list = c.items.filter(x => !q || x.l.toLowerCase().includes(q));
   list.sort((a, b) => (b.l.toLowerCase().startsWith(q) ? 1 : 0) - (a.l.toLowerCase().startsWith(q) ? 1 : 0));
-  if (c.k === 'category' && q && !c.items.some(x => x.l.toLowerCase() === q)) list = [...list, { v: c.q.trim(), l: 'Create “' + c.q.trim() + '”', create: true }];
+  if (c.k === 'category' && q && !c.items.some(x => x.l.toLowerCase() === q)) list = [...list, { v: c.q.trim(), l: t('Create “{name}”', { name: c.q.trim() }), create: true }];
   return list;
 }
 function pickFilter(q: string) { const c = pickCtx!; c.q = q; c.idx = q ? 0 : Math.max(0, pickList().findIndex(x => String(x.v) === String(c.cur || ''))); drawPick(); }
@@ -81,12 +82,12 @@ async function pickChoose(i: number) {
     await api('/transactions/' + g.id, { method: 'PUT', body: groupUpdate(g, x => x === sp ? t : null, { fire_webhooks: true }) });
     invalidate(); if (item.create) S.listsAt = 0;
     if (row && row.isConnected) { row.classList.remove('saving'); row.classList.add('saved'); setTimeout(() => row!.classList.remove('saved'), 900); }
-    toast((k === 'category' ? 'Category' : 'Budget') + (item.v ? ' set to ' + (item.create ? item.v : item.l) : ' removed'));
+    toast(item.v ? t('{kind} set to {name}', { kind: t(k === 'category' ? 'Category' : 'Budget'), name: item.create ? item.v : item.l }) : t('{kind} removed', { kind: t(k === 'category' ? 'Category' : 'Budget') }));
   } catch (e) {
     Object.assign(sp, before);
     row = document.querySelector<HTMLElement>('#view tr[data-gid="' + g.id + '"]'); if (row) swapRow(row, g, meta.opts);
     if (e instanceof AuthError) return showLogin(e.message);
-    toast('Couldn’t save: ' + (e as Error).message);
+    toast(t('Couldn’t save: {error}', { error: (e as Error).message }));
   }
 }
 

@@ -6,8 +6,9 @@ import { closeDrawer, confirmBox, formError, head, ICON_X, monthNav, openDrawer,
 import { invalidate, lists } from '../core/lists';
 import { VIEWS, route } from '../core/router';
 import { insight } from '../features/refunds';
-import { changeBars, shareChart } from '../features/charts';
+import { categoryTagBreakdown, changeBars, shareChart } from '../features/charts';
 import { customizeButton, pageCard, pageOpt } from '../features/pageopts';
+import { t } from '../core/spanish';
 
 /* ================= Categories & tags ================= */
 VIEWS.categories = async (r, paint) => {
@@ -27,16 +28,17 @@ VIEWS.categories = async (r, paint) => {
   if (sort === 'name') listed.sort((x, y) => x.name.localeCompare(y.name));
   if (sort === 'change' && !all) listed.sort((x, y) => Math.abs(y.now - y.prev) - Math.abs(x.now - x.prev) || y.now - x.now);
   const kind = pageOpt('categories', 'chart'), href = (x: { id: string }) => '#/transactions?category=' + x.id;
+  const tagTotals = kind === 'donut' ? await categoryTagBreakdown(cur.start, cur.end, cats.map(x => ({ name: x.name, v: x.now }))).catch(() => new Map<string, Map<string, number>>()) : new Map<string, Map<string, number>>();
   const spentAll = cats.reduce((t, x) => t + x.now, 0);
   const pic = kind === 'none' ? '' : kind === 'change' ? (all ? '' : changeBars(cats.map(x => ({ name: x.name, now: x.now, prev: x.prev, href: href(x) }))))
-    : shareChart(cats.map(x => ({ name: x.name, v: x.now, href: href(x), sub: money0(x.now) })), html`<span class="eyebrow">Spent</span><strong class="num">${money0(spentAll)}</strong>`, 'Spending by category', { limit: 8, ring: kind === 'donut', go: txHref({ type: 'withdrawal' }) });
-  const chart = kind === 'none' ? '' : html`<section class="panel cat-chart" style="margin-bottom:20px"><h2>${kind === 'change' ? 'What changed' : 'Where it went'}</h2><p class="lead">${kind === 'change' ? (all ? 'Pick a month to compare it with the one before' : 'Each category in ' + cur.short + ' against ' + prev.short + ', biggest moves first') : 'Spending by category ' + (all ? 'of all time' : 'in ' + cur.short)}</p>${pic || html`<p class="empty">${kind === 'change' ? 'Nothing changed.' : 'Nothing spent.'}</p>`}</section>`;
+    : shareChart(cats.map(x => ({ name: x.name, v: x.now, href: href(x), sub: money0(x.now), children: [...(tagTotals.get(x.name) || new Map())].map(([name, v]) => ({ name, v })) })), html`<span class="eyebrow">Spent</span><strong class="num">${money0(spentAll)}</strong>`, 'Spending by category', { limit: 8, ring: kind === 'donut', go: txHref({ type: 'withdrawal' }) });
+  const chart = kind === 'none' ? '' : html`<section class="panel cat-chart" style="margin-bottom:20px"><h2>${kind === 'change' ? t('What changed') : t('Where it went')}</h2><p class="lead">${kind === 'change' ? (all ? t('Pick a month to compare it with the one before') : t('Each category in {current} against {previous}, biggest moves first', { current: cur.short, previous: prev.short })) : all ? t('Spending by category of all time') : t('Spending by category in {period}', { period: cur.short })}</p>${pic || html`<p class="empty">${kind === 'change' ? t('Nothing changed.') : t('Nothing spent.')}</p>`}</section>`;
   const rows = htmlList(listed.map(x => {
     const d = x.now - x.prev;
     return html`<tr><td><a class="desc" href="#/transactions?category=${x.id}" style="text-decoration:none">${x.name}</a></td><td class="amt">${x.now ? money(x.now) : html`<span class="neutral">—</span>`}</td>${!cmp ? '' : html`<td class="r hide-s sub-s">${x.prev ? html`${Math.abs(d) < 1 ? 'Same' : html`<span class="${d > 0 ? 'up' : 'down'}">${d > 0 ? '+' : '−'}${money0(Math.abs(d))}</span>`} vs ${money0(x.prev)}` : ''}</td>`}${earned ? html`<td class="amt hide-s">${x.inc ? html`<span class="pos">${money(x.inc)}</span>` : html`<span class="neutral">—</span>`}</td>` : ''}<td class="act"><button class="btn small" data-onclick="App.categoryForm('${x.id}')">Edit</button></td></tr>`;
   }));
   const tags = htmlList(L.tags.map(t => html`<span class="chip"><a href="#/transactions?tag=${t.id}">${t.name}</a><button title="Delete tag" data-onclick="App.deleteTag('${t.id}')">${ICON_X}</button></span>`));
-  paint(html`${head('Categories & tags', '', html`${monthNav()}${customizeButton('categories')}<button class="btn primary" data-onclick="App.categoryForm()">+ New category</button>`)}${chart}<section class="panel flush" style="margin-bottom:28px">${rows ? html`<table class="tbl"><thead><tr><th>Category</th><th class="r">Spent ${all ? 'all time' : 'in ' + cur.short}</th>${!cmp ? '' : html`<th class="r hide-s">vs ${prev.short}</th>`}${earned ? html`<th class="r hide-s">Earned</th>` : ''}<th></th></tr></thead><tbody>${rows}</tbody></table>`
+  paint(html`${head('Categories & tags', '', html`${monthNav()}${customizeButton('categories')}<button class="btn primary" data-onclick="App.categoryForm()">+ New category</button>`)}${chart}<section class="panel flush" style="margin-bottom:28px">${rows ? html`<table class="tbl"><thead><tr><th>Category</th><th class="r">${t('Spent')} ${all ? t('all time') : t('in {month}', { month: cur.short })}</th>${!cmp ? '' : html`<th class="r hide-s">${t('vs {period}', { period: prev.short })}</th>`}${earned ? html`<th class="r hide-s">Earned</th>` : ''}<th></th></tr></thead><tbody>${rows}</tbody></table>`
       : (cats.length ? html`<div class="center-empty">Nothing spent or earned in any category.</div>` : emptyState('categories', 'No categories yet', 'Categories show where your money goes. Create a few, or let rules fill them in as transactions arrive.', html`<button class="btn primary" data-onclick="App.categoryForm()">+ New category</button>`))}</section>${pageCard('categories', 'tags') ? html`<section class="panel"><div class="panel-head"><div><h2>Tags</h2><p class="lead">Click a tag to see its transactions</p></div></div><form data-onsubmit="event.preventDefault();App.addTag(this.t)" style="display:flex;gap:10px;margin-bottom:18px;max-width:420px"><input type="text" name="t" placeholder="New tag name" style="flex:1" required><button class="btn">Add tag</button></form>${tags ? html`<div class="tagcloud">${tags}</div>` : html`<p class="empty">No tags yet.</p>`}</section>` : ''}`);
 };
 async function categoryForm(id?: string) {
@@ -61,16 +63,18 @@ async function addTag(input: HTMLInputElement) {
   catch (e) { if (e instanceof AuthError) return showLogin(e.message); toast((e as Error).message); }
 }
 async function deleteTag(id: string) {
-  const t = (S.lists!.tags.find(x => x.id === id) || {}).name || 'this tag';
-  if (!await confirmBox('Delete tag “' + t + '”?', 'The tag is removed from all transactions. The transactions themselves stay.')) return;
+  const tagName = (S.lists!.tags.find(x => x.id === id) || {}).name || 'this tag';
+  if (!await confirmBox(t('Delete tag “{tag}”?', { tag: tagName }), t('The tag is removed from all transactions. The transactions themselves stay.'))) return;
   try { await api('/tags/' + id, { method: 'DELETE' }); invalidate(); toast('Tag deleted'); route(); }
   catch (e) { toast((e as Error).message); }
 }
 async function deleteThing(path: string, id: string, noun: string) {
   const extra = ({ budget: 'Transactions in this budget are kept but will no longer have a budget.', category: 'Transactions keep existing but lose this category.',
     bill: 'Linked transactions are kept.', 'piggy bank': 'The money saved stays in your account; only the goal is removed.' } as Record<string, string>)[noun] || '';
-  if (!await confirmBox('Delete this ' + noun + '?', extra)) return;
-  try { await api('/' + path + '/' + id, { method: 'DELETE' }); invalidate(); closeDrawer(); toast(noun[0].toUpperCase() + noun.slice(1) + ' deleted'); route(); }
+  const names: Record<string, string> = { budget: 'el presupuesto', category: 'la categoría', bill: 'la factura', 'piggy bank': 'la hucha' };
+  const label = names[noun] || noun;
+  if (!await confirmBox(t('Delete {item}?', { item: label }), extra)) return;
+  try { await api('/' + path + '/' + id, { method: 'DELETE' }); invalidate(); closeDrawer(); toast(t('Deleted {item}', { item: label })); route(); }
   catch (e) { formError((e as Error).message); }
 }
 

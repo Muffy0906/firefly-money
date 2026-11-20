@@ -1,5 +1,6 @@
 import { el } from '../core/base';
 import { loadView } from '../core/progress';
+import { t } from '../core/spanish';
 
 /* ================= Loading status =================
    While a page, a pull to refresh or Recalculate waits for Firefly III, a compact bar says what is actually going on
@@ -47,7 +48,7 @@ function draw() {
   const step = Math.floor(v.pct / 25);
   if (bar!.classList.contains('show') && (v.text !== said.text || step !== said.step) && Date.now() - said.at >= SAY_EVERY) {
     said = { text: v.text, step, at: Date.now() };
-    sr!.textContent = 'Loading, ' + v.pct + ' percent. ' + v.text;
+    sr!.textContent = t('Loading, {percent} percent. {detail}', { percent: v.pct, detail: v.text });
   }
 }
 addEventListener('money-load', () => { if (!raf) raf = requestAnimationFrame(draw); });

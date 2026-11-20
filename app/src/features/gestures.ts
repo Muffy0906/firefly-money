@@ -5,6 +5,7 @@ import { buzz } from '../core/haptics';
 import { refreshAll } from '../core/router';
 import { selAll } from './bulk';
 import { bindSwipe } from './phone';
+import { t } from '../core/spanish';
 
 /* ---------- Pull to refresh (phones) ---------- */
 (function pullToRefresh() {
@@ -125,7 +126,7 @@ function nextPage(f: Feed, m: HTMLElement): Promise<boolean> {
       f.next++; appendRows(gs, f.opts);
       if (f.next > f.pages || !gs.length) { m.remove(); return false; }
       return true;
-    } catch (e) { m.textContent = 'Couldn’t load more: ' + (e as Error).message; f.next = f.pages + 1; return false; }
+    } catch (e) { m.textContent = t('Couldn’t load more: {error}', { error: (e as Error).message }); f.next = f.pages + 1; return false; }
     finally { f.busy = null; }
   })();
 }

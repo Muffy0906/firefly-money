@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Privacy · Money</title>
-<meta name="description" content="What Money stores, what it sends, and to whom.">
+<title>Privacidad · Money</title>
+<meta name="description" content="Qué guarda Money, qué datos envía y a quién.">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#22221f">
 <style>
@@ -22,29 +22,29 @@
 </head>
 <body>
 <main>
-  <a class="back" href="/">← Back to Money</a>
-  <h1>Privacy</h1>
-  <p>Money is a self-hosted dashboard for your own Firefly III. There is no Money company server, no account with us and no tracking.</p>
+  <a class="back" href="/">← Volver a Money</a>
+  <h1>Privacidad</h1>
+  <p>Money es un panel autoalojado para tu Firefly III. No existe un servidor de Money, no necesitas una cuenta con nosotros y no hay seguimiento.</p>
   <!--DEMO-->
-  <h2>What stays on your server</h2>
+  <h2>Qué permanece en tu servidor</h2>
   <ul>
-    <li>Your transactions, accounts and budgets live in your Firefly III. Money only passes them to your browser.</li>
-    <li>Your Firefly token stays on the server and is never sent to the browser.</li>
+    <li>Tus movimientos, cuentas y presupuestos permanecen en Firefly III. Money solo los envía a tu navegador.</li>
+    <li>El token de Firefly permanece en el servidor y nunca se envía al navegador.</li>
   </ul>
-  <h2>What is stored in your browser</h2>
+  <h2>Qué se guarda en tu navegador</h2>
   <ul>
-    <li>One sign-in cookie (HttpOnly, signed by the server), only so you stay signed in. It is not used for tracking.</li>
-    <li>Preferences such as theme and layout, in local storage on your device. Some are also saved to your own Firefly.</li>
+    <li>Una cookie de inicio de sesión (HttpOnly y firmada por el servidor) para mantener la sesión. No se usa para seguimiento.</li>
+    <li>Preferencias como el tema y la distribución, en el almacenamiento local de tu dispositivo. Algunas también se guardan en tu Firefly.</li>
   </ul>
-  <h2>What leaves your server</h2>
+  <h2>Qué sale de tu servidor</h2>
   <ul>
-    <li>Payee logos are fetched by your server from DuckDuckGo's icon service. They are cached, and your browser never contacts it.</li>
-    <li>Map pictures come from OpenStreetMap, and optional store lookups from Overpass, also through your server.</li>
-    <li>Exchange rates, only when an account is in another currency, are fetched by your server from Frankfurter or open.er-api.com. Only currency codes are sent, never amounts, and your browser never contacts them.</li>
-    <li>No analytics, advertising or third-party scripts run in the app.</li>
+    <li>Tu servidor obtiene los logotipos de beneficiarios desde el servicio de iconos de DuckDuckGo. Los almacena en caché y tu navegador nunca se conecta a ese servicio.</li>
+    <li>Los mapas proceden de OpenStreetMap y las búsquedas opcionales de tiendas, de Overpass; ambas solicitudes pasan por tu servidor.</li>
+    <li>Si tienes una cuenta en otra moneda, tu servidor obtiene los tipos de cambio de Frankfurter u open.er-api.com. Solo envía códigos de moneda, nunca importes, y tu navegador no contacta con esos servicios.</li>
+    <li>La aplicación no usa analítica, publicidad ni scripts de terceros.</li>
   </ul>
-  <h2>Contact</h2>
-  <p>Questions or problems: <a href="https://github.com/Muffy0906/firefly-money/issues">github.com/Muffy0906/firefly-money/issues</a>. Money is open source under the MIT License.</p>
+  <h2>Contacto</h2>
+  <p>Preguntas o problemas: <a href="https://github.com/Muffy0906/firefly-money/issues">github.com/Muffy0906/firefly-money/issues</a>. Money es software de código abierto con licencia MIT.</p>
 </main>
 </body>
 </html>

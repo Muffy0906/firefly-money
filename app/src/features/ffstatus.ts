@@ -2,6 +2,7 @@ import { App, el, fmtD } from '../core/base';
 import { FF, type FfState, api, ffSeen, ffSeenResponse, sleep } from '../core/api';
 import { refreshAll } from '../core/router';
 import { html, htmlList } from '../core/html';
+import { t } from '../core/spanish';
 
 /* ================= Firefly III connection pill =================
    Shows whether Firefly III answers. Every request the app makes already tells (core/api.ts ffSeen), and while the
@@ -26,16 +27,15 @@ const longLabel = () => moneyDown() ? 'Can’t reach the Money server' : LABEL[F
 const shortLabel = () => moneyDown() ? 'Money server down' : LABEL[FF.state][0];
 function detail() {
   const ago = FF.at ? Math.round((Date.now() - FF.at) / 1000) : -1;
-  const when = ago < 0 ? '' : ago < 5 ? 'just now' : ago < 90 ? ago + 's ago' : Math.round(ago / 60) + ' min ago';
-  return longLabel() + (FF.state === 'ok' && version ? ' · version ' + version : '') + (when ? ' · checked ' + when : '') + ' · click for details';
+  const when = ago < 0 ? '' : ago < 5 ? t('just now') : ago < 90 ? t('{seconds}s ago', { seconds: ago }) : t('{minutes} min ago', { minutes: Math.round(ago / 60) });
+  return t('{label}{version}{checked} · click for details', { label: t(longLabel()), version: FF.state === 'ok' && version ? t(' · version {version}', { version }) : '', checked: when ? t(' · checked {when}', { when }) : '' });
 }
 const OUT_ICON = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M8.5 16.4a5 5 0 0 1 7 0"/><path d="M5.1 12.9a10 10 0 0 1 4.6-2.7M14.6 10.4a10 10 0 0 1 4.3 2.5"/><path d="M1.8 9.4a15 15 0 0 1 3.9-2.6M10.5 5.3a15 15 0 0 1 11.7 4.1"/><path d="M12 19.6h.01"/></svg>`;
 function outText(): [string, string] {
-  const none = 'Money shows your data straight from Firefly III and keeps no copy of it, so there’s nothing to show until ';
-  if (FF.state === 'offline') return ['You’re offline', none + 'this device is back online. The page comes back by itself.'];
-  if (FF.state === 'auth') return ['Firefly III rejected the token', 'Check FIREFLY_TOKEN in the app settings on your server, then try again.'];
-  if (moneyDown()) return ['Can’t reach the Money server', 'The Money app on your server isn’t answering. It may be restarting. ' + none + 'it does. The page comes back by itself.'];
-  return ['Can’t reach Firefly III', none + 'Firefly answers again. The page comes back by itself.'];
+  if (FF.state === 'offline') return [t('You’re offline'), t('Money shows your data straight from Firefly III and keeps no copy of it, so there’s nothing to show until this device is back online. The page comes back by itself.')];
+  if (FF.state === 'auth') return [t('Firefly III rejected the token'), t('Check FIREFLY_TOKEN in the app settings on your server, then try again.')];
+  if (moneyDown()) return [t('Can’t reach the Money server'), t('The Money app on your server isn’t answering. It may be restarting. Money shows your data straight from Firefly III and keeps no copy of it, so there’s nothing to show until it does. The page comes back by itself.')];
+  return [t('Can’t reach Firefly III'), t('Money shows your data straight from Firefly III and keeps no copy of it, so there’s nothing to show until Firefly answers again. The page comes back by itself.')];
 }
 function paintOut() {
   let o = document.getElementById('ffOut');
@@ -57,10 +57,10 @@ function chain(): [string, Link, string][] {
 }
 const chainHtml = () => html`<ol class="ff-chain">${htmlList(chain().map(([name, k, what]) =>
   html`<li data-k="${k}"><i aria-hidden="true"></i><b>${name}</b><span>${what}</span></li>`))}</ol>`;
-function ago(t: number) {
-  if (!t) return 'Not yet';
-  const s = Math.round((Date.now() - t) / 1000);
-  return s < 5 ? 'Just now' : s < 90 ? s + 's ago' : s < 5400 ? Math.round(s / 60) + ' min ago' : fmtD(new Date(t), { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+function ago(timestamp: number) {
+  if (!timestamp) return 'Not yet';
+  const s = Math.round((Date.now() - timestamp) / 1000);
+  return s < 5 ? t('Just now') : s < 90 ? t('{seconds}s ago', { seconds: s }) : s < 5400 ? t('{minutes} min ago', { minutes: Math.round(s / 60) }) : fmtD(new Date(timestamp), { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 function ffAddress() { const a = el('ffLink'), h = a.getAttribute('href') || ''; return !a.hidden && /^https?:\/\//.test(h) ? h : ''; }
 let popFor: HTMLElement | null = null;

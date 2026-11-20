@@ -1,6 +1,7 @@
 import { type ApiData, S, arr, todayIso } from './base';
 import { LS } from './helpers';
 import { progPages, progReq } from './progress';
+import { t } from './spanish';
 
 /* ================= API ================= */
 export class AuthError extends Error {}
@@ -173,11 +174,11 @@ async function apiRaw(u: URL, opt: ApiOpts): Promise<ApiData> {
   if (opt.as === 'text' && r.ok) return txt;
   let j: ApiData = null; try { j = txt ? JSON.parse(txt) : null; } catch (e) { /* not JSON */ }
   if (!r.ok) {
-    let msg = (j && j.errors && typeof j.errors === 'object') ? Object.values(j.errors as Record<string, string[]>).flat().join(' ') : (j && j.message) || ('Request failed (' + r.status + ')');
+    let msg = (j && j.errors && typeof j.errors === 'object') ? Object.values(j.errors as Record<string, string[]>).flat().join(' ') : (j && j.message) || t('Request failed ({status})', { status: r.status });
     if (r.status === 401) msg = 'Firefly III rejected the access token. Check FIREFLY_TOKEN in the app settings.';
     if (r.status === 404 && !j) msg = 'Not found';
     if (r.status === 409 && (!j || !j.message)) msg = 'Firefly refused because this is still in use.';
-    if (NET_BUSY.has(r.status) && !(j && j.message)) msg = 'Firefly III didn’t respond (' + r.status + '). It may be busy or restarting. Try again in a moment.';
+    if (NET_BUSY.has(r.status) && !(j && j.message)) msg = t('Firefly III didn’t respond ({status}). It may be busy or restarting. Try again in a moment.', { status: r.status });
     const err: ApiError = new Error(msg); err.status = r.status; throw err;
   }
   return j;
@@ -190,7 +191,7 @@ export async function eachLimited<T>(items: T[], n: number, fn: (item: T, i: num
 // getAll stops after this many pages (100 rows each). When a list is longer, CAP.at is set so the page that
 // asked can say it shows only the latest ones (Firefly lists newest first).
 export const MAX_PAGES = 60, CAP = { at: 0 };
-export const capNote = (n = MAX_PAGES * 100) => 'Showing the latest ' + n.toLocaleString('en-US') + '.';
+export const capNote = (n = MAX_PAGES * 100) => t('Showing the latest {count}.', { count: n.toLocaleString('es-ES') });
 // fresh: skip the saved answer (even an out-of-date one that would be shown first and updated later)
 export async function getAll(path: string, params: ApiOpts['params'] = {}, fresh = false): Promise<ApiData[]> {
   const first = await api(path, { params: { ...params, page: 1, limit: 100 }, fresh });

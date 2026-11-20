@@ -6,9 +6,10 @@ import { closeDrawer, confirmBox, formError, head, openDrawer, opt, toast, empty
 import { invalidate, isLiab, lists } from '../core/lists';
 import { VIEWS, route } from '../core/router';
 import { accountOptions } from '../features/txform';
+import { t } from '../core/spanish';
 
 /* ================= Recurring ================= */
-const REPEAT_LABEL: Record<string, string> = { daily: 'day', weekly: 'week', monthly: 'month', yearly: 'year' };
+const REPEAT_LABEL: Record<string, string> = { daily: t('day(s)'), weekly: t('week(s)'), monthly: t('month(s)'), yearly: t('year(s)') };
 VIEWS.recurring = async (r, paint) => {
   await lists();
   const recs = await getAll('/recurrences');
@@ -17,7 +18,7 @@ VIEWS.recurring = async (r, paint) => {
     const at = x.attributes, t = (at.transactions || [])[0] || {}, rep = (at.repetitions || [])[0] || {};
     const next = (at.repetitions || []).flatMap((p: ApiData) => p.occurrences || []).sort().filter((d: string) => String(d).slice(0, 10) >= todayIso()).slice(0, 3);
     const sign = at.type === 'withdrawal' ? 'neg' : at.type === 'deposit' ? 'pos' : 'neutral';
-    const ends = at.repeat_until ? 'until ' + fmtDate(at.repeat_until) : at.nr_of_repetitions ? at.nr_of_repetitions + ' times' : '';
+    const ends = at.repeat_until ? t('until {date}', { date: fmtDate(at.repeat_until) }) : at.nr_of_repetitions ? t('{count} times', { count: at.nr_of_repetitions }) : '';
     return html`<tr class="click" data-onclick="App.recurForm('${x.id}')"${at.active === false ? html` style="opacity:.5"` : ''}><td><div class="desc">${at.title}${at.active === false ? html` <span class="chip">Inactive</span>` : ''}</div><div class="sub-s">${rep.description || ''}${ends ? ' · ' + ends : ''}</div></td><td class="fromto hide-s">${t.source_name || ''} → ${t.destination_name || ''}</td><td class="hide-s">${next.length ? htmlList(next.map((d: string) => html`<span class="chip">${fmtDay(d)}</span>`)) : html`<span class="neutral">—</span>`}</td><td class="amt ${sign}">${moneyIn(num(t.amount), t.currency_code)}</td></tr>`;
   }));
   paint(html`${head('Recurring', 'Transactions Firefly creates for you automatically on a schedule', html`<button class="btn primary" data-onclick="App.recurForm()">+ New recurring</button>`)}<section class="panel flush">${rows ? html`<table class="tbl"><thead><tr><th>Name</th><th class="hide-s">From → To</th><th class="hide-s">Next</th><th class="r">Amount</th></tr></thead><tbody>${rows}</tbody></table>`
@@ -67,11 +68,11 @@ async function saveRecur() {
   await busy(el('recSave'), async () => {
     const tx: any = { description: v('rc-desc') || v('rc-title'), amount: String(num(v('rc-amount'))), currency_code: S.currency };
     if (type === 'transfer') {
-      if (!v('rc-src') || !v('rc-dst') || v('rc-src') === v('rc-dst')) throw new Error('Choose two different accounts.');
+      if (!v('rc-src') || !v('rc-dst') || v('rc-src') === v('rc-dst')) throw new Error(t('Choose two different accounts.'));
       tx.source_id = v('rc-src'); tx.destination_id = v('rc-dst');
     } else {
-      if (!v('rc-main')) throw new Error('Choose the account.');
-      if (!v('rc-counter')) throw new Error('Say who it is ' + (type === 'withdrawal' ? 'paid to.' : 'received from.'));
+      if (!v('rc-main')) throw new Error(t('Choose the account.'));
+      if (!v('rc-counter')) throw new Error(t(type === 'withdrawal' ? 'Say who it is paid to.' : 'Say who it is received from.'));
       const other = await accountIdFor(v('rc-counter'), type);
       if (type === 'withdrawal') { tx.source_id = v('rc-main'); tx.destination_id = other; } else { tx.source_id = other; tx.destination_id = v('rc-main'); }
     }

@@ -10,6 +10,7 @@ import { draftsPanel } from '../features/txform';
 import { lists } from '../core/lists';
 import { VIEWS, hashWith } from '../core/router';
 import { customizeButton, pageCard, pageOpt } from '../features/pageopts';
+import { t } from '../core/spanish';
 
 /* ================= Transactions page ================= */
 VIEWS.transactions = async (r, paint) => {
@@ -21,10 +22,10 @@ VIEWS.transactions = async (r, paint) => {
   let endpoint = '/transactions', scope = '';
   const id = (v: string) => /^\d+$/.test(v) ? v : '0';      // from the address bar: digits only, so it can't change the API path
   const find = (list: { id: string, name: string }[], id: string) => (list.find(x => x.id === id) || {}).name || '#' + id;
-  if (q.budget) { endpoint = '/budgets/' + id(q.budget) + '/transactions'; scope = 'Budget: ' + find(L.budgets, q.budget); }
-  else if (q.category) { endpoint = '/categories/' + id(q.category) + '/transactions'; scope = 'Category: ' + find(L.categories, q.category); }
-  else if (q.tag) { endpoint = '/tags/' + encodeURIComponent(q.tag) + '/transactions'; scope = 'Tag: ' + find(L.tags, q.tag); }
-  else if (q.bill) { endpoint = '/bills/' + id(q.bill) + '/transactions'; scope = 'Bill: ' + find(L.bills, q.bill); }
+  if (q.budget) { endpoint = '/budgets/' + id(q.budget) + '/transactions'; scope = t('Budget: {name}', { name: find(L.budgets, q.budget) }); }
+  else if (q.category) { endpoint = '/categories/' + id(q.category) + '/transactions'; scope = t('Category: {name}', { name: find(L.categories, q.category) }); }
+  else if (q.tag) { endpoint = '/tags/' + encodeURIComponent(q.tag) + '/transactions'; scope = t('Tag: {name}', { name: find(L.tags, q.tag) }); }
+  else if (q.bill) { endpoint = '/bills/' + id(q.bill) + '/transactions'; scope = t('Bill: {name}', { name: find(L.bills, q.bill) }); }
   const query = search + (type !== 'all' ? ' transaction_type:' + type : '');
   const load = (pg: number) => search ? api('/search/transactions', { params: { query, search: query, page: pg, limit: PAGE_SIZE } })
     : api(endpoint, { params: { start: cur.start, end: cur.end, type, page: pg, limit: PAGE_SIZE } });
@@ -43,7 +44,7 @@ VIEWS.transactions = async (r, paint) => {
   if (paint.live) S.feed = { next: page + 1, pages: pg.total_pages || 1, opts: { select: true }, more: async n => arr(await load(n)).map(normGroup) };
   const tab = (t: string, label: string) => html`<a href="${hashWith({ type: t === 'all' ? '' : t, page: '' })}" class="${type === t ? 'on' : ''}">${label}</a>`;
   paint(
-    html`${head(scope || 'Transactions', search ? (/\bdate_(on|after|before):/.test(search) ? 'Search results' : 'Search results across all dates') : html`${total + ' transaction' + (total === 1 ? '' : 's') + (cur.all ? ' in total' : ' in ' + cur.label)}${scope ? html` · <a class="link" href="${range ? hashWith({ category: '', budget: '', tag: '', bill: '', page: '' }) : '#/transactions'}">Show all</a>` : ''}${range ? html` · <a class="link" href="${hashWith({ start: '', end: '', page: '' })}">Show ${period().label}</a>` : ''}`,
+      html`${head(scope || 'Transactions', search ? (/\bdate_(on|after|before):/.test(search) ? 'Search results' : 'Search results across all dates') : html`${t(total === 1 ? '1 transaction {where}' : '{count} transactions {where}', { count: total, where: t(cur.all ? 'in total' : 'in {period}', { period: cur.label }) })}${scope ? html` · <a class="link" href="${range ? hashWith({ category: '', budget: '', tag: '', bill: '', page: '' }) : '#/transactions'}">Show all</a>` : ''}${range ? html` · <a class="link" href="${hashWith({ start: '', end: '', page: '' })}">Show ${period().label}</a>` : ''}`,
       html`${search || range ? '' : monthNav()}${customizeButton('transactions')}<button class="btn primary new-tx" data-onclick="App.newTx()">+ New transaction</button>`)}${strip}<div class="txbar${search ? ' searching' : ''}"><form class="search" data-onsubmit="event.preventDefault();App.search(this.q.value)">${icon('search')}<input type="search" name="q" placeholder="Search, e.g. amazon or category:Gas" title="Search all transactions — try: amazon, category:Gas, amount_more:100" value="${search}" aria-label="Search transactions"></form><div class="tabs">${tab('all', 'All')}${tab('withdrawal', 'Expenses')}${tab('deposit', 'Income')}${tab('transfer', 'Transfers')}</div>${search ? html`<button class="link" data-onclick="App.search('')">Clear</button>` : ''}${groups.length ? html`<label class="check selall"><input type="checkbox" data-onchange="App.selAll(this.checked)"> Select all</label>` : ''}</div><div id="bulkbar" class="bulkbar" hidden></div>${search || scope || page > 1 ? '' : draftsPanel()}<section class="daycards">${txRows(groups, { select: true, empty: search ? 'Nothing matches that search.' : (cur.all ? 'No transactions yet.' : 'No transactions this month.') })}${page < pages ? html`<div class="more" id="feedMore"><span class="spin"></span>Loading older transactions…</div>` : ''}</section>`);
   if (stripOn) monthStrip(cur, stripKey).then(h => { keepStrip(stripKey, h); fillStrip(); }).catch(() => { const box = el('txsum'); if (box && box.dataset.k === stripKey && !box.childElementCount) box.remove(); });
 };
@@ -125,8 +126,8 @@ async function monthStrip(cur: Period, key: string, rank = true) {
   const most = Math.max(1, ...list.map(d => (running ? cum : byDay)[d] || 0));
   const fmt = (d: string) => fmtD(d, { weekday: 'short', month: 'short', day: 'numeric' });
   const bars = htmlList(list.map(d => {
-    const v = byDay[d] || 0, n = nDay[d] || 0, label = fmt(d) + ': ' + (v ? money(v) + ' spent' : 'nothing spent');
-    const tip = fmt(d) + (d === today ? ' (today)' : '') + '\n' + (v ? money(v) + ' spent · ' + n + (n === 1 ? ' purchase' : ' purchases') : 'Nothing spent') + (running ? '\n' + money(cum[d]) + ' so far this month' : '');
+    const v = byDay[d] || 0, n = nDay[d] || 0, label = t('{date}: {summary}', { date: fmt(d), summary: v ? t('{amount} spent', { amount: money(v) }) : t('nothing spent') });
+    const tip = fmt(d) + (d === today ? ' (' + t('today') + ')' : '') + '\n' + (v ? t('{amount} spent · {count} {unit}', { amount: money(v), count: n, unit: t(n === 1 ? 'purchase' : 'purchases') }) : t('Nothing spent')) + (running ? '\n' + t('{amount} so far this month', { amount: money(cum[d]) }) : '');
     return d > today
       ? html`<button type="button" class="db fut" style="--v:0" aria-label="${fmt(d)}" disabled><i></i></button>`
       : html`<button type="button" class="db${d === today ? ' now' : ''}" data-day="${d}" data-onclick="App.txDay(this.dataset.day)" style="--v:${((running ? cum[d] : v) / most).toFixed(3)}" data-tip="${tip}" aria-label="${label}"><i></i></button>`;
@@ -146,7 +147,7 @@ async function txDay(day: string) {
   tapType = '';
   if (touch && (armed !== day || Date.now() - armedAt > 2500)) {
     armed = day; armedAt = Date.now();
-    tip.textContent += '\nTap again to see this day';
+    tip.textContent += '\n' + t('Tap again to see this day');
     const r = document.querySelector<HTMLElement>(`.dbars .db[data-day="${day}"]`)?.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
     if (r) { tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px'; tip.style.top = Math.max(8, r.top - h - 10) + 'px'; }
     return;
@@ -156,7 +157,7 @@ async function txDay(day: string) {
   let more = true;
   while (!find() && more) more = await App.feedMore();
   const h = find();
-  if (!h) return toast('Nothing on ' + fmtDay(day));
+  if (!h) return toast(t('Nothing on {date}', { date: fmtDay(day) }));
   const body = h.closest<HTMLElement>('tbody.day') || h;
   body.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
   body.classList.remove('flash'); void body.offsetWidth; body.classList.add('flash');

@@ -5,6 +5,7 @@ import { App, S, arr, el, fmtDay, money } from '../core/base';
 import { confirmBox, opt, toast } from '../core/dom';
 import { normGroup } from '../core/feed';
 import { fmtSize, saveBlob } from '../core/helpers';
+import { t } from '../core/spanish';
 
 /* ================= Attachments & links in the transaction drawer ================= */
 async function loadTxExtras(gid: string, jids: string[]) {
@@ -29,7 +30,7 @@ async function loadTxExtras(gid: string, jids: string[]) {
     }))}</div>` : html`<p class="empty" style="padding-top:0">No files attached.</p>`;
     const linkHtml = others.length ? html`<div class="list">${htmlList(others.map(({ l, mine, g }) => {
       const t = typeById[String(l.attributes.link_type_id)] || {}, phrase = mine ? t.outward : t.inward;
-      return html`<div class="row"><span class="name"><span class="sub-s">${phrase || 'linked to'}</span><br>${g ? html`<button class="link" data-onclick="App.editTx('${g.id}')">${g.title || g.splits[0].description}</button> <span class="sub-s">${fmtDay(g.date)} · ${money(g.total)}</span>` : 'Transaction #' + (mine ? l.attributes.inward_id : l.attributes.outward_id)}</span><button class="link" data-onclick="App.deleteLink('${l.id}')">Unlink</button></div>`;
+      return html`<div class="row"><span class="name"><span class="sub-s">${t(phrase || 'linked to')}</span><br>${g ? html`<button class="link" data-onclick="App.editTx('${g.id}')">${g.title || g.splits[0].description}</button> <span class="sub-s">${fmtDay(g.date)} · ${money(g.total)}</span>` : t('Transaction #{id}', { id: mine ? l.attributes.inward_id : l.attributes.outward_id })}</span><button class="link" data-onclick="App.deleteLink('${l.id}')">Unlink</button></div>`;
     }))}</div>` : html`<p class="empty" style="padding-top:0">Not linked to anything.</p>`;
     const dirOpts = htmlList(types.flatMap(t => { const a = t.attributes; return a.inward === a.outward ? [opt(t.id + ':out', a.outward, '')] : [opt(t.id + ':out', a.outward, ''), opt(t.id + ':in', a.inward, '')]; }));
     box.innerHTML =
@@ -42,11 +43,11 @@ async function uploadAtt(jid: string, input: HTMLInputElement) {
   const files = [...input.files!]; if (!files.length) return;
   await withAuth(async () => {
     for (const f of files) {
-      toast('Uploading ' + f.name + '…');
+      toast(t('Uploading {filename}…', { filename: f.name }));
       const res = await api('/attachments', { method: 'POST', body: { filename: f.name, title: f.name, attachable_type: 'TransactionJournal', attachable_id: jid } });
       await api('/attachments/' + res.data.id + '/upload', { method: 'POST', raw: f, contentType: 'application/octet-stream' });
     }
-    toast(files.length === 1 ? 'File attached' : files.length + ' files attached'); refreshExtras();
+    toast(files.length === 1 ? t('File attached') : t('{count} files attached', { count: files.length })); refreshExtras();
   });
 }
 async function downloadAtt(id: string, name: string) { await withAuth(async () => saveBlob(await api('/attachments/' + id + '/download', { as: 'blob' }), name)); }
@@ -65,7 +66,7 @@ async function findLink() {
 async function makeLink(otherJid: string) {
   const [typeId, dir] = el<HTMLSelectElement>('lnkType').value.split(':'), me = S.extrasCtx!.jids[0];
   const body = dir === 'out' ? { link_type_id: typeId, outward_id: me, inward_id: otherJid } : { link_type_id: typeId, outward_id: otherJid, inward_id: me };
-  await withAuth(async () => { await api('/transaction-links', { method: 'POST', body }); toast('Linked'); refreshExtras(); });
+  await withAuth(async () => { await api('/transaction-links', { method: 'POST', body }); toast(t('Linked')); refreshExtras(); });
 }
 async function deleteLink(id: string) {
   if (!await confirmBox('Remove this link?', 'Both transactions stay; only the link between them is removed.', 'Unlink')) return;

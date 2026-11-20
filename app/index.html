@@ -1,13 +1,13 @@
 <!doctype html>
 <!-- Money: a modern frontend for Firefly III. MIT License: see LICENSE.
      Served by nginx from default.conf.template, which injects the Firefly token server-side. -->
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Money</title>
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="description" content="Money: a fast, private dashboard for Firefly III. Budgets, bills, forecasts and insights, in your browser or installed as an app.">
+<meta name="description" content="Money: un panel rápido y privado para Firefly III. Presupuestos, facturas, previsiones y análisis, en el navegador o como aplicación instalada.">
 <meta name="robots" content="noindex">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="icon" href="/assets/icons/favicon-32.png" type="image/png" sizes="32x32">
@@ -27,40 +27,40 @@
 <div id="login" class="login" hidden>
   <form id="loginForm" autocomplete="on">
     <h1>Money</h1>
-    <p>Enter the dashboard password to continue.</p>
+    <p>Introduce la contraseña del panel para continuar.</p>
     <div id="loginErr" class="form-err" hidden></div>
     <input type="text" name="username" value="money" autocomplete="username" hidden>
-    <label>Password<input type="password" id="loginPw" autocomplete="current-password" required autofocus></label>
-    <label class="check"><input type="checkbox" id="loginRemember" checked> Keep me signed in on this computer</label>
-    <button class="btn primary" type="submit">Sign in</button>
-    <p class="login-foot"><a href="/privacy.html">Privacy</a></p>
+    <label>Contraseña<input type="password" id="loginPw" autocomplete="current-password" required autofocus></label>
+    <label class="check"><input type="checkbox" id="loginRemember" checked> Mantener la sesión iniciada en este dispositivo</label>
+    <button class="btn primary" type="submit">Iniciar sesión</button>
+    <p class="login-foot"><a href="/privacy.html">Privacidad</a></p>
   </form>
 </div>
 
 <div id="app" class="app" hidden>
   <aside class="side">
-    <div class="brand"><span>Money</span><button type="button" class="side-tg" data-onclick="App.toggleSide()" title="Collapse the sidebar ([)" aria-label="Collapse the sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M9.5 4.5v15M15.5 10l-2 2 2 2"/></svg></button></div>
+    <div class="brand"><span>Money</span><button type="button" class="side-tg" data-onclick="App.toggleSide()" title="Contraer la barra lateral ([)" aria-label="Contraer la barra lateral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M9.5 4.5v15M15.5 10l-2 2 2 2"/></svg></button></div>
     <span class="ff-slot"></span>
-    <button type="button" class="side-search" data-onclick="App.openPalette()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span>Search</span><kbd>⌘K</kbd></button>
-    <nav class="nav" id="nav" aria-label="Pages"></nav>
+    <button type="button" class="side-search" data-onclick="App.openPalette()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span>Buscar</span><kbd>⌘K</kbd></button>
+    <nav class="nav" id="nav" aria-label="Páginas"></nav>
     <div class="spacer"></div>
     <div class="foot">
-      <nav class="nav" id="navFoot" aria-label="More"></nav>
+      <nav class="nav" id="navFoot" aria-label="Más"></nav>
       <div class="toggles"><button type="button" data-tg="privacy" data-onclick="App.togglePrivacy()"></button></div>
-      <a id="ffLink" href="${FIREFLY_URL}" target="_blank" rel="noopener">Open Firefly III ↗</a>
-      <button type="button" data-onclick="App.signOut()">Sign out</button>
+      <a id="ffLink" href="${FIREFLY_URL}" target="_blank" rel="noopener">Abrir Firefly III ↗</a>
+      <button type="button" data-onclick="App.signOut()">Cerrar sesión</button>
     </div>
   </aside>
   <main id="view"></main>
 </div>
 
-<button id="fab" class="fab" type="button" data-onclick="App.quickAdd()" aria-label="Add transaction (N)" title="Add transaction (N)" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
-<nav id="tabbar" class="tabbar" aria-label="Main" hidden></nav>
-<button id="searchBtn" class="search-btn" type="button" data-onclick="App.openPalette()" aria-label="Search everything" title="Search everything (⌘K)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>
+<button id="fab" class="fab" type="button" data-onclick="App.quickAdd()" aria-label="Añadir movimiento (N)" title="Añadir movimiento (N)" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+<nav id="tabbar" class="tabbar" aria-label="Principal" hidden></nav>
+<button id="searchBtn" class="search-btn" type="button" data-onclick="App.openPalette()" aria-label="Buscar en todo" title="Buscar en todo (⌘K)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>
 <div id="palette" class="palette" hidden data-onclick="App.palBackdrop(event,this)">
-  <div class="palette-box" role="dialog" aria-label="Search everything"><div class="pal-top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="palQ" type="search" enterkeyhint="go" placeholder="Search transactions, accounts, budgets, settings…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-controls="palList"
-    data-oninput="App.palFilter()" data-onkeydown="App.palKey(event)"><button type="button" class="link pal-cancel" data-onclick="App.closePalette()">Cancel</button></div><div id="palList" class="pal-list" role="listbox"></div>
-    <div class="pal-foot"><span>↑↓ to move</span><span>Enter to open</span><span>Esc to close</span></div></div>
+  <div class="palette-box" role="dialog" aria-label="Buscar en todo"><div class="pal-top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="palQ" type="search" enterkeyhint="go" placeholder="Buscar movimientos, cuentas, presupuestos y ajustes…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-controls="palList"
+    data-oninput="App.palFilter()" data-onkeydown="App.palKey(event)"><button type="button" class="link pal-cancel" data-onclick="App.closePalette()">Cancelar</button></div><div id="palList" class="pal-list" role="listbox"></div>
+    <div class="pal-foot"><span>↑↓ para moverse</span><span>Intro para abrir</span><span>Esc para cerrar</span></div></div>
 </div>
 <div id="undo" class="undo" role="status" aria-live="polite" hidden></div>
 <div id="calpop" class="calpop" hidden></div>
@@ -68,7 +68,7 @@
 <div id="ptr" class="ptr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></div>
 <div id="tip" class="tip" hidden></div>
 <div id="scrim" class="scrim" data-onclick="App.closeDrawerAsk()"></div>
-<aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-label="Details" aria-hidden="true" inert></aside>
+<aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-label="Detalles" aria-hidden="true" inert></aside>
 <dialog id="confirm"></dialog>
 <dialog id="whatsNew" class="whatsnew"></dialog>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>

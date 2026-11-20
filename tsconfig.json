@@ -4,6 +4,7 @@
     "target": "es2020",
     "module": "esnext",
     "moduleResolution": "bundler",
+    "resolveJsonModule": true,
     "lib": ["es2022", "dom", "dom.iterable"],
     "strict": true,
     "noEmit": true,

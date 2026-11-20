@@ -9,16 +9,17 @@ import { VIEWS, route } from '../core/router';
 import { goalPace } from '../features/pace';
 import { SERIES, ring } from '../features/charts';
 import { customizeButton, pageCard, pageOpt } from '../features/pageopts';
+import { t } from '../core/spanish';
 
 /* ================= Piggy banks ================= */
 // What a goal needs from here on, and a chip saying whether it keeps up (shared with the Overview's Savings goals card)
 export function paceBits(p: Piggy) {
   const g = goalPace(p, todayIso());
-  if (g.status === 'done') return { line: 'Goal reached', chip: html`<span class="chip good">Reached</span>` };
-  if (g.status === 'open') return { line: money0(g.left) + ' to go', chip: '' };
-  if (g.status === 'late') return { line: money0(g.left) + ' still to go, target date passed', chip: html`<span class="chip bad">Past due</span>` };
-  return { line: 'Save ' + money0(g.perMonth) + '/month to reach it by ' + fmtDate(p.targetDate),
-    chip: g.status === 'behind' ? html`<span class="chip warn" title="Where an even pace from the start date would be by now">${money0(g.gap)} behind</span>` : html`<span class="chip good">On track</span>` };
+  if (g.status === 'done') return { line: t('Goal reached'), chip: html`<span class="chip good">${t('Reached')}</span>` };
+  if (g.status === 'open') return { line: t('{amount} to go', { amount: money0(g.left) }), chip: '' };
+  if (g.status === 'late') return { line: t('{amount} still to go, target date passed', { amount: money0(g.left) }), chip: html`<span class="chip bad">${t('Past due')}</span>` };
+  return { line: t('Save {amount}/month to reach it by {date}', { amount: money0(g.perMonth), date: fmtDate(p.targetDate) }),
+    chip: g.status === 'behind' ? html`<span class="chip warn" title="Where an even pace from the start date would be by now">${t('{amount} behind', { amount: money0(g.gap) })}</span>` : html`<span class="chip good">${t('On track')}</span>` };
 }
 export type PiggyAccount = { id: string, name: string, amount: number };
 export type Piggy = ReturnType<typeof normPiggy>;
@@ -50,7 +51,7 @@ VIEWS.piggy = async (r, paint) => {
     return html`${heading}<section class="panel"><div class="panel-head"><h2>${p.name}</h2><button class="btn small" data-onclick="App.piggyForm('${p.id}')">Edit</button></div><p class="lead">${p.accounts.map(a => a.name || (L.byId[a.id] || {}).name).filter(Boolean).join(', ') || 'No account'}${p.targetDate ? ' · by ' + fmtDate(p.targetDate) : ''}</p>${bars ? html`<div class="goal goal-bar"><div class="goal-nums"><span class="total num">${money0(p.current)}</span><span class="neutral">of ${money0(p.target)}</span><span class="num goal-pct">${pct.toFixed(0)}%</span></div><div class="track"><div class="fill good" style="width:${pct.toFixed(1)}%"></div></div><div class="sub-s">${paceBits(p).line} ${paceBits(p).chip}</div></div>`
       : html`<div class="goal">${ring(pct, 'good', 'saved')}<div><div class="total num" style="margin-bottom:2px">${money0(p.current)}</div><div class="neutral">of ${money0(p.target)}</div><div class="sub-s" style="margin-top:8px">${paceBits(p).line} ${paceBits(p).chip}</div></div></div>`}<div style="display:flex;gap:8px"><button class="btn small" data-onclick="App.piggyMoney('${p.id}',1)">+ Add money</button><button class="btn small" data-onclick="App.piggyMoney('${p.id}',-1)">− Take out</button></div></section>`;
   }));
-  paint(html`${head('Piggy banks', piggies.length ? money0(saved) + ' saved toward ' + money0(goal) + ' in goals' : 'Set money aside for goals', html`${customizeButton('piggy')}<button class="btn primary" data-onclick="App.piggyForm()">+ New piggy bank</button>`)}${cards ?
+  paint(html`${head('Piggy banks', piggies.length ? t('{saved} saved toward {goal} in goals', { saved: money0(saved), goal: money0(goal) }) : 'Set money aside for goals', html`${customizeButton('piggy')}<button class="btn primary" data-onclick="App.piggyForm()">+ New piggy bank</button>`)}${cards ?
     html`<div class="flow" data-min="320">${pageCard('piggy', 'chart') ? html`<section class="panel full"><h2>All goals at a glance</h2><p class="lead">${money0(saved)} of ${money0(goal)} saved · ${goal ? Math.round(saved / goal * 100) : 0}% of the way</p><div class="parts goal-parts">${htmlList(shown.map((p, i) => html`<div class="part"><i style="background:${SERIES[i % SERIES.length]}"></i><span class="name">${p.name}<span class="sub-s">${money0(p.current)} of ${money0(p.target)}</span></span><span class="track"><span class="fill" style="width:${pctOf(p).toFixed(1)}%;background:${SERIES[i % SERIES.length]}"></span></span><span class="num">${pctOf(p).toFixed(0)}%</span></div>`))}</div></section>` : ''}${cards}</div>` :
     piggies.length ? html`<section class="panel"><div class="center-empty">Every goal is reached. Turn on Goals already reached under Customize to see them.</div></section>` : html`<section class="panel">${emptyState('goals', 'No piggy banks yet', 'Set money aside for a goal, like a trip, tuition or an emergency fund, and track how close you are.', html`<button class="btn primary" data-onclick="App.piggyForm()">+ New piggy bank</button>`)}</section>`}`);
 };

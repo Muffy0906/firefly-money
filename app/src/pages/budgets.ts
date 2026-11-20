@@ -12,6 +12,7 @@ import { pairBars, ring } from '../features/charts';
 import { type BMonth, budgetCard, budgetInsight } from '../features/budgetinsight';
 import { normGroup } from '../core/feed';
 import { customizeButton, pageCard, pageOpt } from '../features/pageopts';
+import { t } from '../core/spanish';
 
 /* ================= Budgets ================= */
 const AUTO_PERIODS = [['weekly', 'Week', '/wk'], ['monthly', 'Month', '/mo'], ['quarterly', 'Quarter', '/qtr'], ['half_year', 'Half year', '/6 mo'], ['yearly', 'Year', '/yr']];
@@ -21,7 +22,7 @@ function carried(b: { lim?: BudgetLimit, auto: string, autoPeriod: string, autoA
   if (!b.lim || !['rollover', 'adjusted'].includes(b.auto) || b.autoPeriod !== 'monthly') return '';
   const d = b.lim.amount - b.autoAmt;
   if (Math.abs(d) < 1) return '';
-  return html`<div class="sub-s">${d > 0 ? 'Includes ' + money(d) + ' carried over from last month' : html`<span class="up">${money(-d)} less</span> after overspending last month`}</div>`;
+  return html`<div class="sub-s">${d > 0 ? t('Includes {amount} carried over from last month', { amount: money(d) }) : t('{amount} less after overspending last month', { amount: money(-d) })}</div>`;
 }
 // How a budget is doing against the time gone by in its month: where spending "should" be today (at: 0–1 of the month),
 // and the day it runs out at the pace so far. Only for the month that includes today.
@@ -32,8 +33,8 @@ export function budgetPace(spent: number, amount: number, start: string, end: st
   const left = len - gone + 1;      // days left including today, same count as the budget detail card's "days left"
   if (used * 100 >= alertPct) return { at, tone: 'warn', text: Math.round(used * 100) + '% used with ' + left + ' day' + (left === 1 ? '' : 's') + ' to go' };
   const runDay = spent > 0 ? Math.ceil(amount / (spent / gone)) : Infinity;
-  if (gone >= 3 && runDay <= len) return { at, tone: 'warn', text: 'Ahead of pace · may run out around ' + fmtDay(addDays(start, runDay - 1)) };
-  return { at, tone: 'ok', text: used <= at ? 'On pace' : 'A little ahead of pace' };
+  if (gone >= 3 && runDay <= len) return { at, tone: 'warn', text: t('Ahead of pace · may run out around {date}', { date: fmtDay(addDays(start, runDay - 1)) }) };
+  return { at, tone: 'ok', text: t(used <= at ? 'On pace' : 'A little ahead of pace') };
 }
 // This period's amount for each budget, by budget id
 // A budget can have several amounts that overlap the period (an auto-budget that resets every week has one per week),
@@ -117,7 +118,7 @@ VIEWS.budgets = async (r, paint) => {
   const bs = arr(res).map(b => ({ id: String(b.id), name: b.attributes.name, active: b.attributes.active !== false, notes: b.attributes.notes || '',
     auto: b.attributes.auto_budget_type && b.attributes.auto_budget_type !== 'none' ? b.attributes.auto_budget_type : '', autoAmt: num(b.attributes.auto_budget_amount), autoPeriod: b.attributes.auto_budget_period || 'monthly',
     spent: spentSum(b), lim: limits[String(b.id)] }));
-  const visible = bs.filter(b => b.active || showInactive), t = todayIso(), alertPct = budgetAlert();
+  const visible = bs.filter(b => b.active || showInactive), today = todayIso(), alertPct = budgetAlert();
   // Customize: the order, the today marker, and a chart of the month above the list
   const sort = pageOpt('budgets', 'sort'), usedOf = (b: typeof bs[0]) => b.lim && b.lim.amount ? b.spent / b.lim.amount : -1, leftOf = (b: typeof bs[0]) => b.lim ? b.lim.amount - b.spent : -Infinity;
   if (sort === 'name') visible.sort((a, b) => a.name.localeCompare(b.name));
@@ -130,13 +131,13 @@ VIEWS.budgets = async (r, paint) => {
     : pairBars(set.map(b => ({ label: b.name, tip: b.name, a: b.lim!.amount, b: b.spent, go: '#/transactions?budget=' + b.id })), ['Budgeted', 'Spent'], ['color-mix(in srgb, var(--muted) 40%, transparent)', 'var(--spend)'], 'Each budget’s amount and what was spent')}</section>`;
   const totLim = visible.reduce((s, b) => s + (b.lim ? b.lim.amount : 0), 0), totSpent = visible.reduce((s, b) => s + b.spent, 0), unb = sumDiff(noBudget), left = totLim - visible.reduce((s, b) => s + (b.lim && b.lim.amount ? b.spent : 0), 0);      // left of what's planned: spending in a budget with no amount isn't taken off it
   const rows = htmlList(visible.map(b => {
-    const pct = b.lim && b.lim.amount ? b.spent / b.lim.amount * 100 : 0, pace = b.lim && !all ? budgetPace(b.spent, b.lim.amount, cur.start, cur.end, t, alertPct) : null;
+    const pct = b.lim && b.lim.amount ? b.spent / b.lim.amount * 100 : 0, pace = b.lim && !all ? budgetPace(b.spent, b.lim.amount, cur.start, cur.end, today, alertPct) : null;
     return html`<tr${b.active ? '' : html` style="opacity:.5"`}><td class="namecol"><a class="desc" href="#/transactions?budget=${b.id}" style="text-decoration:none">${b.name}</a>${b.lim ? html`<div class="track pace" style="max-width:360px"><div class="fill ${pct > 100 ? 'over' : pace && pace.tone === 'warn' ? 'warn' : 'good'}" style="width:${Math.min(100, pct).toFixed(1)}%"></div>${pace && showPace ? html`<i class="today" style="left:${(pace.at * 100).toFixed(1)}%" title="Today"></i>` : ''}</div><div class="sub-s"><span class="show-s">${money(b.spent)} spent · </span>${pct > 100 ? html`<span class="up">${money(b.spent - b.lim.amount)} over</span>` : money(b.lim.amount - b.spent) + ' left · ' + pct.toFixed(0) + '% used'}${pace && pace.text ? html` · <span class="${pace.tone === 'warn' ? 'up' : 'neutral'}">${pace.text}</span>` : ''}</div>` : all ? '' : html`<div class="sub-s">No amount set for ${cur.short}</div>`}${b.lim ? '' : html`<div class="sub-s show-s">${money(b.spent)} spent</div>`}${all ? '' : carried(b)}${b.auto ? html`<span class="chip" title="Auto-budget: Firefly sets the amount each period">${AUTO_LABEL[b.auto] || b.auto} · ${money0(b.autoAmt)}${(AUTO_PERIODS.find(x => x[0] === b.autoPeriod) || ['', '', ''])[2]}</span>` : ''}</td><td class="amt hide-s">${money(b.spent)}</td>${all ? '' : html`<td class="r"><input class="inline num" type="number" min="0" step="1" placeholder="Set…" value="${b.lim ? b.lim.amount : ''}" data-onchange="App.setLimit('${b.id}',this)" aria-label="Budget for ${b.name}"></td>`}<td class="act"><button class="btn small" data-onclick="App.budgetForm('${b.id}')">Edit</button></td></tr>`;
   }));
   const inactiveCount = bs.filter(b => !b.active).length;
   const nHist = pageOpt('budgets', 'months') as number;
-  const cards = showHist && history ? visible.map(b => { const ms = history[b.id]; return ms && ms.some(m => m.limit > 0 || m.spent > 0) ? budgetCard(b, budgetInsight(ms, t, alertPct), alertPct) : ''; }).filter(Boolean) : [];
-  const insights = !showHist ? '' : html`<section class="bi-wrap"><div class="panel-head"><h2>Budget insights</h2></div><p class="lead">${history ? 'Each budget over the last ' + nHist + ' months, to ' + cur.label + ' · average, pace and where this month is heading' : 'Budget history'}</p>${!history ? html`<p class="empty">Couldn’t load the budget history. Try again in a moment.</p>` : cards.length ? html`<div class="binsights">${htmlList(cards)}</div>` : html`<p class="empty">Nothing spent in a budget over the last ${nHist} months yet.</p>`}</section>`;
+  const cards = showHist && history ? visible.map(b => { const ms = history[b.id]; return ms && ms.some(m => m.limit > 0 || m.spent > 0) ? budgetCard(b, budgetInsight(ms, today, alertPct), alertPct) : ''; }).filter(Boolean) : [];
+  const insights = !showHist ? '' : html`<section class="bi-wrap"><div class="panel-head"><h2>Budget insights</h2></div><p class="lead">${history ? t('Each budget over the last {count} months, to {period} · average, pace and where this month is heading', { count: nHist, period: cur.label }) : 'Budget history'}</p>${!history ? html`<p class="empty">Couldn’t load the budget history. Try again in a moment.</p>` : cards.length ? html`<div class="binsights">${htmlList(cards)}</div>` : html`<p class="empty">${t('Nothing spent in a budget over the last {count} months yet.', { count: nHist })}</p>`}</section>`;
   paint(html`${head('Budgets', 'Set how much you plan to spend each month', html`${monthNav()}${customizeButton('budgets')}<button class="btn primary" data-onclick="App.budgetForm()">+ New budget</button>`)}${pageCard('budgets', 'kpis') ? html`<div class="kpis">${available ? html`<div class="kpi"><div class="eyebrow">Available to budget</div><div class="val num">${money0(available)}</div><div class="sub-s">${available - totLim >= 0 ? money0(available - totLim) + ' not yet assigned' : html`<span class="up">${money0(totLim - available)} more assigned than available</span>`}</div></div>` : ''}${all ? '' : html`<div class="kpi"><div class="eyebrow">Budgeted</div><div class="val num">${money0(totLim)}</div></div>`}<div class="kpi"><div class="eyebrow">Spent in budgets</div><div class="val num">${money0(totSpent)}</div></div>${all ? '' : html`<div class="kpi"><div class="eyebrow">Left</div><div class="val num ${left < 0 ? 'neg' : ''}">${money0(left)}</div></div>`}<div class="kpi"><div class="eyebrow">Spent outside budgets</div><div class="val num">${money0(unb)}</div></div></div>` : ''}${chart}<section class="panel flush">${rows ? html`<table class="tbl"><thead><tr><th>Budget</th><th class="r hide-s">Spent</th>${all ? '' : html`<th class="r"><span class="hide-s">Budget for ${cur.short}</span><span class="show-s">Amount</span></th>`}<th></th></tr></thead><tbody>${rows}</tbody></table>`
       : emptyState('budgets', 'No budgets yet', 'Give a category a monthly limit and see how fast you are using it, with a warning before you go over.', html`<button class="btn primary" data-onclick="App.budgetForm()">+ New budget</button>`)}</section>${insights}${inactiveCount ? html`<p style="margin-top:14px"><a class="link" href="${hashWith({ inactive: showInactive ? '' : '1' })}">${showInactive ? 'Hide' : 'Show'} ${inactiveCount} inactive</a></p>` : ''}<p class="sub-s" style="margin-top:14px">${all ? 'Budget amounts are set per month. Pick a month to set them.' : 'Type an amount in the right column and press Enter to set that month’s budget. Clear it to remove it.'}</p>`);
   S.budgetLimits = limits; S.budgetCache = Object.fromEntries(bs.map(b => [b.id, b]));
@@ -146,8 +147,8 @@ async function setLimit(bid: string, input: HTMLInputElement) {
   // The amount typed is in the main currency (that's what the column shows), so a limit Firefly kept in another currency is saved as a main-currency one
   const body = { amount: String(num(val)), start: cur.start, end: cur.end, ...(parts.some(p => p.cur) ? { currency_code: S.currency } : {}) };
   // Several amounts (weekly auto-budget, say) can't be edited as one number: the new amount replaces them all, once the person agrees
-  if (parts.length > 1 && !await confirmBox(clear ? 'Remove all ' + parts.length + ' amounts?' : 'Replace ' + parts.length + ' amounts with one?',
-    clear ? 'This budget has ' + parts.length + ' amounts this month. They will all be removed.' : 'This budget has ' + parts.length + ' amounts this month (' + money0(lim.amount) + ' in all). They will be replaced by one amount of ' + money0(num(val)) + '.', clear ? 'Remove' : 'Replace')) { input.value = String(lim.amount); return; }
+  if (parts.length > 1 && !await confirmBox(clear ? t('Remove all {count} amounts?', { count: parts.length }) : t('Replace {count} amounts with one?', { count: parts.length }),
+    clear ? t('This budget has {count} amounts this month. They will all be removed.', { count: parts.length }) : t('This budget has {count} amounts this month ({total} in all). They will be replaced by one amount of {amount}.', { count: parts.length, total: money0(lim.amount), amount: money0(num(val)) }), clear ? 'Remove' : 'Replace')) { input.value = String(lim.amount); return; }
   input.disabled = true;
   try {
     if (clear) await Promise.all(parts.map(p => api('/budgets/' + bid + '/limits/' + p.id, { method: 'DELETE' })));

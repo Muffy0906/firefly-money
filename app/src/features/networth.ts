@@ -7,6 +7,7 @@ import { type Account, isAsset, isLiab, lists, normAccount } from '../core/lists
 import { LS, monthEnds } from '../core/helpers';
 import { route } from '../core/router';
 import { miniLine } from './charts';
+import { t } from '../core/spanish';
 
 /* ---------- Net worth over time ----------
    Firefly reports an account's balance on any past day (GET /accounts?date=…), so the history is one request per
@@ -31,7 +32,7 @@ export const nwMonths = () => {
 // A range typed in by hand (any whole number of months from 3 to 600) rather than one of the buttons
 const isCustom = (m: number) => Number.isInteger(m) && m >= 3 && m <= 600 && !RANGES.some(r => r[0] === m);
 export const customLabel = (m: number) => m % 12 === 0 ? m / 12 + 'Y' : m < 24 ? m + 'M' : +(m / 12).toFixed(1) + 'Y';
-export const nwWords = () => { const m = nwMonths(), r = RANGES.find(x => x[0] === m); return r ? r[2] : m % 12 === 0 || m >= 24 ? +(m / 12).toFixed(1) + ' years' : m + ' months'; };
+export const nwWords = () => { const m = nwMonths(), r = RANGES.find(x => x[0] === m); return r ? t(r[2]) : m % 12 === 0 || m >= 24 ? t('{count} years', { count: +(m / 12).toFixed(1) }) : t('{count} months', { count: m }); };
 let editing = false;
 async function netWorthHistory(): Promise<NetWorthPoint[]> {
   return netWorthOn(monthEnds(todayIso(), POINTS, nwMonths() / (POINTS - 1)));
@@ -95,12 +96,12 @@ function show(box: HTMLElement, i: number) {
   box.style.setProperty('--x', (fx * 100).toFixed(2) + '%'); box.style.setProperty('--ky', ky.toFixed(1) + 'px');
   const big = part(card, 'big'), sub = part(card, 'sub'), today = i === pts.length - 1, d = last.net - p.net;
   if (big) { big.textContent = money0(p.net); big.classList.toggle('negative', p.net < 0); }
-  if (sub) sub.innerHTML = String(today ? html`<strong>Today</strong>` : html`<strong>${label(p.date)}</strong> · <span class="${d >= 0 ? 'down' : 'up'}">${money0(Math.abs(d))} ${d >= 0 ? 'less' : 'more'} than now</span>`);
+  if (sub) sub.innerHTML = String(today ? html`<strong>Today</strong>` : html`<strong>${label(p.date)}</strong> · <span class="${d >= 0 ? 'down' : 'up'}">${t('{amount} {direction} than now', { amount: money0(Math.abs(d)), direction: t(d >= 0 ? 'less' : 'more') })}</span>`);
   // Which accounts moved since then, in the tip above the line
   const names = Object.fromEntries((S.lists ? S.lists.accounts : []).map(a => [a.id, a.name]));
   const mv = today ? [] : movers(p.by || {}, last.by || {}, names), tip = el('tip');
   if (!mv.length) { tip.hidden = true; return; }
-  tip.textContent = 'Since then\n' + mv.map(([nm, x]) => nm + ' ' + (x >= 0 ? '+' : '−') + money0(Math.abs(x))).join('\n');
+  tip.textContent = t('Since then') + '\n' + mv.map(([nm, x]) => nm + ' ' + (x >= 0 ? '+' : '−') + money0(Math.abs(x))).join('\n');
   tip.dataset.src = 'nw'; tip.hidden = false;
   // Above the tile, so it never covers the number you're reading (below it when the tile is at the top of the screen)
   const r = box.getBoundingClientRect(), c = card.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight, at = r.left + r.width * fx;
@@ -111,7 +112,7 @@ function settle(box: HTMLElement) {
   const card = box.closest<HTMLElement>('.nw'), p = SCRUB[cur]; if (!card) return;
   if (!p || cur === SCRUB.length - 1) return reset(card);
   const [y, m] = monthOf(new Date(p.date + 'T12:00:00')), sub = part(card, 'sub');
-  if (sub) sub.insertAdjacentHTML('beforeend', String(html` <button type="button" class="link nw-open" data-onclick="App.nwOpen(${y},${m})">See ${monthRange(y, m).short} →</button>`));
+  if (sub) sub.insertAdjacentHTML('beforeend', String(html` <button type="button" class="link nw-open" data-onclick="App.nwOpen(${y},${m})">${t('See {month} →', { month: monthRange(y, m).short })}</button>`));
   // Hold that month while a mouse heads for the link, rather than scrubbing on the way there
   held = true;
   resetT = setTimeout(() => reset(card), 8000);

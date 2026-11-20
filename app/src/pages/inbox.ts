@@ -8,6 +8,7 @@ import { addDays } from '../core/helpers';
 import { buzz } from '../core/haptics';
 import { lists } from '../core/lists';
 import { VIEWS, parseHash } from '../core/router';
+import { t } from '../core/spanish';
 
 /* ================= Categorize inbox ================= */
 const NOISE = new Set(['SQ', 'TST', 'DD', 'POS', 'ACH', 'WEB', 'PMT', 'PAYMENT', 'PURCHASE', 'IC', 'THE', 'APLPAY', 'PP', 'PAYPAL', 'ZSK', 'IT', 'RAZ', 'DEBIT', 'CARD', 'ONLINE', 'INST', 'XFER']);
@@ -53,7 +54,7 @@ VIEWS.inbox = async (r, paint) => {
 function renderInbox() {
   const I = S.inbox, L = S.lists!, g = I.items[I.i];
   if (!g) {
-    I.paint(html`${head('To do', '', '')}${todoTabs('inbox')}<section class="panel"><div class="center-empty" style="padding:70px 20px"><div style="font-size:40px">✓</div><h2 style="font-size:18px;margin:10px 0 4px">All caught up</h2>${I.done ? 'You categorized ' + I.done + ' transaction' + (I.done === 1 ? '' : 's') + '.' : 'Every transaction has a category.'}</div></section>`);
+    I.paint(html`${head('To do', '', '')}${todoTabs('inbox')}<section class="panel"><div class="center-empty" style="padding:70px 20px"><div style="font-size:40px">✓</div><h2 style="font-size:18px;margin:10px 0 4px">All caught up</h2>${I.done ? t('You categorized {count} transactions.', { count: I.done }) : 'Every transaction has a category.'}</div></section>`);
     return;
   }
   const s = g.splits.find((x: Split) => !x.category) || g.splits[0], sug = suggest(s, I.h), top = sug.cats[0];
@@ -62,7 +63,9 @@ function renderInbox() {
   const similar = sug.generic ? [] : I.items.filter((x: Group, j: number) => j !== I.i && x.splits.some(y => !y.category && (y.type === 'deposit' ? y.source_id : y.destination_id) === payeeId));
   I.cur = { g, s, payeeName, similar, generic: sug.generic, pickBud: sug.pickBud };
   const bud = top ? sug.pickBud(top.c) : '';
-  I.paint(html`${head('To do', (I.items.length - I.i) + ' to categorize' + (I.done ? ' · ' + I.done + ' done this session' : ''), html`<button class="btn" data-onclick="App.inboxSkip()">Skip <span class="neutral">S</span></button>`)}${todoTabs('inbox')}<div class="track" style="margin:-10px 0 24px"><div class="fill good" style="width:${(I.done / (I.done + I.items.length) * 100).toFixed(1)}%"></div></div><section class="panel ib-card" id="inboxCard" style="max-width:760px"><div class="row" style="align-items:flex-start"><div><div class="eyebrow">${fmtDate(g.date)} · ${s.type === 'deposit' ? 'Income' : 'Expense'}</div><div style="font-size:22px;font-weight:600;letter-spacing:-.01em;margin:4px 0">${s.description}</div><div class="sub-s">${s.source_name} → ${s.destination_name}${g.splits.length > 1 ? ' · part of “' + g.title + '”' : ''}</div></div><div class="big num ${s.type === 'deposit' ? 'pos' : ''}" style="font-size:34px">${money(s.amount)}</div></div><div style="margin:24px 0 6px" class="eyebrow">${sug.cats.length ? 'Suggestions' : 'No suggestion yet — pick a category'}</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">${htmlList(sug.cats.map((c, i) => html`<button class="btn${i === 0 ? ' primary' : ''}" data-onclick="App.inboxPick(${i})" data-cat="${c.c}"><span class="neutral" style="color:inherit;opacity:.6">${i + 1}</span> ${c.c} <span style="opacity:.6">${c.pct}%</span></button>`))}</div><form id="inboxForm" data-onsubmit="event.preventDefault();App.inboxSave()"><div class="grid2"><label>Category<input type="text" id="ib-cat" list="ib-dl" value="${top ? top.c : ''}" required></label>${s.type === 'withdrawal' ? html`<label>Budget<select id="ib-bud">${opt('', 'None', bud)}${htmlList(L.budgets.filter(b => b.active).map(b => opt(b.id, b.name, bud)))}</select></label>` : html`<span></span>`}</div><datalist id="ib-dl">${htmlList(L.categories.map(c => html`<option value="${c.name}">`))}</datalist>${similar.length ? html`<label class="check"><input type="checkbox" id="ib-similar" checked> Also do the ${similar.length} other uncategorized from ${payeeName}</label>` : ''}<label class="check"><input type="checkbox" id="ib-rule"${similar.length >= 1 && !sug.generic ? ' checked' : ''}> Always do this for ${sug.generic ? '“' + descKey(s.description) + '”' : payeeName} from now on (creates a rule)</label><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap"><button class="btn primary" id="ib-save">Save <span style="opacity:.6">↵</span></button>${top ? html`<button type="button" class="btn ib-accept" data-onclick="App.inboxQuick()" title="Save ${top.c} on this one only: no rule, no others">Accept ${top.c}</button>` : ''}<button type="button" class="btn" data-onclick="App.editTx('${g.id}')">Open full transaction</button>${I.i > 0 ? html`<button type="button" class="link" data-onclick="App.inboxBack()">← Back</button>` : ''}</div></form></section><p class="sub-s" style="margin-top:14px">Keys: <strong>1–3</strong> pick a suggestion · <strong>Enter</strong> save · <strong>S</strong> skip. On a phone, swipe the card right to accept the top suggestion (this one only) or left to skip. Suggestions come from how you categorized similar transactions over the past year.</p>`);
+  const left = I.items.length - I.i;
+  const sub = I.done ? t('{count} to categorize · {done} done this session', { count: left, done: I.done }) : t('{count} to categorize', { count: left });
+  I.paint(html`${head('To do', sub, html`<button class="btn" data-onclick="App.inboxSkip()">Skip <span class="neutral">S</span></button>`)}${todoTabs('inbox')}<div class="track" style="margin:-10px 0 24px"><div class="fill good" style="width:${(I.done / (I.done + I.items.length) * 100).toFixed(1)}%"></div></div><section class="panel ib-card" id="inboxCard" style="max-width:760px"><div class="row" style="align-items:flex-start"><div><div class="eyebrow">${fmtDate(g.date)} · ${s.type === 'deposit' ? 'Income' : 'Expense'}</div><div style="font-size:22px;font-weight:600;letter-spacing:-.01em;margin:4px 0">${s.description}</div><div class="sub-s">${s.source_name} → ${s.destination_name}${g.splits.length > 1 ? ' · part of “' + g.title + '”' : ''}</div></div><div class="big num ${s.type === 'deposit' ? 'pos' : ''}" style="font-size:34px">${money(s.amount)}</div></div><div style="margin:24px 0 6px" class="eyebrow">${sug.cats.length ? 'Suggestions' : 'No suggestion yet — pick a category'}</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">${htmlList(sug.cats.map((c, i) => html`<button class="btn${i === 0 ? ' primary' : ''}" data-onclick="App.inboxPick(${i})" data-cat="${c.c}"><span class="neutral" style="color:inherit;opacity:.6">${i + 1}</span> ${c.c} <span style="opacity:.6">${c.pct}%</span></button>`))}</div><form id="inboxForm" data-onsubmit="event.preventDefault();App.inboxSave()"><div class="grid2"><label>Category<input type="text" id="ib-cat" list="ib-dl" value="${top ? top.c : ''}" required></label>${s.type === 'withdrawal' ? html`<label>Budget<select id="ib-bud">${opt('', 'None', bud)}${htmlList(L.budgets.filter(b => b.active).map(b => opt(b.id, b.name, bud)))}</select></label>` : html`<span></span>`}</div><datalist id="ib-dl">${htmlList(L.categories.map(c => html`<option value="${c.name}">`))}</datalist>${similar.length ? html`<label class="check"><input type="checkbox" id="ib-similar" checked> ${t('Also categorize {count} other uncategorized transactions from {payee}', { count: similar.length, payee: payeeName })}</label>` : ''}<label class="check"><input type="checkbox" id="ib-rule"${similar.length >= 1 && !sug.generic ? ' checked' : ''}> ${t('Always do this for {target} from now on (creates a rule)', { target: sug.generic ? '“' + descKey(s.description) + '”' : payeeName })}</label><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap"><button class="btn primary" id="ib-save">Save <span style="opacity:.6">↵</span></button>${top ? html`<button type="button" class="btn ib-accept" data-onclick="App.inboxQuick()" title="${t('Save {category} on this one only: no rule, no others', { category: top.c })}">${t('Accept {category}', { category: top.c })}</button>` : ''}<button type="button" class="btn" data-onclick="App.editTx('${g.id}')">Open full transaction</button>${I.i > 0 ? html`<button type="button" class="link" data-onclick="App.inboxBack()">← Back</button>` : ''}</div></form></section><p class="sub-s" style="margin-top:14px">Keys: <strong>1–3</strong> pick a suggestion · <strong>Enter</strong> save · <strong>S</strong> skip. On a phone, swipe the card right to accept the top suggestion (this one only) or left to skip. Suggestions come from how you categorized similar transactions over the past year.</p>`);
 }
 /* ---------- Quick accept: the top suggestion, this transaction only (no rule, no others). Swipe right, or the Accept button. Undo puts it back. ---------- */
 export const SWIPE_PX = 90;
@@ -95,7 +98,7 @@ async function inboxQuick() {
     clearTimeout(S.undoT); box.hidden = true;
     try {
       await api('/transactions/' + g.id, { method: 'PUT', body: groupUpdate(g, x => ({ category_name: '', ...(setBud[x.jid] ? { budget_id: '0' } : {}) })) });
-    } catch (e) { if (e instanceof AuthError) return showLogin(e.message); return toast('Couldn’t undo: ' + (e as Error).message); }
+    } catch (e) { if (e instanceof AuthError) return showLogin(e.message); return toast(t('Couldn’t undo: {error}', { error: (e as Error).message })); }
     if (S.inbox === I) {
       I.items.splice(Math.min(at, I.items.length), 0, g); I.done = Math.max(0, I.done - 1); I.i = Math.min(at, I.items.length - 1);
       if (parseHash().name === 'inbox') renderInbox();
@@ -139,7 +142,7 @@ async function ensureInboxGroup() {
   const groups = await getAll('/rule-groups');
   const g = groups.find(x => x.attributes.title === '5. Inbox rules');
   if (g) return String(g.id);
-  const res = await api('/rule-groups', { method: 'POST', body: { title: '5. Inbox rules', description: 'Created from the Categorize inbox. Runs after your other groups.', active: true } });
+  const res = await api('/rule-groups', { method: 'POST', body: { title: '5. Inbox rules', description: t('Created from the Categorize inbox. Runs after your other groups.'), active: true } });
   return String(res.data.id);
 }
 async function inboxSave() {
@@ -170,7 +173,7 @@ async function inboxSave() {
     if (I.items.length && I.i > 0 && I.i >= I.items.length) I.i = I.items.length - 1;
     // remember this choice for the next suggestions
     bump(I.h.payee, s.type === 'deposit' ? s.source_id : s.destination_id, cat); bump(I.h.key, descKey(s.description), cat);
-    toast('Saved' + (n > 1 ? ' · ' + n + ' transactions' : '') + (makeRule ? ' · rule created' : ''));
+    toast(t('Saved') + (n > 1 ? ' · ' + t('{count} transactions', { count: n }) : '') + (makeRule ? ' · ' + t('rule created') : ''));
     renderInbox();
   } catch (e) { if (e instanceof AuthError) return showLogin(e.message); btn.disabled = false; btn.textContent = 'Save'; toast((e as Error).message); }
 }

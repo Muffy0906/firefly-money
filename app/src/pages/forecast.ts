@@ -2,6 +2,7 @@ import { html, htmlList, type Html } from '../core/html';
 import { getAll } from '../core/api';
 import { App, S, fmtDate, fmtDay, isoDate, leadDays, money, money0, num, sameName, todayIso, weekOrder, type ApiData } from '../core/base';
 import { head, ICON_X, opt } from '../core/dom';
+import { t } from '../core/spanish';
 import { type Group, normGroup } from '../core/feed';
 import { LS, addDays, bizDay, daysBetween, monthsFrom } from '../core/helpers';
 import { isAsset, isCard, isLiab, lists } from '../core/lists';
@@ -57,10 +58,11 @@ type WhatIf = { id: string, label: string, amount: number, date: string, repeat:
 type FcEvent = { date: string, label: string, kind: string, amount: number, key: string, off?: boolean, after?: number, note?: string };
 // How far ahead the forecast looks: the range picked on the Forecast page, which the Overview's card and Ask use too
 export const fcHorizon = () => +LS.get('fcDays', 60) || 60;
-export const horizonText = (h: number) => h === 365 ? 'year' : h === 180 ? '6 months' : h + ' days';
+export const horizonText = (h: number) => h === 365 ? t('year') : h === 180 ? t('6 months') : t('{count} days', { count: h });
 // "Below zero on Nov 3, lowest -$1,858 on Jan 10": the first day it goes under, and the low point when that's later
 export function shortText(m: { firstNeg: string, min: number, minDate: string }) {
-  return 'below zero on ' + fmtDate(m.firstNeg || m.minDate) + (m.firstNeg && m.firstNeg !== m.minDate ? ', lowest ' + money0(m.min) + ' on ' + fmtDate(m.minDate) : '');
+  return t('below zero on {date}{lowest}', { date: fmtDate(m.firstNeg || m.minDate),
+    lowest: m.firstNeg && m.firstNeg !== m.minDate ? t(', lowest {amount} on {date}', { amount: money0(m.min), date: fmtDate(m.minDate) }) : '' });
 }
 export async function forecastModel(sel: string, horizon: number, withWhatIfs = false) {
   const L = await lists();
@@ -111,12 +113,16 @@ export async function forecastModel(sel: string, horizon: number, withWhatIfs = 
     const payer = lastPayer[c.id]; if (payer && !accIds.includes(payer.from)) return;
     let d;
     if (c.paymentDate) { const day = +String(c.paymentDate).slice(8, 10); d = monthsFrom(from, to).map(([y, m]) => isoDate(new Date(y, m, Math.min(day, new Date(y, m + 1, 0).getDate()), 12))).find(x => x >= from); }
-    add(d || firstPay || addDays(from, 7), 'Pay off ' + c.name, 'Card', c.balance, 'card' + c.id);
+    add(d || firstPay || addDays(from, 7), t('Pay off {name}', { name: c.name }), 'Card', c.balance, 'card' + c.id);
   });
   // Projected: later card payments and monthly bills with no fixed amount (utilities), from last month and the same month last year
   const proj = (day: number, hist: Hist[], key: string, name: string, src: string, known?: Record<string, number>) => {
     if (!accIds.includes(src)) return;
-    projectMonthly({ key, name, day, hist, known }, from, to).forEach(p => add(p.date, p.name, 'Projected', -p.amount, p.key, 'from ' + p.basis));
+    projectMonthly({ key, name, day, hist, known }, from, to).forEach(p => {
+      const basis = p.basis.replace(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/g, month => t(month))
+        .replace(/ & /g, ' y ').replace(/\b(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic) (\d{4})\b/g, '$1 de $2');
+      add(p.date, p.name, 'Projected', -p.amount, p.key, t('from {basis}', { basis }));
+    });
   };
   const recToCards = new Set(recs.map(r => String(((r.attributes.transactions || [])[0] || {}).destination_id)));
   const paysBy: Record<string, { d: string, a: number, from: string }[]> = {};
@@ -125,7 +131,7 @@ export async function forecastModel(sel: string, horizon: number, withWhatIfs = 
     const pays = paysBy[c.id].sort((a, b) => a.d.localeCompare(b.d)), payoff = ev.find(e => e.key === 'Card:card' + c.id);
     const day = c.paymentDate ? +String(c.paymentDate).slice(8, 10) : usualDay(pays.map(p => ({ date: p.d, amount: p.a })));
     // This month's payoff, if still to come, is the card's current balance
-    proj(day, pays.map(p => ({ date: p.d, amount: p.a })), 'card' + c.id, 'Pay off ' + c.name, pays[pays.length - 1].from, payoff ? { [payoff.date.slice(0, 7)]: -payoff.amount } : undefined);
+    proj(day, pays.map(p => ({ date: p.d, amount: p.a })), 'card' + c.id, t('Pay off {name}', { name: c.name }), pays[pays.length - 1].from, payoff ? { [payoff.date.slice(0, 7)]: -payoff.amount } : undefined);
   });
   const billNames = new Set(bills.map(b => String(b.attributes.name).trim().toLowerCase())), hidden = new Set(LS.get('subsHidden', []));
   const charges = spending.flatMap(g => g.splits.filter(x => x.type === 'withdrawal').map(x => ({ date: x.date, amount: x.amount, payeeId: x.destination_id, payee: x.destination_name, billId: x.bill_id, src: x.source_id })));
@@ -153,7 +159,7 @@ export async function forecastModel(sel: string, horizon: number, withWhatIfs = 
   const likely = withWhatIfs ? cashBands(start, horizon, ev.filter(e => !e.off).map(e => ({ day: daysBetween(from, e.date), amount: e.amount, kind: e.kind }))) : null;
   const buffer = +LS.get('fcBuffer', 100), whatIfOn = ev.some(e => e.kind === 'What if' && !e.off);
   const nextPay = ev.find(e => !e.off && (e.kind === 'Payday' || e.kind === 'Income'));
-  return { sel, accIds, name: sel === 'all' ? 'all bank accounts' : sel && (L.byId[sel] || {}).name || 'your account', banks, start, ev, series, min, minDate, buffer,
+  return { sel, accIds, name: sel === 'all' ? t('all bank accounts') : sel && (L.byId[sel] || {}).name || t('your account'), banks, start, ev, series, min, minDate, buffer,
     safe: Math.max(0, Math.floor(min - buffer)), short: min < 0 ? -min : 0, firstNeg, nextPay, incomes, horizon, whatIfs, whatIfOn,
     safeBase: Math.max(0, Math.floor(minBase - buffer)), minBase, careful, hopeful, likely };
 }
@@ -206,7 +212,7 @@ export function scheduledPayments(o: { from: string, to: string, accIds: string[
       billDates(bill.attributes).forEach(({ d, late }) => {
         if (left <= 0) return;
         const amt = Math.min(amount, left); left -= amt;
-        add(d, 'Payment to ' + l.name + (late ? ' (overdue)' : ''), 'Loan', -amt, 'loan' + l.id);
+        add(d, late ? t('Payment to {name} (overdue)', { name: l.name }) : t('Payment to {name}', { name: l.name }), 'Loan', -amt, 'loan' + l.id);
       });
       return;
     }
@@ -220,7 +226,7 @@ export function scheduledPayments(o: { from: string, to: string, accIds: string[
         if (h && h.d >= addDays(d, -20)) return;                          // already paid for this month
         if (d < from && daysBetween(d, from) > 10) return;                // long past: not counted
         const amt = Math.min(p.amount, left); left -= amt;
-        add(d < from ? from : d, 'Payment to ' + l.name, 'Loan', -amt, 'loan' + l.id);
+        add(d < from ? from : d, t('Payment to {name}', { name: l.name }), 'Loan', -amt, 'loan' + l.id);
       });
       return;
     }
@@ -232,7 +238,7 @@ export function scheduledPayments(o: { from: string, to: string, accIds: string[
       const d = isoDate(new Date(y, m, Math.min(day, new Date(y, m + 1, 0).getDate()), 12));
       if (d <= h.d || left <= 0) return;
       const amt = Math.min(h.a, left); left -= amt;
-      add(d < from ? from : d, 'Payment to ' + l.name, 'Loan', -amt, 'loan' + l.id);
+      add(d < from ? from : d, t('Payment to {name}', { name: l.name }), 'Loan', -amt, 'loan' + l.id);
     });
   });
   o.bills.forEach(b => {
@@ -294,7 +300,7 @@ function forecastChart(m: Awaited<ReturnType<typeof forecastModel>>) {
   m.ev.filter(e => !e.off).forEach(e => { (byDate[e.date] = byDate[e.date] || []).push(e); });
   const dots = htmlList(Object.entries(byDate).map(([d, list]) => {
     const i = daysBetween(s[0].d, d), last = list[list.length - 1], cx = x(i).toFixed(1), cy = y(last.after!).toFixed(1);
-    const tip = fmtDate(d) + '\n' + list.map(e => e.label + '  ' + (e.amount > 0 ? '+' : '') + money(e.amount)).join('\n') + '\nBalance after: ' + money(last.after!);
+    const tip = fmtDate(d) + '\n' + list.map(e => e.label + '  ' + (e.amount > 0 ? '+' : '') + money(e.amount)).join('\n') + '\n' + t('Balance after: {amount}', { amount: money(last.after!) });
     const net = list.reduce((t, e) => t + e.amount, 0);
     return html`<g class="pt" data-tip="${tip}"><rect x="${+cx - 10}" y="${pt}" width="20" height="${H - pt - pb}" fill="transparent"/><circle class="dot" cx="${cx}" cy="${cy}" r="${list.length > 1 ? 5 : 3.5}" fill="${net > 0 ? 'var(--good)' : 'var(--spend)'}"/></g>`;
   }));
@@ -312,29 +318,34 @@ function cashCalPanel(m: Awaited<ReturnType<typeof forecastModel>>) {
   for (let i = 0; i < lead; i++) cells = html`${cells}<span class="hm-cell pad"></span>`;
   days.forEach(d => {
     const pct = d.risk ? Math.round(30 + 70 * Math.min(1, Math.max(d.pNeg, d.bal < 0 ? 1 : 0))) : 0;
-    const tip = fmtDay(d.iso) + (d.inn ? '\nIn  ' + (priv ? 'hidden' : '+' + money(d.inn)) : '') + (d.out ? '\nOut  ' + (priv ? 'hidden' : '-' + money(d.out)) : '') + '\nBalance  ' + (priv ? 'hidden' : money(d.bal))
-      + (lk ? '\nChance below zero  ' + (d.pNeg < .01 ? 'under 1%' : Math.round(d.pNeg * 100) + '%') : d.bal < 0 ? '\nBelow zero' : '') + (d.tightest ? '\nTightest day' : '');
+    const tip = fmtDay(d.iso) + (d.inn ? '\n' + t('In') + '  ' + (priv ? t('hidden') : '+' + money(d.inn)) : '') + (d.out ? '\n' + t('Out') + '  ' + (priv ? t('hidden') : '-' + money(d.out)) : '') + '\n' + t('Balance') + '  ' + (priv ? t('hidden') : money(d.bal))
+      + (lk ? '\n' + t('Chance below zero') + '  ' + (d.pNeg < .01 ? t('under 1%') : Math.round(d.pNeg * 100) + '%') : d.bal < 0 ? '\n' + t('Below zero') : '') + (d.tightest ? '\n' + t('Tightest day') : '');
     cells = html`${cells}<button type="button" class="hm-cell cc-cell${d.i === 0 ? ' today' : ''}${d.tightest ? ' tight' : ''}${d.risk ? ' risk' : ''}"${pct ? html` style="--p:${pct}%"` : ''} data-tip="${tip}" aria-label="${tip.replace(/\n/g, ', ')}"><span class="cc-n">${+d.iso.slice(8, 10)}</span>${d.inn || d.out ? html`<i class="cc-dots">${d.inn ? html`<b class="in"></b>` : ''}${d.out ? html`<b class="out"></b>` : ''}</i><span class="cc-amt">${d.inn ? html`<em class="in num">+${money0(d.inn)}</em>` : ''}${d.out ? html`<em class="out num">−${money0(d.out)}</em>` : ''}</span>` : ''}</button>`;
   });
   for (let i = lead + days.length; i % 7; i++) cells = html`${cells}<span class="hm-cell pad"></span>`;
-  const foot = html`<span>Tightest: <strong class="num ${tight.bal < 0 ? 'neg' : ''}">${money0(tight.bal)}</strong> on ${fmtDay(tight.iso)}</span><span>${risky.length ? html`<strong class="neg">${risky.length} day${risky.length === 1 ? '' : 's'}</strong> at risk of going below zero` : 'No day at risk of going below zero'}</span>`;
-  return html`<section class="panel cc" style="margin-bottom:20px"><h2>Cash flow calendar</h2><p class="lead">The next ${days.length} days of this forecast · tap a day for what comes in and goes out</p><div class="cc-body"><div class="cc-main"><div class="hm"><div class="hm-dow">${htmlList(weekOrder(['S', 'M', 'T', 'W', 'T', 'F', 'S']).map(x => html`<span>${x}</span>`))}</div><div class="hm-grid">${cells}</div></div></div><div class="cc-side"><div class="cc-key"><span><b class="in"></b> money in</span><span><b class="out"></b> money out</span><span><i class="sw risk"></i> chance of going below zero</span><span><i class="sw tight"></i> tightest day</span></div><div class="hm-foot">${foot}</div></div></div>${lk ? '' : html`<p class="sub-s" style="margin:10px 0 0">Too few scheduled payments to estimate the chance of going below zero; shading shows only days projected below zero.</p>`}</section>`;
+  const foot = html`<span>${t('Tightest')}: <strong class="num ${tight.bal < 0 ? 'neg' : ''}">${money0(tight.bal)}</strong> ${t('on {date}', { date: fmtDay(tight.iso) })}</span><span>${risky.length ? html`<strong class="neg">${t('{count} {unit}', { count: risky.length, unit: t(risky.length === 1 ? 'day' : 'days') })}</strong> ${t('at risk of going below zero')}` : t('No day at risk of going below zero')}</span>`;
+  return html`<section class="panel cc" style="margin-bottom:20px"><h2>Cash flow calendar</h2><p class="lead">${t('The next {count} days of this forecast · tap a day for what comes in and goes out', { count: days.length })}</p><div class="cc-body"><div class="cc-main"><div class="hm"><div class="hm-dow">${htmlList(weekOrder(['D', 'L', 'M', 'X', 'J', 'V', 'S']).map(x => html`<span>${x}</span>`))}</div><div class="hm-grid">${cells}</div></div></div><div class="cc-side"><div class="cc-key"><span><b class="in"></b> money in</span><span><b class="out"></b> money out</span><span><i class="sw risk"></i> chance of going below zero</span><span><i class="sw tight"></i> tightest day</span></div><div class="hm-foot">${foot}</div></div></div>${lk ? '' : html`<p class="sub-s" style="margin:10px 0 0">Too few scheduled payments to estimate the chance of going below zero; shading shows only days projected below zero.</p>`}</section>`;
 }
 VIEWS.forecast = async (r, paint) => {
   const sel = r.q.account || LS.get('fcAccount', ''), horizon = +(r.q.days || fcHorizon());
   const m = await forecastModel(sel, horizon, true);
   if (paint.live && m.sel) { const was = LS.get('fcLog', []), log = logForecast(was, m.sel, todayIso(), m.series.length > 30 ? m.series[30].b : undefined, m.start); if (JSON.stringify(log) !== JSON.stringify(was)) LS.set('fcLog', log); }
   const kinds: Record<string, string> = { Payday: 'good', Income: 'good', Recurring: '', Loan: 'warn', Card: 'warn', Projected: 'warn', Bill: 'bad', 'What if': 'warn' };
-  const rows = htmlList(m.ev.map(e => html`<tr${e.off ? html` style="opacity:.45"` : ''}><td class="sel"><input type="checkbox"${e.off ? '' : ' checked'} title="Include in the forecast" data-key="${e.key}" data-onchange="App.fcToggle(this.dataset.key, this.checked)"></td><td class="date hide-s">${fmtDay(e.date)}</td><td><div class="desc">${e.label}</div><span class="chip ${kinds[e.kind] || ''}">${e.kind}</span>${e.note ? html`<span class="sub-s"> ${e.note}</span>` : ''}<span class="sub-s show-s">${fmtDay(e.date)}</span></td><td class="amt ${e.amount > 0 ? 'pos' : 'neg'}">${e.amount > 0 ? '+' : ''}${money(e.amount)}</td><td class="amt ${e.after! < 0 ? 'neg' : ''}">${e.off ? '—' : money(e.after!)}</td></tr>`));
+  const rows = htmlList(m.ev.map(e => html`<tr${e.off ? html` style="opacity:.45"` : ''}><td class="sel"><input type="checkbox"${e.off ? '' : ' checked'} title="Include in the forecast" data-key="${e.key}" data-onchange="App.fcToggle(this.dataset.key, this.checked)"></td><td class="date hide-s">${fmtDay(e.date)}</td><td><div class="desc">${e.label}</div><span class="chip ${kinds[e.kind] || ''}">${t(e.kind)}</span>${e.note ? html`<span class="sub-s"> ${e.note}</span>` : ''}<span class="sub-s show-s">${fmtDay(e.date)}</span></td><td class="amt ${e.amount > 0 ? 'pos' : 'neg'}">${e.amount > 0 ? '+' : ''}${money(e.amount)}</td><td class="amt ${e.after! < 0 ? 'neg' : ''}">${e.off ? '—' : money(e.after!)}</td></tr>`));
   const headline = m.short
-    ? html`<div class="eyebrow">Heads up</div><div class="big num negative" data-count="${-m.short}">${money0(-m.short)}</div><div class="sub-s" style="margin-top:6px">Your balance is projected to go below zero on <strong>${fmtDate(m.firstNeg || m.minDate)}</strong>${m.firstNeg && m.firstNeg !== m.minDate ? html` and reach its lowest, <strong>${money(m.min)}</strong>, on ${fmtDate(m.minDate)}` : html`, to <strong>${money(m.min)}</strong>`}. Move money in or delay a payment before then.</div>`
-    : html`<div class="eyebrow">Safe to spend</div><div class="big num" data-count="${m.safe}">${money0(m.safe)}</div><div class="sub-s" style="margin-top:6px">${m.nextPay ? 'Across the next ' + horizonText(m.horizon) + ', while still covering everything below' : 'While still covering everything below'} and keeping a ${money0(m.buffer)} cushion.</div>`;
-  const whatIfNote = m.whatIfOn ? html`<div class="sub-s" style="margin-top:6px">Without your what-ifs: ${m.minBase < 0 ? html`<span class="neg">${money0(m.minBase)} at the lowest</span>` : money0(m.safeBase) + ' safe to spend'}.</div>` : '';
+    ? html`<div class="eyebrow">Heads up</div><div class="big num negative" data-count="${-m.short}">${money0(-m.short)}</div><div class="sub-s" style="margin-top:6px">${t('Your balance is projected to go below zero on {date}', { date: fmtDate(m.firstNeg || m.minDate) })}${m.firstNeg && m.firstNeg !== m.minDate ? t(' and reach its lowest, {amount}, on {date}', { amount: money(m.min), date: fmtDate(m.minDate) }) : t(', to {amount}', { amount: money(m.min) })}. ${t('Move money in or delay a payment before then.')}</div>`
+    : html`<div class="eyebrow">Safe to spend</div><div class="big num" data-count="${m.safe}">${money0(m.safe)}</div><div class="sub-s" style="margin-top:6px">${m.nextPay ? t('Across the next {horizon}, while still covering everything below and keeping a {buffer} cushion.', { horizon: horizonText(m.horizon), buffer: money0(m.buffer) }) : t('While still covering everything below and keeping a {buffer} cushion.', { buffer: money0(m.buffer) })}</div>`;
+  const whatIfNote = m.whatIfOn ? html`<div class="sub-s" style="margin-top:6px">${m.minBase < 0 ? t('Without your what-ifs: {amount} at the lowest.', { amount: money0(m.minBase) }) : t('Without your what-ifs: {amount} safe to spend.', { amount: money0(m.safeBase) })}</div>` : '';
   const REPEAT: Record<string, string> = { once: 'once', monthly: 'every month', biweekly: 'every 2 weeks' };
   const wiRows = htmlList(m.whatIfs.map(w => html`<div class="row"><span class="name">${w.label} <span class="sub-s">${fmtDay(w.date)} · ${REPEAT[w.repeat] || 'once'}</span></span><span style="display:flex;gap:10px;align-items:center"><span class="num ${w.amount > 0 ? 'pos' : 'neg'}">${w.amount > 0 ? '+' : ''}${money(w.amount)}</span><button type="button" class="round" aria-label="Remove" data-onclick="App.fcWhatIfDel('${w.id}')">${ICON_X}</button></span></div>`));
   const whatIfPanel = html`<section class="panel" style="margin-bottom:20px"><h2>What if…</h2><p class="lead">Try a purchase, a raise or a new subscription and see where the balance goes. The dashed line is the forecast without them.</p>${wiRows ? html`<div class="list" style="margin-bottom:14px">${wiRows}</div>` : ''}<form class="whatif" data-onsubmit="event.preventDefault();App.fcWhatIfAdd(this)"><input type="text" name="label" aria-label="What it is" placeholder="e.g. New laptop" required><select name="sign" aria-label="Spend or receive"><option value="-1">I spend</option><option value="1">I receive</option></select><input type="number" name="amount" aria-label="Amount" step="0.01" min="0.01" placeholder="Amount" required><input type="date" name="date" aria-label="Date" value="${todayIso()}" required><select name="repeat" aria-label="Repeats">${htmlList(Object.entries(REPEAT).map(([k, l]) => opt(k, l, 'once')))}</select><button class="btn">Add</button></form></section>`;
-  paint(html`${head('Forecast', 'Where ' + m.name + ' is heading over the next ' + horizonText(m.horizon),
-      html`<select aria-label="Account" data-onchange="App.fcSet('account', this.value)" style="width:auto">${htmlList(m.banks.map(a => opt(a.id, a.name, m.sel)))}${opt('all', 'All bank accounts', m.sel)}</select><select aria-label="Time span" data-onchange="App.fcSet('days', this.value)" style="width:auto">${htmlList([[30, '30 days'], [60, '60 days'], [90, '90 days'], [180, '6 months'], [365, '1 year']].map(([d, l]) => opt(d, l, m.horizon)))}</select>`)}<section class="hero" style="margin-bottom:28px"><div>${headline}${whatIfNote}</div><div class="stats"><div class="stat"><div class="eyebrow">Balance now</div><div class="val num">${money0(m.start)}</div></div><div class="stat"><div class="eyebrow">Lowest point</div><div class="val num ${m.min < 0 ? 'neg' : ''}">${money0(m.min)}</div><div class="sub">${fmtDay(m.minDate)}</div></div><div class="stat"><div class="eyebrow">Cushion</div><div class="val num"><input type="number" aria-label="Cushion" min="0" step="10" value="${m.buffer}" data-onchange="App.fcBuffer(this.value)" style="width:110px;font-size:20px;padding:4px 10px"></div><div class="sub">kept aside, never counted as spendable</div></div></div></section><section class="panel chart" style="margin-bottom:20px"><h2>Projected balance</h2><div class="panel-head"><p class="lead" style="margin:0">Each dot is a scheduled payment or deposit · the shaded area is below zero</p><label class="check" style="margin:0"><input type="checkbox"${LS.get('fcBand', true) ? ' checked' : ''} data-onchange="App.fcBand(this.checked)"> Likely range</label></div>${forecastChart(m)}${LS.get('fcBand', true) ? html`<p class="sub-s" style="margin:10px 0 0">${m.likely ? html`Shaded band: where the balance lands in 8 of 10 simulated runs (bills, card payoffs and projected payments vary a little; an odd income may not arrive). Day-to-day spending isn’t simulated. ${m.likely.pBelowZero > 0 ? html`Went below zero in <strong class="neg">${Math.round(m.likely.pBelowZero * 100)}%</strong> of runs. ` : ''}Safe to spend with 90% confidence: <strong>${money0(Math.max(0, Math.floor(m.likely.minP10 - m.buffer)))}</strong>.` : html`Too few scheduled payments to estimate a range.`} Careful (dotted: only steady paychecks arrive and bills run 10% higher): lowest <strong class="${m.careful.min < 0 ? 'neg' : ''}">${money0(m.careful.min)}</strong> on ${fmtDay(m.careful.minDate)}.</p>` : ''}</section>${cashCalPanel(m)}${accuracyPanel(m)}${whatIfPanel}<section class="panel flush"><div style="padding:22px 26px 6px"><h2 style="font-size:15px;margin:0 0 3px">What’s coming</h2><p class="lead" style="margin-bottom:8px">Untick anything that won’t happen — the forecast remembers.</p></div>${rows ? html`<table class="tbl"><thead><tr><th class="sel"></th><th class="hide-s">Date</th><th>What</th><th class="r">Amount</th><th class="r">Balance after</th></tr></thead><tbody>${rows}</tbody></table>` : html`<div class="center-empty">Nothing scheduled in this period.</div>`}</section><p class="sub-s" style="margin-top:14px">How this works: paydays are spotted from deposits that repeat on a schedule${m.incomes.length ? ' (' + m.incomes.map(i => i.name + ' ' + money0(i.amount) + ' ' + ({ semimonthly: 'twice a month', monthly: 'monthly', every: 'every ' + (i.p as { n?: number }).n + ' days' }[i.p.kind])).join(', ') + ')' : ''}. It adds your recurring transactions, bills (except ones charged to a credit card, which are paid with the card), loan payments that repeat monthly (once, when a loan payment is also a bill), and assumes each credit card balance is paid in full on its due date — or on your next payday if the card has no due date in Firefly. Day-to-day card spending isn’t predicted: whatever you put on a card also has to come out of this “safe to spend”.</p>`);
+  const incomeSchedule = m.incomes.length ? ' (' + m.incomes.map(i => {
+    const frequency = i.p.kind === 'semimonthly' ? t('twice a month') : i.p.kind === 'monthly' ? t('monthly') : t('every {count} days', { count: (i.p as { n?: number }).n || 1 });
+    return t('{name}: {amount}, {frequency}', { name: i.name, amount: money0(i.amount), frequency });
+  }).join(', ') + ')' : '';
+  const forecastMethod = t('Forecast method: {incomeSchedule}', { incomeSchedule });
+  paint(html`${head('Forecast', t('Where {account} is heading over the next {horizon}', { account: m.name, horizon: horizonText(m.horizon) }),
+      html`<select aria-label="Account" data-onchange="App.fcSet('account', this.value)" style="width:auto">${htmlList(m.banks.map(a => opt(a.id, a.name, m.sel)))}${opt('all', 'All bank accounts', m.sel)}</select><select aria-label="Time span" data-onchange="App.fcSet('days', this.value)" style="width:auto">${htmlList([[30, '30 days'], [60, '60 days'], [90, '90 days'], [180, '6 months'], [365, '1 year']].map(([d, l]) => opt(d, l, m.horizon)))}</select>`)}<section class="hero" style="margin-bottom:28px"><div>${headline}${whatIfNote}</div><div class="stats"><div class="stat"><div class="eyebrow">Balance now</div><div class="val num">${money0(m.start)}</div></div><div class="stat"><div class="eyebrow">Lowest point</div><div class="val num ${m.min < 0 ? 'neg' : ''}">${money0(m.min)}</div><div class="sub">${fmtDay(m.minDate)}</div></div><div class="stat"><div class="eyebrow">Cushion</div><div class="val num"><input type="number" aria-label="Cushion" min="0" step="10" value="${m.buffer}" data-onchange="App.fcBuffer(this.value)" style="width:110px;font-size:20px;padding:4px 10px"></div><div class="sub">kept aside, never counted as spendable</div></div></div></section><section class="panel chart" style="margin-bottom:20px"><h2>Projected balance</h2><div class="panel-head"><p class="lead" style="margin:0">Each dot is a scheduled payment or deposit · the shaded area is below zero</p><label class="check" style="margin:0"><input type="checkbox"${LS.get('fcBand', true) ? ' checked' : ''} data-onchange="App.fcBand(this.checked)"> Likely range</label></div>${forecastChart(m)}${LS.get('fcBand', true) ? html`<p class="sub-s" style="margin:10px 0 0">${m.likely ? html`${t('Shaded band: where the balance lands in 8 of 10 simulated runs (bills, card payoffs and projected payments vary a little; an odd income may not arrive). Day-to-day spending isn’t simulated.')} ${m.likely.pBelowZero > 0 ? html`${t('Went below zero in {percent}% of runs.', { percent: Math.round(m.likely.pBelowZero * 100) })} ` : ''}${t('Safe to spend with 90% confidence:')} <strong>${money0(Math.max(0, Math.floor(m.likely.minP10 - m.buffer)))}</strong>.` : html`Too few scheduled payments to estimate a range.`} ${t('Careful (dotted: only steady paychecks arrive and bills run 10% higher): lowest')} <strong class="${m.careful.min < 0 ? 'neg' : ''}">${money0(m.careful.min)}</strong> ${t('on {date}.', { date: fmtDay(m.careful.minDate) })}</p>` : ''}</section>${cashCalPanel(m)}${accuracyPanel(m)}${whatIfPanel}<section class="panel flush"><div style="padding:22px 26px 6px"><h2 style="font-size:15px;margin:0 0 3px">What’s coming</h2><p class="lead" style="margin-bottom:8px">Untick anything that won’t happen — the forecast remembers.</p></div>${rows ? html`<table class="tbl"><thead><tr><th class="sel"></th><th class="hide-s">Date</th><th>What</th><th class="r">Amount</th><th class="r">Balance after</th></tr></thead><tbody>${rows}</tbody></table>` : html`<div class="center-empty">Nothing scheduled in this period.</div>`}</section><p class="sub-s" style="margin-top:14px">${forecastMethod}</p>`);
 };
 function fcToggle(key: string, on: boolean) {
   const s = new Set(LS.get('fcExclude', [])); on ? s.delete(key) : s.add(key); LS.set('fcExclude', [...s]); route();
@@ -367,13 +378,13 @@ function accuracyPanel(m: Awaited<ReturnType<typeof forecastModel>>) {
   const waiting = (LS.get('fcLog', []) as FcCheck[]).filter(c => c.acct === m.sel && c.actual == null).length;
   if (!done.length) return waiting ? html`<p class="sub-s" style="margin:-8px 0 20px">Checking accuracy: ${waiting} forecast${waiting === 1 ? '' : 's'} noted so far. The first comparison shows up 30 days after the first one.</p>` : '';
   const avg = done.reduce((s, c) => s + Math.abs(c.actual! - c.v), 0) / done.length;
-  return html`<section class="panel" style="margin-bottom:20px"><div class="panel-head"><h2>How close past forecasts came</h2><span class="neutral">off by ${money0(avg)} on average</span></div><p class="lead">Each one is the balance expected 30 days ahead, next to what it really was.</p><div class="list">${htmlList(done.slice(0, 6).map(c => { const d = c.actual! - c.v; return html`<div class="row"><span class="name">${fmtDay(c.for)} <span class="sub-s">forecast on ${fmtDay(c.made)}</span></span><span class="num">${money0(c.v)} → ${money0(c.actual!)} <span class="${Math.abs(d) < 1 ? 'neutral' : d > 0 ? 'pos' : 'neg'}">${d > 0 ? '+' : ''}${money0(d)}</span></span></div>`; }))}</div></section>`;
+  return html`<section class="panel" style="margin-bottom:20px"><div class="panel-head"><h2>How close past forecasts came</h2><span class="neutral">${t('off by {amount} on average', { amount: money0(avg) })}</span></div><p class="lead">Each one is the balance expected 30 days ahead, next to what it really was.</p><div class="list">${htmlList(done.slice(0, 6).map(c => { const d = c.actual! - c.v; return html`<div class="row"><span class="name">${fmtDay(c.for)} <span class="sub-s">forecast on ${fmtDay(c.made)}</span></span><span class="num">${money0(c.v)} → ${money0(c.actual!)} <span class="${Math.abs(d) < 1 ? 'neutral' : d > 0 ? 'pos' : 'neg'}">${d > 0 ? '+' : ''}${money0(d)}</span></span></div>`; }))}</div></section>`;
 }
 async function safeCard() {
   try {
     const m = await forecastModel(LS.get('fcAccount', ''), fcHorizon());
-    return html`<section class="panel"><div class="panel-head"><h2>${m.short ? 'Heads up' : 'Safe to spend'}</h2><a class="link" href="#/forecast">Forecast</a></div>${m.short ? html`<div class="total num neg">${money0(-m.short)}</div><p class="sub-s" style="margin:0">In the next ${horizonText(m.horizon)}, ${m.name} is projected to go ${shortText(m)}.</p>`
-        : html`<div class="total num pos">${money0(m.safe)}</div><p class="sub-s" style="margin:0">${horizonText(m.horizon)} ahead · after upcoming bills, rent, card payoffs and loan payments</p>`}</section>`;
+    return html`<section class="panel"><div class="panel-head"><h2>${m.short ? 'Heads up' : 'Safe to spend'}</h2><a class="link" href="#/forecast">Forecast</a></div>${m.short ? html`<div class="total num neg">${money0(-m.short)}</div><p class="sub-s" style="margin:0">${t('In the next {horizon}, {account} is projected to go {summary}.', { horizon: horizonText(m.horizon), account: m.name, summary: shortText(m) })}</p>`
+        : html`<div class="total num pos">${money0(m.safe)}</div><p class="sub-s" style="margin:0">${t('{horizon} ahead · after upcoming bills, rent, card payoffs and loan payments', { horizon: horizonText(m.horizon) })}</p>`}</section>`;
   } catch (e) { return ''; }
 }
 

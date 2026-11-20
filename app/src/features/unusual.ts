@@ -3,6 +3,7 @@ import { getAll } from '../core/api';
 import { S, money0, monthOf, monthRange, nowMonth, todayIso, type ApiData } from '../core/base';
 import { type Group, normGroup, payeeOf } from '../core/feed';
 import { addDays, daysBetween } from '../core/helpers';
+import { t } from '../core/spanish';
 
 /* ================= Unusual charges and merchant trends =================
    Both read the same six months of spending (one request, fetched when asked, kept in memory for the session only
@@ -43,7 +44,7 @@ export function findUnusual(charges: Charge[], today: string): Unusual {
   by(recent, c => c.key + '|' + cents(c.amount)).forEach(xs => {
     if (xs.length < 2 || twice((oldByKey.get(xs[0].key) || []).filter(o => cents(o.amount) === cents(xs[0].amount)))) return;
     const s = [...xs].sort((a, b) => a.date.localeCompare(b.date));
-    for (let i = 1; i < s.length; i++) if (Math.abs(daysBetween(s[i - 1].date, s[i].date)) <= 1) add('duplicate', s[i], s[i].amount, 'Charged twice: ' + usd(s[i].amount) + ' again within a day');
+    for (let i = 1; i < s.length; i++) if (Math.abs(daysBetween(s[i - 1].date, s[i].date)) <= 1) add('duplicate', s[i], s[i].amount, t('Charged twice: {amount} again within a day', { amount: usd(s[i].amount) }));
   });
 
   // Far above the merchant's usual; a merchant with under four past charges is judged against its category instead
@@ -53,13 +54,13 @@ export function findUnusual(charges: Charge[], today: string): Unusual {
     const mine = (oldByKey.get(c.key) || []).map(o => o.amount);
     if (mine.length >= 4) {
       const a = anomaly(mine, c.amount);
-      if (a.flag === 'high' && c.amount >= a.median * SPIKE_RATIO && c.amount - a.median >= SPIKE_MIN_GAP) add('spike', c, a.median, usd(c.amount) + ' at ' + c.payee + ', usually about ' + usd(a.median));
+      if (a.flag === 'high' && c.amount >= a.median * SPIKE_RATIO && c.amount - a.median >= SPIKE_MIN_GAP) add('spike', c, a.median, t('{amount} at {merchant}, usually about {typical}', { amount: usd(c.amount), merchant: c.payee, typical: usd(a.median) }));
     } else if (!mine.length) {
-      if (hasHistory && c.amount >= NEW_LARGE && c.amount >= p95) add('new-large', c, 0, usd(c.amount) + ' at a merchant you haven’t used before');
+      if (hasHistory && c.amount >= NEW_LARGE && c.amount >= p95) add('new-large', c, 0, t('{amount} at a merchant you haven’t used before', { amount: usd(c.amount) }));
     }
     if (mine.length < 4 && c.cat) {
       const cat = (oldByCat.get(c.cat) || []).map(o => o.amount), a = anomaly(cat, c.amount, { min: 8 });
-      if (a.flag === 'high' && c.amount >= a.median * CAT_RATIO && c.amount - a.median >= CAT_MIN_GAP) add('spike', c, a.median, usd(c.amount) + ' in ' + c.cat + ', usually about ' + usd(a.median) + ' each');
+      if (a.flag === 'high' && c.amount >= a.median * CAT_RATIO && c.amount - a.median >= CAT_MIN_GAP) add('spike', c, a.median, t('{amount} in {category}, usually about {typical} each', { amount: usd(c.amount), category: c.cat, typical: usd(a.median) }));
     }
   });
   flags.sort((a, b) => (b.charge.amount - b.typical) - (a.charge.amount - a.typical));

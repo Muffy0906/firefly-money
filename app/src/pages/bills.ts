@@ -7,6 +7,7 @@ import { normGroup } from '../core/feed';
 import { LS, addDays, daysBetween } from '../core/helpers';
 import { invalidate, lists } from '../core/lists';
 import { inPrimary, isForeign } from '../core/fx';
+import { t } from '../core/spanish';
 import { newTx } from '../features/txform';
 import { VIEWS, hashWith, parseHash, route } from '../core/router';
 import { billRises, type Charge, findRecurring } from '../features/subs';
@@ -88,16 +89,16 @@ VIEWS.bills = async (r, paint) => {
   const rows = htmlList(bills.sort((a, b) => grp(a).localeCompare(grp(b)) || (billDueDates(a.attributes, cur)[0] || '9').localeCompare(billDueDates(b.attributes, cur)[0] || '9')).map((b, i, all) => {
     const heading = grp(b) && (i === 0 || grp(all[i - 1]) !== grp(b)) ? html`<tr><td colspan="4" class="eyebrow" style="padding-top:18px">${grp(b)}</td></tr>` : '';
     const at = b.attributes, dues = billDueDates(at, cur), due = dues[0], paidN = billPaidIn(at, cur).length, paid = paidN && !due ? paidN : 0;
-    const f = FREQ[at.repeat_freq] || [at.repeat_freq, 1], every = (at.skip ? 'Every ' + (at.skip + 1) + ' ' + f[0] + 's' : 'Every ' + f[0]);
+    const f = FREQ[at.repeat_freq] || [at.repeat_freq, 1], every = at.skip ? t('Every {count} {period}', { count: at.skip + 1, period: t(f[0] === '6 months' ? '6 months' : f[0] + 's') }) : t('Every {period}', { period: t(f[0]) });
     const status = at.active === false ? html`<span class="chip">Inactive</span>` : paid ? html`<span class="chip good">Paid this month</span>` :
-      due ? html`${due < todayIso() ? html`<span class="chip bad">Overdue since ${fmtDay(due)}</span>` : html`<span class="chip warn">Due ${fmtDay(due)}</span>`}${paidN ? html` <span class="sub-s">${paidN} of ${paidN + dues.length} paid</span>` : ''}` : (next => html`<span class="chip">${next ? 'Next ' + fmtDate(next) : at.end_date && String(at.end_date).slice(0, 10) < todayIso() ? 'Ended' : 'Next —'}</span>`)(nextBillDate(at, cur.start > todayIso() ? cur.start : todayIso()));
+      due ? html`${due < todayIso() ? html`<span class="chip bad">${t('Overdue since {date}', { date: fmtDay(due) })}</span>` : html`<span class="chip warn">${t('Due {date}', { date: fmtDay(due) })}</span>`}${paidN ? html` <span class="sub-s">${t('{count} of {total} paid', { count: paidN, total: paidN + dues.length })}</span>` : ''}` : (next => html`<span class="chip">${next ? t('Next {date}', { date: fmtDate(next) }) : at.end_date && String(at.end_date).slice(0, 10) < todayIso() ? 'Ended' : 'Next —'}</span>`)(nextBillDate(at, cur.start > todayIso() ? cur.start : todayIso()));
     const fc = isForeign(at.currency_code) ? String(at.currency_code) : '', amt = fc ? moneyIn(num(at.amount_min), fc) + (num(at.amount_min) === num(at.amount_max) ? '' : '–' + moneyIn(num(at.amount_max), fc)) + ' · ' + approx(billAmount(at)) : num(at.amount_min) === num(at.amount_max) ? money(num(at.amount_min)) : money0(num(at.amount_min)) + '–' + money0(num(at.amount_max));
     return html`${heading}<tr${at.active === false ? html` style="opacity:.5"` : ''}><td><a class="desc" href="#/transactions?bill=${b.id}" style="text-decoration:none">${at.name}</a><div class="sub-s">${every}${billEnds(at)}</div><div class="show-s">${status}</div></td><td class="hide-s">${status}</td><td class="amt">${amt}</td><td class="act">${at.active !== false && !paid ? html`<button class="btn small primary" data-onclick="App.billPay('${b.id}')">Pay now</button> ` : ''}<button class="btn small" data-onclick="App.billForm('${b.id}')">Edit</button></td></tr>`;
   }));
   S.billCache = Object.fromEntries(bills.map(b => [String(b.id), b.attributes]));
   const cal = (r.q.view || LS.get('billsView', 'list')) === 'calendar' && bills.length;
   const viewBtn = (k: string, l: string) => html`<button type="button" class="${(cal ? 'calendar' : 'list') === k ? 'on' : ''}" data-onclick="App.billsView('${k}')">${l}</button>`;
-  paint(html`${head('Bills', 'About ' + money0(monthly) + ' a month across ' + active.length + ' active bill' + (active.length === 1 ? '' : 's'), html`${monthNav()}<button class="btn primary" data-onclick="App.billForm()">+ New bill</button>`)}${bills.length ? html`<div class="seg" style="margin:-8px 0 20px">${viewBtn('list', 'List')}${viewBtn('calendar', 'Calendar')}</div>` : ''}${cal ? billCalendar(bills, cur) : html`<section class="panel flush">${rows ? html`<table class="tbl bills-tbl"><thead><tr><th>Bill</th><th class="hide-s">${S.all ? 'This month’s status' : cur.label}</th><th class="r">Amount</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+  paint(html`${head('Bills', t(active.length === 1 ? 'About {amount} a month across {count} active bill' : 'About {amount} a month across {count} active bills', { amount: money0(monthly), count: active.length }), html`${monthNav()}<button class="btn primary" data-onclick="App.billForm()">+ New bill</button>`)}${bills.length ? html`<div class="seg" style="margin:-8px 0 20px">${viewBtn('list', 'List')}${viewBtn('calendar', 'Calendar')}</div>` : ''}${cal ? billCalendar(bills, cur) : html`<section class="panel flush">${rows ? html`<table class="tbl bills-tbl"><thead><tr><th>Bill</th><th class="hide-s">${S.all ? 'This month’s status' : cur.label}</th><th class="r">Amount</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
       : emptyState('bills', 'No bills yet', 'Add rent, subscriptions or insurance and Money shows what is due next and keeps your safe-to-spend honest.', html`<button class="btn primary" data-onclick="App.billForm()">+ New bill</button>`)}</section>`}<div id="subsBox"></div><p class="sub-s" style="margin-top:14px">Firefly marks a bill paid when a transaction is linked to it — pick the bill in the transaction form, or let your rules do it.</p>`);
   const tok = S.tok;
   // The page may still be animating in when the answer arrives, so wait a moment for the box to exist
@@ -175,9 +176,9 @@ async function subsPanel(bills: ApiData[]) {
   S.subs = found; S.billRises = rises;
   const riseRows = htmlList(Object.entries(rises).map(([id, r]) => {
     const at = (S.billCache || {})[id] || {};
-    return html`<div class="row"><span class="name">${at.name}<br><span class="sub-s">Last charge ${money(r.last)} on ${fmtDay(r.date)}, above the bill’s ${money(num(at.amount_max))}</span></span><button class="btn small" data-onclick="App.billRaise('${id}')">Update to ${money(r.last)}</button></div>`;
+    return html`<div class="row"><span class="name">${at.name}<br><span class="sub-s">${t('Last charge {amount} on {date}, above the bill’s limit of {limit}', { amount: money(r.last), date: fmtDay(r.date), limit: money(num(at.amount_max)) })}</span></span><button class="btn small" data-onclick="App.billRaise('${id}')">${t('Update to {amount}', { amount: money(r.last) })}</button></div>`;
   }));
-  const subRows = htmlList(found.map((r, i) => html`<div class="row"><span class="name">${r.payee}${r.rose ? html` <span class="chip warn">Up from ${money(r.rose.from)}</span>` : ''}<br><span class="sub-s">${r.min === r.max ? money(r.amount) : 'About ' + money(r.amount)} every ${r.every} · ${r.count} charges · last ${fmtDay(r.last)}, next around ${fmtDay(r.next)}</span></span><span style="display:flex;gap:6px;flex:none"><button class="btn small" data-onclick="App.subIgnore(${i})">Not a bill</button><button class="btn small primary" data-onclick="App.subAdd(${i})">Add as bill</button></span></div>`));
+  const subRows = htmlList(found.map((r, i) => html`<div class="row"><span class="name">${r.payee}${r.rose ? html` <span class="chip warn">${t('Up from {amount}', { amount: money(r.rose.from) })}</span>` : ''}<br><span class="sub-s">${t(r.count === 1 ? '{amount} every {period} · {count} charge · last {last}, next around {next}' : '{amount} every {period} · {count} charges · last {last}, next around {next}', { amount: r.min === r.max ? money(r.amount) : t('About {amount}', { amount: money(r.amount) }), period: t(r.every), count: r.count, last: fmtDay(r.last), next: fmtDay(r.next) })}</span></span><span style="display:flex;gap:6px;flex:none"><button class="btn small" data-onclick="App.subIgnore(${i})">Not a bill</button><button class="btn small primary" data-onclick="App.subAdd(${i})">Add as bill</button></span></div>`));
   return html`${subAuditPanel(auditSubs(charges, todayIso()))}${riseRows ? html`<section class="panel" style="margin-top:20px"><h2>Prices that went up</h2><p class="lead">These bills were charged more than their highest amount</p><div class="list">${riseRows}</div></section>` : ''}${subRows ? html`<section class="panel" style="margin-top:20px"><h2>Looks like a bill</h2><p class="lead">Charges that repeat on a schedule but aren’t bills yet. As bills they show up in Coming up and in the safe-to-spend forecast.</p><div class="list">${subRows}</div></section>` : ''}`;
 }
 function subAdd(i: number) {
@@ -187,14 +188,14 @@ function subAdd(i: number) {
 function subIgnore(i: number) {
   const r = S.subs && S.subs[i]; if (!r) return;
   LS.set('subsHidden', [...new Set([...LS.get('subsHidden', []), r.payeeId])]);
-  toast(r.payee + ' won’t be suggested again'); route();
+  toast(t('{name} won’t be suggested again', { name: r.payee })); route();
 }
 async function billRaise(id: string) {
   const at = (S.billCache || {})[id], r = (S.billRises || {})[id]; if (!at || !r) return;
   const fixed = num(at.amount_min) === num(at.amount_max);
   try {
     await api('/bills/' + id, { method: 'PUT', body: { amount_max: String(r.last), ...(fixed ? { amount_min: String(r.last) } : {}) } });
-    invalidate(); toast(at.name + ' updated to ' + money(r.last)); route();
+    invalidate(); toast(t('{name} updated to {amount}', { name: at.name, amount: money(r.last) })); route();
   } catch (e) { toast((e as Error).message); }
 }
 // A rule that links the payee's future charges (and, run once now, the past year's) to the new bill
@@ -210,8 +211,8 @@ async function billRule(name: string, payee: string) {
 // pre: values for a new bill (from a repeating charge), with the payee to link it to
 // "Ends Mar 1" / "Ended Mar 1", and the date to renew or cancel by, for a bill with a contract
 export function billEnds(at: ApiData) {
-  const e = at.end_date ? String(at.end_date).slice(0, 10) : '', x = at.extension_date ? String(at.extension_date).slice(0, 10) : '', t = todayIso();
-  return (e ? ' · ' + (e < t ? 'Ended ' : 'Ends ') + fmtDate(e) : '') + (x && (!e || e >= t) && x >= t ? ' · Renew or cancel by ' + fmtDate(x) : '');
+  const e = at.end_date ? String(at.end_date).slice(0, 10) : '', x = at.extension_date ? String(at.extension_date).slice(0, 10) : '', today = todayIso();
+  return (e ? t(e < today ? ' · Ended {date}' : ' · Ends {date}', { date: fmtDate(e) }) : '') + (x && (!e || e >= today) && x >= today ? t(' · Renew or cancel by {date}', { date: fmtDate(x) }) : '');
 }
 function billForm(id?: string, pre?: ApiData) {
   const at = id ? (S.billCache || {})[id] : pre || null;
@@ -262,7 +263,7 @@ async function cardPay(id: string) {
   // A card in another currency: the form gets what the card is owed in its own currency (exact) and, when it's paid from
   // a main-currency account, today's equivalent as the amount leaving that account, to check against the bank's figure
   const owed = Math.max(0, -(a.nat || a).balance);
-  newTx({ type: 'transfer', description: 'Payment to ' + a.name, amount: a.unconv ? '' : String(Math.round(Math.max(0, -a.balance) * 100) / 100), dest: String(a.id), ...(a.nat ? { fa: String(owed), fc: a.currency } : {}) });
+  newTx({ type: 'transfer', description: t('Payment to {name}', { name: a.name }), amount: a.unconv ? '' : String(Math.round(Math.max(0, -a.balance) * 100) / 100), dest: String(a.id), ...(a.nat ? { fa: String(owed), fc: a.currency } : {}) });
 }
 
 // The methods markup handlers call (see events.ts), added to App and to its type

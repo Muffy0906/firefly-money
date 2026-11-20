@@ -12,6 +12,7 @@ import { VIEWS, hashWith, route } from '../core/router';
 import { loanHistory } from './loans';
 import { INTEREST_RE, runway, runwayPanel } from '../features/moneyhealth';
 import { insight } from '../features/refunds';
+import { t } from '../core/spanish';
 
 /* ================= Accounts ================= */
 const ROLE_LABEL: Record<string, string> = { defaultAsset: 'Checking / default', savingAsset: 'Savings', sharedAsset: 'Shared', cashWalletAsset: 'Cash wallet', ccAsset: 'Credit card' };
@@ -27,8 +28,8 @@ async function runwayCard(accts: Account[]) {
 const ownAmt = acctAmt;
 // A group's total in the main currency, added in whole cents (core/fx.ts). Accounts with no rate are left out, and the total says so.
 function groupTotal(items: Account[], pick: (x: { balance: number, debt: number }) => number) {
-  const t = sumPrimary(items.map(a => ({ amount: pick(a.nat || a), code: a.currency })));
-  return { text: money(t.total), note: t.left.length ? ' · leaves out ' + t.left.join(', ') + ' (not converted)' : '' };
+  const totals = sumPrimary(items.map(a => ({ amount: pick(a.nat || a), code: a.currency })));
+  return { text: money(totals.total), note: totals.left.length ? t(' · leaves out {currencies} (not converted)', { currencies: totals.left.join(', ') }) : '' };
 }
 function fundMonths(v: string) { LS.set('fundMonths', +v || 6); route(); }
 VIEWS.accounts = async (r, paint) => {
@@ -50,21 +51,23 @@ VIEWS.accounts = async (r, paint) => {
   if (tab === 'assets') {
     cols = html`<th>Name</th><th class="hide-s">Type</th><th class="r">Balance</th>`;
     row = a => html`<td class="desc"><span class="acct">${nameAvatar(a.name, 'sm')}<span class="nm">${a.name}</span></span></td><td class="hide-s neutral">${ROLE_LABEL[a.role] || a.role}</td><td class="amt">${ownAmt(a, (a.nat || a).balance, a.balance)}</td>`;
-    const t = groupTotal(items, x => x.balance); total = t.text + ' total' + t.note;
+    const grouped = groupTotal(items, x => x.balance); total = t('{amount} total{note}', { amount: grouped.text, note: grouped.note });
   } else if (tab === 'cards') {
     cols = html`<th>Name</th><th class="hide-s">Payment due</th><th class="r">Owed</th>`;
-    row = a => html`<td class="desc"><span class="acct">${nameAvatar(a.name, 'sm')}<span class="nm">${a.name}</span></span></td><td class="hide-s neutral">${a.paymentDate ? 'Day ' + new Date(String(a.paymentDate).slice(0, 10) + 'T12:00:00').getDate() + ' of the month' : '—'}</td><td class="amt">${(a.nat || a).balance < 0 ? ownAmt(a, -(a.nat || a).balance, -a.balance) : html`<span class="pos">Paid off</span>`}</td>`;
-    const t = groupTotal(items, x => Math.max(0, -x.balance)); total = t.text + ' owed in total' + t.note;
+    row = a => html`<td class="desc"><span class="acct">${nameAvatar(a.name, 'sm')}<span class="nm">${a.name}</span></span></td><td class="hide-s neutral">${a.paymentDate ? t('Day {day} of the month', { day: new Date(String(a.paymentDate).slice(0, 10) + 'T12:00:00').getDate() }) : '—'}</td><td class="amt">${(a.nat || a).balance < 0 ? ownAmt(a, -(a.nat || a).balance, -a.balance) : html`<span class="pos">Paid off</span>`}</td>`;
+    const grouped = groupTotal(items, x => Math.max(0, -x.balance)); total = t('{amount} owed in total{note}', { amount: grouped.text, note: grouped.note });
   } else if (tab === 'liabilities') {
     cols = html`<th>Name</th><th class="hide-s">Paid off</th><th class="hide-s">Interest</th><th class="r">Remaining</th>`;
     row = a => { const pr = prog[a.id] || {}; return html`<td class="desc"><span class="acct">${nameAvatar(a.name, 'sm')}<span class="nm">${a.name}</span></span><div class="sub-s" style="text-transform:capitalize">${a.liabType}</div></td><td class="hide-s" style="min-width:200px">${pr.pct != null ? html`<div class="track" style="max-width:220px"><div class="fill good" style="width:${(a.debt ? pr.pct : 100).toFixed(1)}%"></div></div><div class="sub-s">${a.debt ? pr.pct.toFixed(0) + '% · ' + money0(pr.repaid) + ' of ' + money0(pr.borrowed) : 'Paid off'}</div>` : html`<span class="neutral">—</span>`}</td><td class="hide-s neutral">${num(a.interest) ? num(a.interest) + '% ' + a.interestPeriod : '—'}</td><td class="amt">${ownAmt(a, (a.nat || a).debt, a.debt)}</td>`; };
     const paid = items.reduce((t, a) => t + ((prog[a.id] || {}).interest || 0), 0);
-    const t = groupTotal(items, x => x.debt); total = t.text + ' owed in total' + t.note + (paid >= 1 ? ' · ' + money0(paid) + ' interest paid so far' : '');
+    const grouped = groupTotal(items, x => x.debt); total = t('{amount} owed in total{note}{interest}', { amount: grouped.text, note: grouped.note, interest: paid >= 1 ? ' · ' + t('{amount} interest paid so far', { amount: money0(paid) }) : '' });
   } else {
-    const used = items.filter(a => sums[a.id]).length, when = cur.all ? 'all time' : 'in ' + cur.label;
-    cols = html`<th>Name</th><th class="r">${tab === 'expense' ? 'Spent' : 'Received'} ${cur.all ? 'all time' : 'in ' + cur.short}</th>`;
+    const used = items.filter(a => sums[a.id]).length, when = cur.all ? t('all time') : t('in {month}', { month: cur.label });
+    cols = html`<th>Name</th><th class="r">${t(tab === 'expense' ? 'Spent' : 'Received')} ${cur.all ? t('all time') : t('in {month}', { month: cur.short })}</th>`;
     row = a => html`<td class="desc"><span class="acct">${nameAvatar(a.name, 'sm')}<span class="nm">${a.name}</span></span></td><td class="amt">${sums[a.id] ? money(sums[a.id]) : html`<span class="neutral">—</span>`}</td>`;
-    total = money(items.reduce((s, a) => s + (sums[a.id] || 0), 0)) + (tab === 'expense' ? ' spent at ' + used + ' of ' + items.length + ' payees ' : ' received from ' + used + ' of ' + items.length + ' income sources ') + when;
+    total = tab === 'expense'
+      ? t('{amount} spent at {used} of {total} payees {period}', { amount: money(items.reduce((s, a) => s + (sums[a.id] || 0), 0)), used, total: items.length, period: when })
+      : t('{amount} received from {used} of {total} income sources {period}', { amount: money(items.reduce((s, a) => s + (sums[a.id] || 0), 0)), used, total: items.length, period: when });
   }
   const body = items.length ? html`<table class="tbl"><thead><tr>${cols}</tr></thead><tbody>${htmlList(items.sort((a, b) => (sums[b.id] || 0) - (sums[a.id] || 0) || a.name.localeCompare(b.name)).map(a => html`<tr class="click" data-onclick="App.go('#/account/${a.id}')"${a.active ? '' : html` style="opacity:.5"`}>${row(a)}</tr>`))}</tbody></table>` : html`<div class="center-empty">Nothing here yet.</div>`;
   paint(html`${head('Accounts', total, html`${flow ? monthNav() : ''}<button class="btn primary" data-onclick="App.accountForm(null,'${tab === 'assets' ? 'asset' : tab === 'cards' ? 'card' : tab === 'liabilities' ? 'liability' : tab}')">+ New account</button>`)}<div class="tabs">${tabLink('assets', 'Bank accounts')}${tabLink('cards', 'Credit cards')}${tabLink('liabilities', 'Loans & debts')}${tabLink('expense', 'Payees')}${tabLink('revenue', 'Income sources')}</div>${runwayHtml}<section class="panel flush">${body}</section>${inactiveCount ? html`<p style="margin-top:14px"><a class="link" href="${hashWith({ inactive: show ? '' : '1' })}">${show ? 'Hide' : 'Show'} ${inactiveCount} inactive</a></p>` : ''}`);
@@ -167,7 +170,7 @@ VIEWS.account = async (r, paint) => {
   const owedStyle = isLiab(a) || isCard(a);
   paint(
     html`<p style="margin:0 0 6px"><a class="link" href="#/accounts">← Accounts</a></p>${head(a.name, subtitle, html`${range === 'month' ? monthNav() : ''}${own ? html`<button class="btn" data-onclick="App.newTxFor('${a.id}')">+ Transaction</button>` : ''}${isAsset(a) || isLiab(a) ? html`<a class="btn" href="#/reconcile/${a.id}">Reconcile</a>` : ''}<button class="btn" data-onclick="App.accountForm('${a.id}','${kind}')">Edit</button>`)}<div class="seg" style="margin:-8px 0 20px">${rangeBtn('month', 'Month')}${rangeBtn('year', 'Last 12 months')}${rangeBtn('all', 'All time')}${dates ? html`<button type="button" class="on">${datesLabel}</button>` : ''}</div><div class="kpis">${own ? html`<div class="kpi"><div class="eyebrow">${owedStyle ? 'Balance' : 'Current balance'}</div><div class="val num">${headline}</div></div><div class="kpi"><div class="eyebrow">${isLiab(a) ? 'Paid' : 'In'} · ${period.short}</div><div class="val num pos">${cm(inflow)}</div></div><div class="kpi"><div class="eyebrow">${isLiab(a) ? 'Borrowed' : 'Out'} · ${period.short}</div><div class="val num neg">${cm(outflow)}</div></div>`
-      : html`<div class="kpi"><div class="eyebrow">${a.type === 'revenue' ? 'Received' : 'Spent'} · ${period.short}</div><div class="val num ${a.type === 'revenue' ? 'pos' : 'neg'}">${money(a.type === 'revenue' ? outflow : inflow)}</div></div>`}<div class="kpi"><div class="eyebrow">Transactions</div><div class="val num">${groups.length}</div></div></div>${year ? payeePanel(a, year.map(normGroup)) : ''}${own ? html`<section class="panel chart" style="margin-bottom:20px"><h2>${owedStyle && isLiab(a) ? 'Amount owed' : 'Balance'} · ${period.label}</h2><p class="lead">After each transaction</p>${balanceChart(groups, a, range)}</section>` : ''}${stripPlan(a.notes) ? html`<section class="panel" style="margin-bottom:20px"><h2>Notes</h2><p style="margin:6px 0 0;white-space:pre-wrap">${stripPlan(a.notes)}</p></section>` : ''}<section class="panel flush">${txRows(shown, { accountId: own ? a.id : '', empty: 'No transactions in ' + period.label + '.' })}${pages > 1 ? html`<div class="more" id="feedMore"><span class="spin"></span>Loading older transactions…</div>` : ''}</section>`);
+      : html`<div class="kpi"><div class="eyebrow">${a.type === 'revenue' ? 'Received' : 'Spent'} · ${period.short}</div><div class="val num ${a.type === 'revenue' ? 'pos' : 'neg'}">${money(a.type === 'revenue' ? outflow : inflow)}</div></div>`}<div class="kpi"><div class="eyebrow">Transactions</div><div class="val num">${groups.length}</div></div></div>${year ? payeePanel(a, year.map(normGroup)) : ''}${own ? html`<section class="panel chart" style="margin-bottom:20px"><h2>${owedStyle && isLiab(a) ? 'Amount owed' : 'Balance'} · ${period.label}</h2><p class="lead">After each transaction</p>${balanceChart(groups, a, range)}</section>` : ''}${stripPlan(a.notes) ? html`<section class="panel" style="margin-bottom:20px"><h2>Notes</h2><p style="margin:6px 0 0;white-space:pre-wrap">${stripPlan(a.notes)}</p></section>` : ''}<section class="panel flush">${txRows(shown, { accountId: own ? a.id : '', empty: t('No transactions in {period}.', { period: period.label }) })}${pages > 1 ? html`<div class="more" id="feedMore"><span class="spin"></span>Loading older transactions…</div>` : ''}</section>`);
 };
 /* ---------- A payee's (or income source's) year: monthly totals, how often, typical amount, categories ---------- */
 export function payeeStats(groups: Group[], id: string, t: string) {
@@ -184,7 +187,7 @@ export function payeeStats(groups: Group[], id: string, t: string) {
     every: gaps.length ? gaps[Math.floor(gaps.length / 2)] : 0, first: charges[0], last: charges[charges.length - 1],
     cats: [...cats].sort((a, b) => b[1] - a[1]), bill: charges.find(c => c.bill)?.bill || '' };
 }
-const howOften = (d: number) => d <= 1 ? 'about daily' : d <= 9 ? 'about every ' + d + ' days' : d <= 17 ? 'about every two weeks' : d <= 40 ? 'about monthly' : d <= 100 ? 'every few months' : 'now and then';
+const howOften = (d: number) => d <= 1 ? t('about daily') : d <= 9 ? t('about every {count} days', { count: d }) : d <= 17 ? t('about every two weeks') : d <= 40 ? t('about monthly') : d <= 100 ? t('every few months') : t('now and then');
 function payeePanel(a: Account, groups: Group[]) {
   const p = payeeStats(groups, a.id, todayIso()), inc = a.type === 'revenue';
   if (!p.charges.length) return html`<section class="panel" style="margin-bottom:20px"><h2>The last 12 months</h2><p class="empty">Nothing ${inc ? 'received from' : 'spent at'} ${a.name} in the last year.</p></section>`;
@@ -192,7 +195,12 @@ function payeePanel(a: Account, groups: Group[]) {
   const bars = htmlList(p.months.map((x, i) => { const h = (H - pb - 8) * x.v / max; return html`<g class="pt" data-tip="${x.label + ' · ' + money(x.v)}"${x.v ? html` data-go="${'#/account/' + a.id + '?start=' + x.key + '-01&end=' + x.end}"` : ''}><rect x="${(i * bw).toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${H - pb}" fill="transparent"/><rect x="${(i * bw + bw * .18).toFixed(1)}" y="${(H - pb - h).toFixed(1)}" width="${(bw * .64).toFixed(1)}" height="${Math.max(h, x.v ? 2 : 0).toFixed(1)}" rx="3" fill="${inc ? 'var(--good)' : 'var(--spend)'}" opacity="${i === 11 ? 1 : .7}"/><text x="${(i * bw + bw / 2).toFixed(1)}" y="${H - 5}" text-anchor="middle">${W < 960 ? x.label.slice(0, 1) : x.label}</text></g>`; }));
   const stat = (label: string, v: unknown) => html`<div><div class="eyebrow">${label}</div><div class="num" style="font-size:18px">${v}</div></div>`;
   const cats = htmlList(p.cats.slice(0, 4).map(([c, v]) => html`<span class="chip">${c} · ${Math.round(v / p.total * 100)}%</span>`));
-  return html`<section class="panel chart" style="margin-bottom:20px"><h2>The last 12 months</h2><p class="lead">${p.charges.length} ${inc ? 'payment' : 'charge'}${p.charges.length === 1 ? '' : 's'}${p.charges.length > 2 ? ', ' + howOften(p.every) : ''} · last ${fmtDate(p.last.d)}${p.bill ? ' · bill: ' + p.bill : ''}</p><div class="payee-stats">${stat(inc ? 'Received' : 'Spent', money0(p.total))}${stat('Per month', money0(p.perMonth))}${stat('Typical ' + (inc ? 'payment' : 'charge'), money(p.typical))}${stat('Since', fmtDate(p.first.d))}</div><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="By month" style="margin-top:14px">${bars}</svg>${cats ? html`<div style="margin-top:12px">${cats}</div>` : ''}</section>`;
+  const count = p.charges.length, unit = inc ? (count === 1 ? 'payment' : 'payments') : (count === 1 ? 'charge' : 'charges');
+  const countText = t('{count} {unit}', { count, unit: t(unit) }), frequency = count > 2 ? ', ' + howOften(p.every) : '';
+  const lead = p.bill
+    ? t('{countText}{frequency} · last {date} · bill: {bill}', { countText, frequency, date: fmtDate(p.last.d), bill: p.bill })
+    : t('{countText}{frequency} · last {date}', { countText, frequency, date: fmtDate(p.last.d) });
+  return html`<section class="panel chart" style="margin-bottom:20px"><h2>The last 12 months</h2><p class="lead">${lead}</p><div class="payee-stats">${stat(inc ? 'Received' : 'Spent', money0(p.total))}${stat('Per month', money0(p.perMonth))}${stat(t('Typical {type}', { type: t(inc ? 'payment' : 'charge') }), money(p.typical))}${stat('Since', fmtDate(p.first.d))}</div><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="By month" style="margin-top:14px">${bars}</svg>${cats ? html`<div style="margin-top:12px">${cats}</div>` : ''}</section>`;
 }
 function balanceChart(groups: Group[], a: Account, range: string) {
   const owed = isLiab(a);                       // loans read better as "amount owed" going down
@@ -300,7 +308,7 @@ async function saveAccount() {
       try {
         const fix = openingRepairs((await getAll('/accounts/' + aid + '/transactions', { type: 'opening_balance' })).map(normGroup), code);
         for (const f of fix) await api('/transactions/' + f.id, { method: 'PUT', body: f.body });
-      } catch (e) { invalidate(); closeDrawer(); route(); return toast('Account saved, but its opening balance is still in the old currency: ' + (e as Error).message); }
+      } catch (e) { invalidate(); closeDrawer(); route(); return toast(t('Account saved, but its opening balance is still in the old currency: {error}', { error: (e as Error).message })); }
     }
     invalidate(); closeDrawer(); toast(id ? 'Account saved' : 'Account created');
     if (!id && res && res.data) location.hash = '#/account/' + res.data.id; else route();

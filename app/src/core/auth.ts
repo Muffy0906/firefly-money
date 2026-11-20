@@ -1,6 +1,7 @@
 import { AuthError, CACHE, PAGES, dropSavedCopies } from './api';
 import { S, el } from './base';
 import { closeDrawer, formError, toast } from './dom';
+import { t } from './spanish';
 
 /* Signing in and out, and what happens when Firefly or the session check says no.
    The server keeps the session in an HttpOnly cookie that scripts can't read (see app/session.js), so the page
@@ -15,7 +16,7 @@ export async function signIn(password: string, remember: boolean) {
   const r = await fetch(SESSION, { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json', 'X-Money': '1' }, body: JSON.stringify({ password, remember: !!remember }) });
   if (r.status === 401) throw new AuthError('That password isn’t right.');
   if (r.status === 429) throw new Error('Too many sign-in attempts. Wait a minute, then try again.');
-  if (!r.ok) throw new Error('Couldn’t sign in (' + r.status + ').');
+  if (!r.ok) throw new Error(t('Couldn’t sign in ({status}).', { status: r.status }));
   S.signedIn = true; setRemembered(!!remember);
 }
 // Ends the session on the server. Resolves false when that didn't happen (offline, server down): the cookie is

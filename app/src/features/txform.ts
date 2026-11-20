@@ -10,6 +10,7 @@ import { hoursText, lensOn } from '../core/worklens';
 import { type Account, invalidate, isAsset, isCard, isLiab, lists } from '../core/lists';
 import { REFUND_TAG, isRefundTag, refundLinkType } from './refunds';
 import { route } from '../core/router';
+import { t } from '../core/spanish';
 
 /* ================= Transaction form ================= */
 // The transaction form's state (S.form while it's open). Fields hold what the inputs hold, as text.
@@ -84,7 +85,7 @@ export async function editTx(id: string) {
   if (meta) {
     const g = meta.g, v = signed(g, meta.accountId);
     S.drawerHero = { id, av: avatarHtml(g, 'lg'), name: payeeOf(g).name, date: g.date, kicker: 'Transaction',
-      amount: g.cur ? heroNative(g, meta.accountId, v) : !meta.accountId && g.type === 'transfer' ? money(g.total) : (v > 0 ? '+' : '') + money(v) + (v < 0 && lensOn() && hoursText(v) ? ' · ' + hoursText(v) + ' of work' : '') };
+      amount: g.cur ? heroNative(g, meta.accountId, v) : !meta.accountId && g.type === 'transfer' ? money(g.total) : (v > 0 ? '+' : '') + money(v) + (v < 0 && lensOn() && hoursText(v) ? ' · ' + t('{duration} of work', { duration: hoursText(v) }) : '') };
   } else S.drawerHero = null;
   // The list already has the whole transaction, so the form opens filled in straight away; the copy fetched
   // from Firefly III replaces it only if it differs and you haven't started editing.
@@ -278,9 +279,9 @@ async function saveTxInner(formEl: HTMLFormElement) {
   }
   // A number or date far outside what's plausible is usually a typo (an extra digit, the wrong year): ask before saving it
   const hugeAmt = f.splits.find(s => num(s.amount) >= 1000000);
-  if (hugeAmt && !await confirmBox('That’s a big amount', money(num(hugeAmt.amount)) + ' for “' + hugeAmt.description + '” — save it anyway?', 'Save anyway')) return;
+  if (hugeAmt && !await confirmBox('That’s a big amount', t('{amount} for “{description}” — save it anyway?', { amount: money(num(hugeAmt.amount)), description: hugeAmt.description }), 'Save anyway')) return;
   const yr = +f.date.slice(0, 4), thisYr = +todayIso().slice(0, 4);
-  if ((yr < thisYr - 10 || yr > thisYr + 5) && !await confirmBox('Check the date', fmtDate(f.date) + ' — save it anyway?', 'Save anyway')) return;
+  if ((yr < thisYr - 10 || yr > thisYr + 5) && !await confirmBox('Check the date', t('{date} — save it anyway?', { date: fmtDate(f.date) }), 'Save anyway')) return;
   // Optimistic: close right away and show the change; if Firefly refuses, reopen the form with the error.
   const body = buildTxPayload();
   if (!f.id && f.maybeSaved) {

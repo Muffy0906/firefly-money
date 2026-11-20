@@ -5,6 +5,7 @@ import { normGroup } from '../core/feed';
 import { addDays, daysBetween } from '../core/helpers';
 import { barChart, changeBars, smoothPath } from './charts';
 import { isRefundTag } from './refunds';
+import { t } from '../core/spanish';
 
 /* ================= Trend insights (Reports) =================
    Three slow-moving questions, answered from the last 12 full months of transactions, whatever dates the report shows:
@@ -69,7 +70,7 @@ export type Creep = {
   shareThen: number | null, shareNow: number | null,                                 // everyday spending as a share of income
 };
 const grow = (a: number, b: number) => a > 0 ? (b - a) / a : null;
-const move = (g: number | null) => g == null ? 'is new' : Math.abs(g) < .01 ? 'held steady' : (g > 0 ? 'rose ' : 'fell ') + pct(g) + '%';
+const move = (g: number | null) => g == null ? t('is new') : Math.abs(g) < .01 ? t('held steady') : t(g > 0 ? 'rose {percentage}%' : 'fell {percentage}%', { percentage: pct(g) });
 export function creep(rows: CreepRow[]): Creep {
   const half = rows.length >> 1, a = rows.slice(0, half), b = rows.slice(rows.length - half);
   const live = rows.filter(r => r.income || r.fixed || r.flex).length, none = { income: null, fixed: null, flex: null };
@@ -79,10 +80,10 @@ export function creep(rows: CreepRow[]): Creep {
   const growth = { income: grow(ai, bi), fixed: grow(af, bf), flex: grow(ax, bx) }, shareThen = ax / ai, shareNow = bi > 0 ? bx / bi : null;
   const gi = growth.income ?? 0, gx = growth.flex ?? 0, n = half, span = 'over the last ' + n + ' months vs. the ' + n + ' before';
   let tone: Tone = 'good', head: string, text: string;
-  if (gx > gi + .05 && gx > .03) { tone = 'warn'; head = 'Creeping up'; text = 'Everyday spending ' + move(growth.flex) + ' while income ' + move(growth.income) + ' ' + span + '.'; }
-  else if (gx > gi + .02 && gx > .02) { tone = 'warn'; head = 'Edging up'; text = 'Everyday spending ' + move(growth.flex) + ' while income ' + move(growth.income) + ' ' + span + '.'; }
-  else if (gx <= gi) { head = 'Income is ahead'; text = 'Income ' + move(growth.income) + ' and everyday spending ' + move(growth.flex) + ' ' + span + '.'; }
-  else { head = 'In step'; text = 'Everyday spending ' + move(growth.flex) + ' and income ' + move(growth.income) + ' ' + span + '.'; }
+  if (gx > gi + .05 && gx > .03) { tone = 'warn'; head = t('Creeping up'); text = t('Everyday spending {spending} while income {income} over the last {count} months vs. the {count} before.', { spending: move(growth.flex), income: move(growth.income), count: n }); }
+  else if (gx > gi + .02 && gx > .02) { tone = 'warn'; head = t('Edging up'); text = t('Everyday spending {spending} while income {income} over the last {count} months vs. the {count} before.', { spending: move(growth.flex), income: move(growth.income), count: n }); }
+  else if (gx <= gi) { head = t('Income is ahead'); text = t('Income {income} and everyday spending {spending} over the last {count} months vs. the {count} before.', { income: move(growth.income), spending: move(growth.flex), count: n }); }
+  else { head = t('In step'); text = t('Everyday spending {spending} and income {income} over the last {count} months vs. the {count} before.', { spending: move(growth.flex), income: move(growth.income), count: n }); }
   return { enough: true, tone, head, text, growth, shareThen, shareNow };
 }
 
@@ -103,14 +104,14 @@ export function yoy(txs: TTx[], r: { nowRange: { start: string, end: string }, p
   const by = (range: { start: string, end: string }) => { const mp = new Map<string, number>(); txs.forEach(t => { if (t.kind === 'out' && inMonth(range, t.date)) mp.set(t.category || 'Uncategorized', (mp.get(t.category || 'Uncategorized') || 0) + t.amount); }); return mp; };
   const [n, p] = [by(r.nowRange), by(r.prevRange)], now = sum([...n.values()]), prev = sum([...p.values()]);
   const rows = [...new Set([...n.keys(), ...p.keys()])].map(name => ({ name, now: n.get(name) || 0, prev: p.get(name) || 0 }));
-  const what = r.partial ? 'So far this month' : r.month.label, vs = r.partial ? 'the same days of ' + r.lastYear.label : r.lastYear.label;
-  const base = { now, prev, rows, nowRange: r.nowRange, prevRange: r.prevRange, title: what + ' vs. ' + r.lastYear.label };
-  if (prev < 1) return { ...base, enough: false, tone: 'none', head: 'No year-ago data', text: 'Nothing was spent in ' + r.lastYear.label + ' to compare with.' };
+  const what = r.partial ? t('So far this month') : r.month.label, vs = r.partial ? t('the same days of {period}', { period: r.lastYear.label }) : r.lastYear.label;
+  const base = { now, prev, rows, nowRange: r.nowRange, prevRange: r.prevRange, title: t('{period} vs. {lastYear}', { period: what, lastYear: r.lastYear.label }) };
+  if (prev < 1) return { ...base, enough: false, tone: 'none', head: t('No year-ago data'), text: t('Nothing was spent in {period} to compare with.', { period: r.lastYear.label }) };
   const g = (now - prev) / prev, lead = [...rows].sort((a, b) => (b.now - b.prev) * Math.sign(g || 1) - (a.now - a.prev) * Math.sign(g || 1))[0];
-  const why = lead && Math.abs(lead.now - lead.prev) >= 1 && (lead.now - lead.prev) * Math.sign(g || 1) > 0 ? ', mostly ' + lead.name + ' (' + (lead.now > lead.prev ? '+' : '−') + money0(Math.abs(lead.now - lead.prev)) + ')' : '';
-  if (Math.abs(g) < .03) return { ...base, enough: true, tone: 'good', head: 'About the same', text: (r.partial ? 'You’ve spent ' : 'You spent ') + money0(now) + ', about the same as ' + vs + '.' };
+  const why = lead && Math.abs(lead.now - lead.prev) >= 1 && (lead.now - lead.prev) * Math.sign(g || 1) > 0 ? t(', mostly {name} ({change}{amount})', { name: lead.name, change: lead.now > lead.prev ? '+' : '−', amount: money0(Math.abs(lead.now - lead.prev)) }) : '';
+  if (Math.abs(g) < .03) return { ...base, enough: true, tone: 'good', head: t('About the same'), text: t(r.partial ? 'You’ve spent {amount}, about the same as {period}.' : 'You spent {amount}, about the same as {period}.', { amount: money0(now), period: vs }) };
   return { ...base, enough: true, tone: g > 0 ? 'warn' : 'good', head: g > 0 ? 'Spending is up' : 'Spending is down',
-    text: (r.partial ? 'You’ve spent ' : 'You spent ') + money0(now) + ', ' + pct(g) + '% ' + (g > 0 ? 'more' : 'less') + ' than ' + vs + why + '.' };
+    text: t(r.partial ? 'You’ve spent {amount}, {percentage}% {direction} than {period}{reason}.' : 'You spent {amount}, {percentage}% {direction} than {period}{reason}.', { amount: money0(now), percentage: pct(g), direction: t(g > 0 ? 'more' : 'less'), period: vs, reason: why }) };
 }
 
 /* ---------- Which weekdays and parts of the month you spend most ---------- */
@@ -137,10 +138,10 @@ export function rhythm(txs: TTx[], months: TMonth[], fixed = fixedPayees(txs, mo
   const hi = (xs: number[]) => xs.indexOf(Math.max(...xs)), lo = (xs: number[]) => xs.indexOf(Math.min(...xs)), w = hi(weekdays), p = hi(parts);
   const even = weekdays[w] < .15, evenP = parts[p] < .1;
   return { enough: true, tone: even && evenP ? 'good' : 'warn', typical, weekdays, parts,
-    weekHead: even ? 'Even all week' : WEEKDAYS_LONG[w],
-    weekText: even ? 'Your spending is spread evenly across the week.' : 'You spend most on ' + WEEKDAYS_LONG[w] + ': ' + pct(weekdays[w]) + '% above a typical day. Quietest: ' + WEEKDAYS_LONG[lo(weekdays)] + '.',
-    partHead: evenP ? 'Even all month' : PARTS[p],
-    partText: evenP ? 'Your spending is spread evenly through the month.' : 'Spending runs highest in ' + PARTS_LONG[p] + ': ' + pct(parts[p]) + '% above a typical day. Lightest: ' + PARTS_LONG[lo(parts)] + '.' };
+    weekHead: even ? t('Even all week') : t(WEEKDAYS_LONG[w]),
+    weekText: even ? t('Your spending is spread evenly across the week.') : t('You spend most on {day}: {percent}% above a typical day. Quietest: {quietest}.', { day: t(WEEKDAYS_LONG[w]), percent: pct(weekdays[w]), quietest: t(WEEKDAYS_LONG[lo(weekdays)]) }),
+    partHead: evenP ? t('Even all month') : t(PARTS[p]),
+    partText: evenP ? t('Your spending is spread evenly through the month.') : t('Spending runs highest in {part}: {percent}% above a typical day. Lightest: {lightest}.', { part: t(PARTS_LONG[p]), percent: pct(parts[p]), lightest: t(PARTS_LONG[lo(parts)]) }) };
 }
 
 /* ---------- Drawing ---------- */

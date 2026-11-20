@@ -3,6 +3,7 @@ import { AuthError, CACHE, PAGES, api, clearCache, getAll, type ApiError } from 
 import { withAuth } from '../core/auth';
 import { App, cycleDay, el, fmtD, fmtDate, isoDate, money, monthRange, nowMonth, num, S, todayIso, weekStart } from '../core/base';
 import { confirmBox, head, opt, toast } from '../core/dom';
+import { t } from '../core/spanish';
 import { LS, budgetAlert, saveBlob } from '../core/helpers';
 import { skipOneOffs } from '../features/refunds';
 import { buzz, hapticsOn } from '../core/haptics';
@@ -51,8 +52,8 @@ VIEWS.settings = async (r, paint) => {
     ${row('Budget warning', 'When a budget is this full', html`<select aria-label="Warn when a budget reaches" data-onchange="App.setBudgetAlert(this.value)">${htmlList([50, 60, 70, 75, 80, 85, 90, 95].map(p => opt(p, p + '%', alertPct)))}</select>`)}
     ${row('Leave out closed accounts', 'Transactions to or from an inactive account stay out of lists, totals and charts. Its own page still shows them.', html`<input ${SWITCH} aria-label="Leave out closed accounts"${LS.get('hideInactive', false) ? ' checked' : ''} data-onchange="App.toggleHideClosed(this.checked)">`)}
     ${row('Leave out one-offs', 'Spending tagged “One-off” stays out of Spent, trends, pace and reports', html`<input ${SWITCH} aria-label="Leave out one-offs"${skipOneOffs() ? ' checked' : ''} data-onchange="App.toggleOneOffs(this.checked)">`)}`,
-    'This month runs ' + fmtDate(ex.start) + ' – ' + fmtDate(ex.end) + '. Budgets, the Overview, recaps and reports all use it.' +
-      (day > 1 ? ' Firefly’s own pages still use calendar months, and auto-budgets still reset on the 1st.' : ''));
+    t('This month runs {start} – {end}. Budgets, the Overview, recaps and reports all use it.', { start: fmtDate(ex.start), end: fmtDate(ex.end) }) +
+      (day > 1 ? ' ' + t('Firefly’s own pages still use calendar months, and auto-budgets still reset on the 1st.') : ''));
 
   const privacy = !!LS.get('privacy', false), compact = !!LS.get('compact', false);
   const look = group('look', 'Appearance', html`
@@ -66,26 +67,26 @@ VIEWS.settings = async (r, paint) => {
     ${row('Haptics', 'A light tap when you save, delete or flip a switch. iPhone needs iOS 18 or later.', html`<input ${SWITCH} aria-label="Haptics"${hapticsOn() ? ' checked' : ''} data-onchange="App.toggleHaptics(this.checked)">`)}
     ${row('Hours of work', 'Under each purchase, the hours you worked to pay for it', html`<input ${SWITCH} aria-label="Hours of work"${lensOn() ? ' checked' : ''} data-onchange="App.toggleWorkLens(this.checked)">`)}
     ${lensOn() ? html`${row('Hours a week', 'How long you work', html`<input type="number" inputmode="decimal" min="1" max="168" step="0.5" class="set-num" aria-label="Hours a week" value="${workHours()}" data-onchange="App.setWorkHours(this.value)">`)}
-    ${row('Hourly take-home', +LS.get('workRate', 0) > 0 ? 'Yours. Clear it to work it out from your income.' : hourlyRate() ? 'Worked out from what came in over the last six months: ' + money(hourlyRate()) + ' an hour' : 'Working it out from your income…', html`<input type="number" inputmode="decimal" min="0" step="0.01" class="set-num" aria-label="Hourly take-home" placeholder="${hourlyRate() ? hourlyRate().toFixed(2) : 'Auto'}" value="${+LS.get('workRate', 0) > 0 ? String(LS.get('workRate', 0)) : ''}" data-onchange="App.setWorkRate(this.value)">`)}
+    ${row('Hourly take-home', +LS.get('workRate', 0) > 0 ? t('Yours. Clear it to work it out from your income.') : hourlyRate() ? t('Worked out from what came in over the last six months: {amount} an hour', { amount: money(hourlyRate()) }) : t('Working it out from your income…'), html`<input type="number" inputmode="decimal" min="0" step="0.01" class="set-num" aria-label="Hourly take-home" placeholder="${hourlyRate() ? hourlyRate().toFixed(2) : 'Auto'}" value="${+LS.get('workRate', 0) > 0 ? String(LS.get('workRate', 0)) : ''}" data-onchange="App.setWorkRate(this.value)">`)}
     ${workSources().length ? more('workinc', 'Income counted', workSources().length - workSkip().filter(n => workSources().includes(n)).length + ' of ' + workSources().length, html`<p class="sub-s">Untick what isn’t pay, like tax refunds. Counted by who paid it, over the last six months.</p>${workSources().map((n, i) => html`<label class="set-row"><span class="set-label">${n}</span><input ${SWITCH} aria-label="${n}"${workSkip().includes(n) ? '' : ' checked'} data-onchange="App.toggleWorkSource(${i}, this.checked)"></label>`)}`) : ''}` : ''}
     ${more('logos', 'About logos', '', html`<p class="sub-s">Your Money server fetches each logo from DuckDuckGo’s icon service by the payee’s website (guessed from its name; change it in the account’s settings) and keeps it, so your browser never contacts another site.</p>`)}`,
     'Theme, hide amounts, compact view, haptics are saved on this device only. Number & date format, hours of work and your colors for each theme sync like your other settings.');
 
   const syncOff = !!LS.get('syncOff', false), syncAt = LS.get('syncAt', 0);
   const syncStatus = syncOff ? 'Off: this device keeps its own settings.' : S.syncError ? html`<span class="up">Couldn’t sync: ${S.syncError}</span>`
-    : syncAt ? 'Last synced ' + fmtDate(isoDate(new Date(syncAt))) + ' at ' + fmtD(new Date(syncAt), { hour: 'numeric', minute: '2-digit' }) + '.' : 'Nothing synced yet.';
+    : syncAt ? t('Last synced {date} at {time}.', { date: fmtDate(isoDate(new Date(syncAt))), time: fmtD(new Date(syncAt), { hour: 'numeric', minute: '2-digit' }) }) : t('Nothing synced yet.');
   const sync = group('sync', 'Sync', html`
     ${row('Sync between devices', syncStatus, html`<input ${SWITCH} aria-label="Sync this device’s settings"${syncOff ? '' : ' checked'} data-onchange="App.toggleSync(this.checked)">`)}
     ${syncOff ? '' : row('Update other devices', 'Send this device’s settings and fetch the others’ now', html`<button class="btn small" type="button" data-onclick="App.syncNow()">Sync now</button>`)}`,
     'Your Overview layout, month start, drafts, saved reports, dismissed insights, forecast, loan plan and subscription choices and theme colors are kept in Firefly III, so they follow you to every device.');
 
   const showAll = r.q.rates === 'all', fxs = fxStatus();
-  const rateBody = html`${rates && rates.length ? html`<div class="list">${htmlList(rates.slice(0, showAll ? 500 : 6).map(x => { const a = x.attributes; return html`<div class="row"><span class="name">1 ${a.from_currency_code || a.from} = ${num(a.rate)} ${a.to_currency_code || a.to} <span class="sub-s">on ${fmtDate(a.date)}</span></span><button class="link" data-onclick="App.deleteRate('${x.id}')">Remove</button></div>`; }))}</div>${rates.length > 6 ? html`<p style="margin:10px 0 0"><a class="link" href="#/settings?s=currencies${showAll ? '' : '&rates=all'}">${showAll ? 'Show fewer' : 'Show all ' + rates.length + ' rates'}</a></p>` : ''}` : html`<p class="sub-s" style="margin:0">Used to convert foreign amounts in reports. No rates yet.</p>`}<form style="margin-top:14px" data-onsubmit="event.preventDefault();App.addRate(this)"><div class="grid2"><label>From<select name="f">${htmlList(enabled.map(c => opt(c.code, c.code, S.currency)))}</select></label><label>To<select name="t">${htmlList(enabled.map(c => opt(c.code, c.code, (enabled.find(x => x.code !== S.currency) || {}).code)))}</select></label><label>Rate<input type="number" step="any" min="0" name="r" required></label><label>Date<input type="date" name="d" value="${todayIso()}" required></label></div><button class="btn small">Add rate</button></form>`;
+  const rateBody = html`${rates && rates.length ? html`<div class="list">${htmlList(rates.slice(0, showAll ? 500 : 6).map(x => { const a = x.attributes; return html`<div class="row"><span class="name">1 ${a.from_currency_code || a.from} = ${num(a.rate)} ${a.to_currency_code || a.to} <span class="sub-s">on ${fmtDate(a.date)}</span></span><button class="link" data-onclick="App.deleteRate('${x.id}')">Remove</button></div>`; }))}</div>${rates.length > 6 ? html`<p style="margin:10px 0 0"><a class="link" href="#/settings?s=currencies${showAll ? '' : '&rates=all'}">${showAll ? t('Show fewer') : t('Show all {count} rates', { count: rates.length })}</a></p>` : ''}` : html`<p class="sub-s" style="margin:0">Used to convert foreign amounts in reports. No rates yet.</p>`}<form style="margin-top:14px" data-onsubmit="event.preventDefault();App.addRate(this)"><div class="grid2"><label>From<select name="f">${htmlList(enabled.map(c => opt(c.code, c.code, S.currency)))}</select></label><label>To<select name="t">${htmlList(enabled.map(c => opt(c.code, c.code, (enabled.find(x => x.code !== S.currency) || {}).code)))}</select></label><label>Rate<input type="number" step="any" min="0" name="r" required></label><label>Date<input type="date" name="d" value="${todayIso()}" required></label></div><button class="btn small">Add rate</button></form>`;
   const cur = group('currencies', 'Currencies', html`
     ${htmlList(enabled.map(c => row(html`${c.code} · ${c.name}${c.code === S.currency ? html` <span class="chip good">Main</span>` : ''}`, '',
       c.code !== S.currency ? html`<button class="link" data-onclick="App.currency('${c.code}','primary')">Make main</button><button class="link" data-onclick="App.currency('${c.code}','disable')">Disable</button>` : '')))}
     ${disabled.length ? more('cur-add', 'Enable another currency', '', html`<form class="set-inline" data-onsubmit="event.preventDefault();App.currency(this.c.value,'enable')"><select name="c" aria-label="Currency">${htmlList(disabled.map(c => opt(c.code, c.code + ' · ' + c.name, '')))}</select><button class="btn small">Enable</button></form>`) : ''}
-    ${row('Convert foreign currencies in totals', fxs.foreign.length ? 'Net worth and every other total add accounts in ' + fxs.foreign.join(', ') + ' at today’s rate. Off: they are left out of totals.' : 'Used when an account is in another currency. None is right now.', html`<input ${SWITCH} aria-label="Convert foreign currencies in totals"${fxs.on ? ' checked' : ''} data-onchange="App.fxToggle(this.checked)">`)}
+    ${row('Convert foreign currencies in totals', fxs.foreign.length ? t('Net worth and every other total add accounts in {currencies} at today’s rate. Off: they are left out of totals.', { currencies: fxs.foreign.join(', ') }) : 'Used when an account is in another currency. None is right now.', html`<input ${SWITCH} aria-label="Convert foreign currencies in totals"${fxs.on ? ' checked' : ''} data-onchange="App.fxToggle(this.checked)">`)}
     ${row('Today’s rates', fxs.rows.length ? html`${htmlList(fxs.rows.map(x => html`<span class="fx-rate${x.old ? ' up' : ''}">${rateText(x.code, x.rate)} · ${x.old ? 'last fetched ' : ''}${fmtD(new Date(x.at), { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>`))}${fxs.missing.length ? html`<span class="fx-rate up">No rate for ${fxs.missing.join(', ')}</span>` : ''}` : fxs.missing.length ? html`<span class="up">No rate for ${fxs.missing.join(', ')}</span>` : 'Fetched once an hour, only for the currencies your accounts use.', html`<button class="btn small" type="button" data-onclick="App.fxRefresh(this)">Refresh rates</button>`)}
     ${rates === null ? '' : more('rates', 'Rates saved in Firefly III', rates.length || '', rateBody, showAll)}`,
     'Enabled currencies can be used for foreign amounts and accounts. Totals use today’s rates from Frankfurter (or open.er-api.com), not the ones saved in Firefly III.');
@@ -116,7 +117,7 @@ VIEWS.settings = async (r, paint) => {
   const nav = htmlList(cats.map(([id, t]) => html`<a href="#/settings?s=${id}" class="${at && at[0] === id ? 'on' : ''}"${at && at[0] === id ? raw(' aria-current="page"') : ''}>${t}</a>`));
   const menu = html`<div class="panel set-panel set-menu">${htmlList(cats.map(([id, t, hint]) => html`<a class="set-row" href="#/settings?s=${id}"><span class="set-label"><span>${t}</span><span class="sub-s">${hint}</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>`))}</div>`;
   const back = html`<a class="set-back" href="#/settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Settings</a>`;
-  const title = at && !wide ? html`${back}${head(at[1], '', '')}` : head('Settings', '', '');
+  const title = at && !wide ? html`${back}${head(t(at[1]), '', '')}` : head('Settings', '', '');
   paint(html`<div class="set-layout"><div class="set-side">${title}<nav class="set-nav" id="setNav" aria-label="Settings categories">${nav}</nav></div><div class="settings">${at ? groups[at[0]] : menu}</div></div>`);
 };
 /* ---------- The categories, with what's in each (the phone's list shows it under the name) ---------- */
@@ -229,7 +230,7 @@ async function currency(code: string, action: string) {
       else if (action === 'disable' && (e as ApiError).status === 409) return disableInUse(code);
       else throw e;
     }
-    invalidate(); toast(({ enable: 'Enabled ', disable: 'Disabled ', primary: 'Main currency is now ' } as Record<string, string>)[action] + code); route();
+    invalidate(); toast(t(({ enable: 'Enabled {currency}', disable: 'Disabled {currency}', primary: 'Main currency is now {currency}' } as Record<string, string>)[action], { currency: code })); route();
   });
 }
 // Firefly refuses (409) to disable a currency that anything still uses. Exchange rates are the usual
@@ -237,18 +238,17 @@ async function currency(code: string, action: string) {
 async function disableInUse(code: string) {
   const rates = (S.rates || []).filter(x => [x.attributes.from_currency_code || x.attributes.from, x.attributes.to_currency_code || x.attributes.to].includes(code));
   if (!rates.length) {
-    return confirmBox(code + ' is still in use', 'Firefly won’t disable ' + code + ' while an account, bill, budget, piggy bank or transaction uses it. Change those to another currency first.', 'OK');
+    return confirmBox(t('{currency} is still in use', { currency: code }), t('Firefly won’t disable {currency} while an account, bill, budget, piggy bank or transaction uses it. Change those to another currency first.', { currency: code }), 'OK');
   }
-  if (!await confirmBox(code + ' is still in use', code + ' has ' + rates.length + ' exchange rate' + (rates.length === 1 ? '' : 's') + ', which stops Firefly from disabling it. Remove ' +
-    (rates.length === 1 ? 'that rate' : 'those rates') + ' and disable ' + code + '?', 'Remove & disable')) return;
+  if (!await confirmBox(t('{currency} is still in use', { currency: code }), t('{currency} has {count} exchange rate{plural}, which stops Firefly from disabling it. Remove {these} and disable {currency}?', { currency: code, count: rates.length, plural: rates.length === 1 ? '' : 's', these: rates.length === 1 ? 'that rate' : 'those rates' }), 'Remove & disable')) return;
   let done = 0;
   for (const x of rates) { try { await api('/exchange-rates/' + x.id, { method: 'DELETE' }); done++; } catch (e) { if (e instanceof AuthError) throw e; } }
   try {
     await api('/currencies/' + code + '/disable', { method: 'POST' });
-    toast('Removed ' + done + ' rate' + (done === 1 ? '' : 's') + ' and disabled ' + code);
+    toast(t('Removed {count} rate{plural} and disabled {currency}', { count: done, plural: done === 1 ? '' : 's', currency: code }));
   } catch (e) {
     if ((e as ApiError).status !== 409) throw e;
-    await confirmBox(code + ' is still in use', 'The exchange rates are gone, but something else still uses ' + code + ' — an account, bill, budget, piggy bank or transaction. Change those first.', 'OK');
+    await confirmBox(t('{currency} is still in use', { currency: code }), t('The exchange rates are gone, but something else still uses {currency} — an account, bill, budget, piggy bank or transaction. Change those first.', { currency: code }), 'OK');
   }
   invalidate(); route();
 }
@@ -369,7 +369,7 @@ async function copyText(text: string, done: string) {
   ta.remove();
   if (ok) return toast(done);
   const key = document.getElementById('applePayKey') as HTMLInputElement | null;
-  if (key && key.value === text) { if (key.type === 'password') showKey(key.parentElement!.querySelector('button')); else selectKey(); return toast('Your browser blocked copying. The key is selected: copy it from there.'); }
+  if (key && key.value === text) { if (key.type === 'password') showKey(key.parentElement!.querySelector('button')); else selectKey(); return toast(t('Your browser blocked copying. The key is selected: copy it from there.')); }
   toast('Your browser blocked copying. Select the text and copy it yourself.');
 }
 function selectKey() { const k = el<HTMLInputElement>('applePayKey'); k.focus(); k.select(); k.setSelectionRange(0, k.value.length); }
@@ -380,14 +380,14 @@ function showKey(btn: HTMLElement | null) {
   if (!hide) selectKey();
 }
 
-function toggleOneOffs(on: boolean) { LS.set('skipOneOffs', !!on); PAGES.clear(); toast(on ? 'One-offs left out of spending' : 'One-offs counted again'); }
-function toggleHideClosed(on: boolean) { LS.set('hideInactive', !!on); CACHE.clear(); clearCache(); PAGES.clear(); toast(on ? 'Closed accounts left out' : 'Closed accounts counted again'); }
-function toggleLogos(on: boolean) { LS.set('logos', !!on); toast(on ? 'Logos on' : 'Logos off'); }
-function toggleHaptics(on: boolean) { LS.set('haptics', !!on); if (on) buzz(); toast(on ? 'Haptics on' : 'Haptics off'); }
+function toggleOneOffs(on: boolean) { LS.set('skipOneOffs', !!on); PAGES.clear(); toast(t(on ? 'One-offs left out of spending' : 'One-offs counted again')); }
+function toggleHideClosed(on: boolean) { LS.set('hideInactive', !!on); CACHE.clear(); clearCache(); PAGES.clear(); toast(t(on ? 'Closed accounts left out' : 'Closed accounts counted again')); }
+function toggleLogos(on: boolean) { LS.set('logos', !!on); toast(t(on ? 'Logos on' : 'Logos off')); }
+function toggleHaptics(on: boolean) { LS.set('haptics', !!on); if (on) buzz(); toast(t(on ? 'Haptics on' : 'Haptics off')); }
 // The month start day: stay on the current month, and redraw every page with the new ranges
-function setCycleDay(v: string) { LS.set('cycleDay', Math.min(28, Math.max(1, Math.floor(num(v)) || 1))); S.all = false; [S.y, S.m] = nowMonth(); PAGES.clear(); toast('Months now start on the ' + ordinal(cycleDay())); route(); }
+function setCycleDay(v: string) { LS.set('cycleDay', Math.min(28, Math.max(1, Math.floor(num(v)) || 1))); S.all = false; [S.y, S.m] = nowMonth(); PAGES.clear(); toast(t('Months now start on day {day}', { day: cycleDay() })); route(); }
 // Hours of work (core/worklens.ts): every amount list is drawn again with or without the hours
-function toggleWorkLens(on: boolean) { LS.set('workLens', !!on); PAGES.clear(); toast(on ? 'Purchases show the hours of work they cost' : 'Hours of work off'); if (on) learnRate(); route({ quiet: true }); }
+function toggleWorkLens(on: boolean) { LS.set('workLens', !!on); PAGES.clear(); toast(t(on ? 'Purchases show the hours of work they cost' : 'Hours of work off')); if (on) learnRate(); route({ quiet: true }); }
 /* ---------- Number & date format ----------
    Automatic follows the browser's language; the others are the common ways of writing amounts and dates. */
 const LOCALES = ['en-US', 'en-GB', 'en-CA', 'en-AU', 'en-IN', 'de-DE', 'de-CH', 'fr-FR', 'fr-CA', 'es-ES', 'es-MX', 'it-IT', 'nl-NL', 'pt-PT', 'pt-BR', 'sv-SE', 'da-DK', 'nb-NO', 'fi-FI', 'pl-PL', 'cs-CZ', 'ja-JP', 'zh-CN', 'ko-KR'];
@@ -398,12 +398,12 @@ function localeOptions() {
   return [opt('', 'Automatic', pick), ...list.map(t => opt(t, langName(t), pick))];
 }
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const localeSample = () => money(1234.56) + ' · ' + fmtDate(todayIso()) + ' · weeks start on ' + DAYS[weekStart()];
-function setLocale(v: string) { LS.set('locale', v); PAGES.clear(); S.pageKey = ''; toast('Amounts and dates now look like ' + money(1234.56) + ' and ' + fmtDate(todayIso())); route({ quiet: true }); }
+const localeSample = () => t('{amount} · {date} · weeks start on {weekday}', { amount: money(1234.56), date: fmtDate(todayIso()), weekday: t(DAYS[weekStart()]) });
+function setLocale(v: string) { LS.set('locale', v); PAGES.clear(); S.pageKey = ''; toast(t('Amounts and dates now look like {amount} and {date}', { amount: money(1234.56), date: fmtDate(todayIso()) })); route({ quiet: true }); }
 function setWorkHours(v: string) { LS.set('workHours', Math.min(168, Math.max(1, num(v))) || 40); PAGES.clear(); route({ quiet: true }); }
 function toggleWorkSource(i: number, on: boolean) { const n = workSources()[i]; if (n == null) return; const k = workSkip().filter(x => x !== n); setWorkSkip(on ? k : [...k, n]); PAGES.clear(); route({ quiet: true }); }
 function setWorkRate(v: string) { LS.set('workRate', Math.max(0, Math.round(num(v) * 100) / 100)); PAGES.clear(); route({ quiet: true }); }
-function setBudgetAlert(v: string) { LS.set('budgetAlert', num(v)); PAGES.clear(); toast('Budget warnings at ' + budgetAlert() + '%'); }
+function setBudgetAlert(v: string) { LS.set('budgetAlert', num(v)); PAGES.clear(); toast(t('Budget warnings at {percent}%', { percent: budgetAlert() })); }
 
 // The methods markup handlers call (see events.ts), added to App and to its type
 const methods = {
