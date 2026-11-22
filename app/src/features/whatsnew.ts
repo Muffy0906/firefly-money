@@ -26,52 +26,52 @@ const ICONS: Record<string, Html> = {
 };
 type Notes = { lead: string, items: [string, string, string][] };
 const NOTES: Record<string, Notes> = {
-  '2.5.0': { lead: 'Prices in any currency add up, your own weekly hours, and a round of fixes from a full audit.', items: [
-    ['globe', 'Every currency adds up', 'Amounts in other currencies are converted into your main currency in every total, with the original shown beside them. Accounts can have their own currency.'],
-    ['pulse', 'Your hours, your income', 'Set any weekly hours from 1 to 168, and pick which income counts toward your hourly take-home.'],
+  '2.5.0': { lead: 'Totals in any currency, your own weekly hours, and fixes from an audit.', items: [
+    ['globe', 'Foreign currencies in totals', 'Amounts in other currencies are converted into your main currency in every total, with the original shown beside them. Accounts can have their own currency.'],
+    ['pulse', 'Hours and income', 'Set any weekly hours from 1 to 168, and pick which income counts toward your hourly take-home.'],
     ['lens', 'Audit fixes', 'Forecast no longer adds a paycheck for 1st-and-15th pay, Net worth ranges cover the full period, Hide amounts leaks are closed, and a double tap no longer saves a transaction twice.'],
-    ['phone', 'Safer forms and offline', 'Escape on an edited form asks before discarding, and Money no longer shows stale data when Firefly is down.'],
+    ['phone', 'Forms and offline', 'Escape on an edited form asks before discarding, and Money no longer shows stale data when Firefly is down.'],
   ] },
-  '2.4.0': { lead: 'Pay cards in a tap, leave out closed accounts, and more accurate bills and audit fixes.', items: [
+  '2.4.0': { lead: 'Pay now on cards, a setting to leave out closed accounts, and fixes to bills and from an audit.', items: [
     ['list', 'Pay now on cards', 'Credit card balances get a Pay now button that opens a prefilled transfer into the card, like bills.'],
     ['sliders', 'Leave out closed accounts', 'A new setting leaves closed accounts’ transactions out of lists and totals. Thanks to Amatsugu for the request.'],
-    ['calendar', 'Bills that add up', 'Bills paid early no longer show as overdue or get deducted from Safe to spend again. Thanks to rdjong80 for the report.'],
-    ['glass', 'Matte and Polar glass, calmer motion', 'Two new glass themes, and sheets, dialogs and the tab bar no longer overshoot or spring.'],
+    ['calendar', 'Bill fixes', 'Bills paid early no longer show as overdue or get deducted from Safe to spend again. Thanks to rdjong80 for the report.'],
+    ['glass', 'Matte and Polar glass', 'Two new glass themes. Sheets, dialogs and the tab bar no longer overshoot or spring.'],
     ['lens', 'Audit fixes', 'Forecast, custom month start, foreign currency symbols, duplicate recurring items, 320px tables and security hardening. The activity grid hint now says brighter days cost more, thanks to rdjong80.'],
   ] },
-  '2.3.0': { lead: 'Smarter insights, new themes, a Places tab, and more privacy and speed when you add transactions.', items: [
+  '2.3.0': { lead: 'New insights, seven themes, a Places tab, and a faster add form.', items: [
     ['pulse', 'Look ahead', 'A 30-day cash flow calendar, a subscription audit, unusual charges, budget history and pace, and a Money health card.'],
     ['glass', 'Seven new themes', 'Six pastel themes and Spatial glass, a dark visionOS-style theme. All 18 themes now pass a text contrast check.'],
     ['bento', 'Places tab', 'Match payees to real stores, see pin suggestions on the Map, and pin several stores at once.'],
     ['list', 'Faster to add', 'Add transaction starts from your last account and category, and warns before saving a duplicate. Swipe a To do card right to accept its suggestion.'],
     ['lens', 'Private in the app switcher', 'Optionally blur amounts when you leave the app, so the iPhone app switcher shows no numbers.'],
-    ['phone', 'Smoother everywhere', 'Smoother month changes, a steadier page title and Overview scrolling, and a Reports activity grid.'],
+    ['phone', 'Smoother month changes', 'Month changes are smoother, the page title and Overview scroll steadier, and Reports has an activity grid.'],
   ] },
-  '2.2.1': { lead: 'A polish release: easier taps, readable hints, and cards that fill properly.', items: [
+  '2.2.1': { lead: 'Larger tap targets, readable hints, and cards that fill their space.', items: [
     ['phone', 'Easier to tap', 'Buttons and controls now have full-size tap areas, with clearer hint text and no tiny print.'],
     ['bento', 'Cards that fill', 'Top payees, Income sources, Savings goals and Safe to spend now fill and centre in their cards.'],
-    ['lens', 'Steadier behind the scenes', 'More reliable automated checks, plus a tooling update.'],
+    ['lens', 'Test and tooling updates', 'More reliable automated checks and a tooling update.'],
   ] },
-  '2.2.0': { lead: 'Months change in place, every page gets its own Customize options, and Money tells you plainly when Firefly is down.', items: [
-    ['pulse', 'Know when Firefly is down', 'A status pill shows whether Firefly is reachable. When Firefly or Money is down, Money says so instead of showing old numbers.'],
-    ['calendar', 'Months change in place', 'Cards keep their place and height, numbers roll and charts glide to the new month, with no flash of the old one.'],
+  '2.2.0': { lead: 'Months change in place, every page has its own Customize options, and Money says when Firefly is down.', items: [
+    ['pulse', 'Firefly status', 'A pill shows whether Firefly is reachable. When it isn’t, Money says so instead of showing old numbers.'],
+    ['calendar', 'Months change in place', 'Cards keep their place and height, and numbers and charts update to the new month without a flash of the old one.'],
     ['sliders', 'Customize every page', 'Reports, Budgets, Categories, Transactions and more have their own Customize sheet with extra charts to pick from.'],
     ['globe', 'Your number and date format', 'Pick how amounts and dates are written in Settings → Appearance, or let your browser decide.'],
     ['print', 'Print in your theme', 'Print and Save as PDF keep your theme’s colours and background.'],
-    ['lens', 'More trustworthy numbers', 'A full audit fixed Forecast, Bills, Loans, Budgets and Recap totals, and tightened layouts down to small phones.'],
+    ['lens', 'Corrected totals', 'An audit fixed Forecast, Bills, Loans, Budgets and Recap totals and tightened layouts on small phones.'],
   ] },
-  '2.1.0': { lead: 'Split transactions stay whole, the desktop comes alive under your mouse, and Settings is easier to find your way around.', items: [
+  '2.1.0': { lead: 'Split transactions stay whole, desktop hover effects, and a Settings page organized by topic.', items: [
     ['split', 'Split transactions stay whole', 'Categorizing, reconciling or bulk editing one part of a split no longer deletes the other parts. Thanks to GeorgeBark for the report.'],
-    ['hover', 'Hover that feels alive', 'Sidebar icons swell like the Dock, buttons and cards lean toward your mouse, and text stays sharp while they move.'],
-    ['sliders', 'Settings, one topic at a time', 'Pick a category from the list, and search takes you straight to the right one.'],
+    ['hover', 'Desktop hover effects', 'Sidebar icons grow like the Dock, and buttons and cards tilt toward the pointer.'],
+    ['sliders', 'Settings by topic', 'Pick a topic from the list, or search to jump to one.'],
     ['print', 'Better printing', 'Print or Save as PDF keeps chart colours and leaves out the tab bar and buttons.'],
   ] },
-  '2.0.0': { lead: 'A new look, a bento Overview you build yourself, and animations that stay smooth on a phone.', items: [
-    ['glass', 'Frosted glass', 'A new theme with real backgrounds, or a photo of your own, and pill shapes in every theme.'],
-    ['bento', 'A bento Overview', 'Tiles in even rows, new Net worth, Spent and Earned tiles, and Add cards with a preview of each. Drag them where you like.'],
-    ['lens', 'New ways to see your money', 'Scrub back through Net worth, see spending as hours of work, and play your Year in Money.'],
-    ['list', 'A nicer Transactions page', 'The month at a glance, a card for each day, and swipe left to categorize or delete.'],
-    ['phone', 'Smoother on iPhone', 'No more stutter, and the tab bar and title tuck away while you scroll.'],
+  '2.0.0': { lead: 'A new look, an Overview you arrange yourself, and smoother animations on phones.', items: [
+    ['glass', 'Frosted glass', 'A new theme with backgrounds or a photo of your own, and pill shapes in every theme.'],
+    ['bento', 'Arrange the Overview', 'Tiles in even rows, new Net worth, Spent and Earned tiles, and Add cards with a preview of each. Drag tiles where you want them.'],
+    ['lens', 'Net worth, hours of work, Year in Money', 'Drag back through Net worth, see spending as hours of work, and play your Year in Money.'],
+    ['list', 'Redesigned Transactions page', 'The month at a glance, a card for each day, and swipe left to categorize or delete.'],
+    ['phone', 'iPhone performance', 'Less stutter, and the tab bar and title hide while you scroll.'],
   ] },
 };
 const cmpVer = (a: string, b: string) => { const x = a.split('.').map(Number), y = b.split('.').map(Number); return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]; };

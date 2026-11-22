@@ -56,7 +56,7 @@ VIEWS.rules = async (r, paint) => {
       }))}</tbody></table>` : html`<div class="center-empty" style="padding:24px">No rules in this group.</div>`}</details>`;
   }));
   paint(html`${head('Rules', rules.length + ' rule' + (rules.length === 1 ? '' : 's') + ' in ' + groups.length + ' group' + (groups.length === 1 ? '' : 's') + '. Groups run top to bottom when a transaction is added.',
-      html`<button class="btn" data-onclick="App.groupForm()">+ New group</button><button class="btn primary" data-onclick="App.ruleForm()">+ New rule</button>`)}<div class="toolbar"><form class="search" data-onsubmit="event.preventDefault();App.rulesSearch(this)">${icon('search')}<input type="search" name="q" placeholder="Search rules by name, text or category" value="${r.q.q || ''}" data-oninput="App.liveRuleFilter(this.value)"></form>${q ? html`<a class="link" href="#/rules">Clear</a>` : ''}</div>${ruleHtml || (q ? html`<section class="panel"><div class="center-empty">No rules match.</div></section>` : html`<section class="panel">${emptyState('rules', 'No rules yet', 'A rule files transactions for you: when a description contains “Starbucks”, set the category to Dining. Set it once, never touch it again.', html`<button class="btn primary" data-onclick="App.ruleForm()">+ New rule</button>`)}</section>`)}`);
+      html`<button class="btn" data-onclick="App.groupForm()">+ New group</button><button class="btn primary" data-onclick="App.ruleForm()">+ New rule</button>`)}<div class="toolbar"><form class="search" data-onsubmit="event.preventDefault();App.rulesSearch(this)">${icon('search')}<input type="search" name="q" placeholder="Search rules by name, text or category" value="${r.q.q || ''}" data-oninput="App.liveRuleFilter(this.value)"></form>${q ? html`<a class="link" href="#/rules">Clear</a>` : ''}</div>${ruleHtml || (q ? html`<section class="panel"><div class="center-empty">No rules match.</div></section>` : html`<section class="panel">${emptyState('rules', 'No rules yet', 'A rule files transactions for you: when a description contains “Starbucks”, set the category to Dining. Set it up once.', html`<button class="btn primary" data-onclick="App.ruleForm()">+ New rule</button>`)}</section>`)}`);
 };
 async function toggleRule(id: string, on: boolean) {
   const at = S.rules![id];
@@ -144,7 +144,7 @@ async function applyRules() {
   if (!await confirmBox('Run it now?', 'Matching transactions between these dates will be changed by the rule actions.', 'Run')) return;
   await busy(el('rrGo'), async () => {
     await api((kind === 'rule' ? '/rules/' : '/rule-groups/') + id + '/trigger', { method: 'POST', params: { start: el<HTMLInputElement>('rr-start').value, end: el<HTMLInputElement>('rr-end').value } });
-    invalidate(); closeDrawer(); toast('Done — Firefly applied the rules');
+    invalidate(); closeDrawer(); toast('Firefly applied the rules');
   });
 }
 

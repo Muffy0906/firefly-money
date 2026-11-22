@@ -8,7 +8,7 @@
   <Privileged>false</Privileged>
   <Support>https://github.com/Muffy0906/firefly-money/issues</Support>
   <Project>https://github.com/Muffy0906/firefly-money</Project>
-  <Overview>Money is a fast, mobile-friendly web app for Firefly III, the self-hosted personal finance manager. It runs beside your existing Firefly III server and uses its API: an overview dashboard with insights and a safe-to-spend forecast, a transaction feed with quick add in plain words, budgets, bills, rules and more. Your Firefly access token stays in this container and is never sent to the browser. Needs a running Firefly III (6.x) and a Personal Access Token from Firefly (Profile, then Remote access and tokens). Try the demo at https://muffy0906.github.io/firefly-money/</Overview>
+  <Overview>Money is a mobile-friendly web app for Firefly III, the self-hosted personal finance manager. It runs beside your existing Firefly III server and uses its API: an overview dashboard with insights and a safe-to-spend forecast, a transaction feed with quick add in plain words, budgets, bills, rules and more. Your Firefly access token stays in this container and is never sent to the browser. Needs a running Firefly III (6.x) and a Personal Access Token from Firefly (Profile, then Remote access and tokens). Try the demo at https://muffy0906.github.io/firefly-money/</Overview>
   <Category>Tools: Productivity:</Category>
   <WebUI>http://[IP]:[PORT:80]/</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/Muffy0906/firefly-money/main/unraid/firefly-money.xml</TemplateURL>

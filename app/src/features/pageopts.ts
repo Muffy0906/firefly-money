@@ -52,7 +52,7 @@ export const PAGE_OPTS: Record<string, { title: string, opts: PageOpt[] }> = {
   piggy: { title: 'Piggy banks', opts: [
     { id: 'style', label: 'Progress as', def: 'ring', choices: [['ring', 'Rings'], ['bar', 'Bars']] },
     { id: 'sort', label: 'Sort by', def: 'group', choices: [['group', 'Group'], ['progress', 'Closest to the goal'], ['date', 'Target date'], ['left', 'Most left to save']] },
-    on('chart', 'All goals at a glance', false, 'Every goal’s progress in one chart'), on('done', 'Goals already reached'),
+    on('chart', 'All goals', false, 'Every goal’s progress in one chart'), on('done', 'Goals already reached'),
   ] },
   transactions: { title: 'Transactions', opts: [
     { id: 'bars', label: 'Bars in the month strip', def: 'daily', choices: [['daily', 'Each day’s spending'], ['running', 'Adding up through the month']] },

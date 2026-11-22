@@ -278,9 +278,9 @@ async function saveTxInner(formEl: HTMLFormElement) {
   }
   // A number or date far outside what's plausible is usually a typo (an extra digit, the wrong year): ask before saving it
   const hugeAmt = f.splits.find(s => num(s.amount) >= 1000000);
-  if (hugeAmt && !await confirmBox('That’s a big amount', money(num(hugeAmt.amount)) + ' for “' + hugeAmt.description + '” — save it anyway?', 'Save anyway')) return;
+  if (hugeAmt && !await confirmBox('That’s a big amount', money(num(hugeAmt.amount)) + ' for “' + hugeAmt.description + '”. Save it anyway?', 'Save anyway')) return;
   const yr = +f.date.slice(0, 4), thisYr = +todayIso().slice(0, 4);
-  if ((yr < thisYr - 10 || yr > thisYr + 5) && !await confirmBox('Check the date', fmtDate(f.date) + ' — save it anyway?', 'Save anyway')) return;
+  if ((yr < thisYr - 10 || yr > thisYr + 5) && !await confirmBox('Check the date', fmtDate(f.date) + '. Save it anyway?', 'Save anyway')) return;
   // Optimistic: close right away and show the change; if Firefly refuses, reopen the form with the error.
   const body = buildTxPayload();
   if (!f.id && f.maybeSaved) {

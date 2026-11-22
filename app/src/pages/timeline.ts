@@ -109,7 +109,7 @@ VIEWS.timeline = async (r, paint) => {
   floor = [opened, tx].filter(Boolean).sort()[0] || ''; startAcc = opened && opened === floor ? first : undefined; loading = false; quiet = 0;
   const ms = await load(0, shown);
   done = ms.length < shown || ms.length === 0;
-  paint(html`${head('Timeline', 'Your money, month by month. The newest is on top; scroll down to go back in time.')}<ol class="tl" id="tl">${items(ms, false, null)}${done ? endCap() : more()}</ol>`);
+  paint(html`${head('Timeline', 'Month by month, newest first.')}<ol class="tl" id="tl">${items(ms, false, null)}${done ? endCap() : more()}</ol>`);
   requestAnimationFrame(check);
 };
 // Near the bottom: fetch the next six months and add them under the others

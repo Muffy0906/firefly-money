@@ -5,7 +5,7 @@
 [![Docker image](https://img.shields.io/badge/image-ghcr.io%2Fmuffy0906%2Ffirefly--money-blue?logo=docker&logoColor=white)](https://github.com/Muffy0906/firefly-money/pkgs/container/firefly-money)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-**A fast, phone-first front end for [Firefly III](https://www.firefly-iii.org/).** Add a transaction in one line, log every Apple Pay tap automatically from your iPhone, and see what's safe to spend until payday. It runs beside your existing Firefly, in one small container, and your data never leaves your server.
+**A phone-first front end for [Firefly III](https://www.firefly-iii.org/).** Add a transaction in one line, log every Apple Pay tap automatically from your iPhone, and see what's safe to spend until payday. It runs beside your existing Firefly, in one small container, and your data never leaves your server.
 
 **[Try the live demo →](https://muffy0906.github.io/firefly-money/)** It runs in your browser with made-up data: nothing to install, no sign-in.
 
@@ -50,11 +50,11 @@ It's a small static web app (TypeScript bundled into one script) served by an ng
 
 ## Why Money?
 
-Firefly III is a great engine for your finances. Money is a faster, friendlier way to use it every day:
+Firefly III does the bookkeeping. Money is a faster interface for everyday use:
 
 - **Built for your phone as much as your desktop:** bottom tabs, swipe gestures, bottom sheets, and installable as an app.
 - **Add a transaction in one line:** type `coffee 5.40 amex yesterday` and it fills in the rest, including the category from last time.
-- **Answers at a glance:** how much is safe to spend until payday, which categories are running hot this month, and which bills are coming up.
+- **Quick answers:** how much is safe to spend until payday, which categories are running hot this month, and which bills are coming up.
 - **Nothing to migrate:** it uses your existing Firefly data and works alongside Firefly's own interface. Stop using it any time.
 - **One small container:** no database and no server code. Your Firefly token stays on the server.
 
@@ -71,14 +71,14 @@ Firefly III is a great engine for your finances. Money is a faster, friendlier w
 - **Forecast range and accuracy:** look 30 days to a year ahead, with a careful-to-hopeful band (careful: only steady paychecks arrive and bills run 10% higher). Each day the forecast notes the balance it expects 30 days out and later shows how close it came.
 - **Months that start on payday:** Settings → Months & budgets sets the day a month starts (the 1st to the 28th). Budgets, the Overview, insights, recaps and reports all use it.
 - **Budget pace:** each budget shows where today falls in the month, whether spending is on pace, and when it may run out. The warning level (85% by default) is in Settings.
-- **Ask:** plain questions like "why did I spend more this month?", "which bills are due before payday?" or "how much did I spend on groceries this year?", answered from your data with how it was worked out and links to the transactions. It uses no AI; questions it doesn't know become a search.
+- **Ask:** plain questions like "why did I spend more this month?", "which bills are due before payday?" or "how much did I spend on groceries this year?", answered from your data with how it was worked out and links to the transactions. It uses no AI; a question it doesn't recognize becomes a search.
 - **Bills calendar:** the Bills page can show the month as a calendar, with each bill on the day it was paid or is due, and totals for paid, still due and overdue.
 - **Monthly recap:** a page per month with what came in and went out against a usual month, where the money went, the biggest purchases, new payees, bills and the change in net worth.
 - **Year in Money:** your year as a story of full-screen cards (Insights → Year in Money): what came in and went out, how much of each workday paid for your spending, your top category and places, your biggest month and purchase, days you bought nothing, and your net worth's change. Tap or swipe to move, hold to pause, share a summary at the end. The Overview offers it in December.
 - **Time scrubber:** drag along the Net worth card's line and the card goes back to that month: the total, assets, debts and the accounts that moved most since then. Let go and it offers that month's Overview.
 - **Hours of work:** Settings → Appearance → Hours of work shows under each purchase how long you worked for it ("1.5 h", "3 d"), from your take-home over the last six months and the hours you work a week, or an hourly rate you set.
 - **Review queue:** new transactions (from imports, rules or other apps) wait on the Review page until you tick them off or mark them all reviewed. It also finds transfers between your accounts that were imported as an expense and an income, and makes each pair one transfer in a tap.
-- **Transactions:** the month at a glance (spent, earned, net, and a bar for each day's spending: tap one to jump to that day), search and filters in one row, and a feed with each day as its own card, merchant avatars ringed in their category's colour (the same as in the spending donut) and infinite scroll. You can change a category or budget inline, edit several at once, split, search, attach files and link transactions. Duplicate copies a transaction, splits and all, dated today, and Save as draft keeps a new one on a Drafts list until you add it.
+- **Transactions:** the month summary (spent, earned, net, and a bar for each day's spending: tap one to jump to that day), search and filters in one row, and a feed with each day as its own card, merchant avatars ringed in their category's colour (the same as in the spending donut) and infinite scroll. You can change a category or budget inline, edit several at once, split, search, attach files and link transactions. Duplicate copies a transaction, splits and all, dated today, and Save as draft keeps a new one on a Drafts list until you add it.
 - **Refunds:** open an expense and tap Refund. Money fills in an income into the account you paid from, with the same payee and category, tagged `Refund` and linked to the purchase (change the amount if only part came back). Reports, Budgets, the overview and the recap take refunds off spending instead of counting them as income, and the budget comes from the linked purchase. Quick add works too: `amazon refund 42.10 amex`.
 - **Quick add in plain words:** type `coffee 5.40 amex yesterday`, `paycheck 2850 chase` or `transfer 400 from checking to savings last friday` and the form fills itself in. Payee memory then fills in the category and budget from the last time.
 - **Apple Pay auto-logging:** an iPhone Shortcut sends each Apple Pay tap to Money, which adds it to the card's account with the category from last time, tagged "Apple Pay". Set up in Settings → Apple Pay; see [docs/apple-pay.md](docs/apple-pay.md).
@@ -92,7 +92,7 @@ Firefly III is a great engine for your finances. Money is a faster, friendlier w
 - **Loan payoff planner:** compare snowball, avalanche and no-rollover strategies.
 - **Covers most of Firefly:** accounts and reconciliation, budgets and available budget, categories, tags, bills, recurring transactions, piggy banks, the rules editor (with test and run), reports (compare with the period before or last year, save a report, download it as CSV), currencies and exchange rates, CSV exports and webhooks.
 
-**Feel**
+**Interface**
 - Animated page and edit-panel transitions (View Transitions API), with instant fallback in other browsers and when reduced motion is on.
 - Changes show right away and roll back if Firefly refuses them. Deleting has an undo option.
 - **Phone:** bottom tab bar, bottom sheets you can drag down to close, swipe a transaction left to categorize or delete it, pull to refresh, and light vibration on supported devices.

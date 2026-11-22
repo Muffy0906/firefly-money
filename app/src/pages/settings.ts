@@ -248,7 +248,7 @@ async function disableInUse(code: string) {
     toast('Removed ' + done + ' rate' + (done === 1 ? '' : 's') + ' and disabled ' + code);
   } catch (e) {
     if ((e as ApiError).status !== 409) throw e;
-    await confirmBox(code + ' is still in use', 'The exchange rates are gone, but something else still uses ' + code + ' — an account, bill, budget, piggy bank or transaction. Change those first.', 'OK');
+    await confirmBox(code + ' is still in use', 'The exchange rates are gone, but something else still uses ' + code + ': an account, bill, budget, piggy bank or transaction. Change those first.', 'OK');
   }
   invalidate(); route();
 }
