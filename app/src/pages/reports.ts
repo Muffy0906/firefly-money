@@ -32,7 +32,7 @@ function reportRange(q: Record<string, string>) {
     'last-year': [(y - 1) + '-01-01', (y - 1) + '-12-31'], 'last-12': [monthRange(y, m - 11).start, monthRange(y, m).end],
   };
   if (q.start && q.end) return { start: q.start, end: q.end, preset: '' };
-  const p = q.preset || 'this-month';
+  const p = q.preset && P[q.preset] ? q.preset : 'this-month';
   return { start: P[p][0], end: P[p][1], preset: p };
 }
 // The period to compare with: the months (or the same number of days) just before, or the same dates a year earlier

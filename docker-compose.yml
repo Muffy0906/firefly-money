@@ -24,7 +24,7 @@ services:
     # then comment out "image:" above, and uncomment these lines:
     # image: nginx:1.31-alpine
     # environment:  (keep the three variables above, and add:)
-    #   NGINX_ENVSUBST_FILTER: "^(FIREFLY_URL|FIREFLY_TOKEN|LISTEN_PORT|NGINX_LOCAL_RESOLVERS)$"
+    #   NGINX_ENVSUBST_FILTER: "^(FIREFLY_URL|FIREFLY_TOKEN|LISTEN_PORT|NGINX_LOCAL_RESOLVERS|MONEY_VERSION)$"
     #   NGINX_ENTRYPOINT_LOCAL_RESOLVERS: "1"
     #   LISTEN_PORT: "80"
     # volumes:

@@ -29,11 +29,12 @@ function skeleton() {
   if (kind === 'chart') return html`${head}${chart}`;
   return html`${head}<div class="cards">${card(5)}${card(3)}${card(4)}</div>`;
 }
+function safeDecode(s: string) { try { return decodeURIComponent(s); } catch { return s; } }
 export function parseHash() {
   const h = location.hash.replace(/^#\/?/, '');
   const [p, q = ''] = h.split('?');
   const parts = p.split('/');
-  return { name: parts[0] || '', id: parts[1] ? decodeURIComponent(parts[1]) : '', q: Object.fromEntries(new URLSearchParams(q)) };
+  return { name: parts[0] || '', id: parts[1] ? safeDecode(parts[1]) : '', q: Object.fromEntries(new URLSearchParams(q)) };
 }
 export function hashWith(changes: Record<string, string | null | undefined>) {
   const r = parseHash(), q: Record<string, string | null | undefined> = { ...r.q, ...changes };

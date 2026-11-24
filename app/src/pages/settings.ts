@@ -357,23 +357,24 @@ async function ingestKey(): Promise<string | null> {
 }
 // Which account each Wallet card goes to, when its name doesn't say (app/ingest.js reads the same preference).
 // unmatched: cards the server couldn't place, so you can pick their account here.
-type Cards = { exists: boolean, cards: Record<string, string>, unmatched: string[] };
+type Cards = { exists: boolean, cards: Record<string, string>, unmatched: string[], failed?: boolean };
 const CARD_PREF = 'money_cards';
 let cardState: Cards = { exists: false, cards: {}, unmatched: [] }, cardNames: string[] = [];
 // Kept until the next refresh (S.freshAfter), so redrawing Settings doesn't ask Firefly again; saving updates it.
 let cardsMemo: { t: number, v: Cards } | null = null;
 async function loadCards(): Promise<Cards> {
   if (cardsMemo && cardsMemo.t >= S.freshAfter) return cardsMemo.v;
-  const v = await fetchCards(); cardsMemo = { t: Date.now(), v }; return v;
+  const v = await fetchCards(); if (!v.failed) cardsMemo = { t: Date.now(), v }; return v;
 }
 async function fetchCards(): Promise<Cards> {
   try {
     const r = await api('/preferences/' + CARD_PREF, { fresh: true }), d = r && r.data && r.data.attributes ? r.data.attributes.data : null;
     const v = typeof d === 'string' ? JSON.parse(d) : d;
     return { exists: true, cards: (v && v.cards) || {}, unmatched: (v && v.unmatched) || [] };
-  } catch (e) { return { exists: false, cards: {}, unmatched: [] }; }
+  } catch (e) { return { exists: false, cards: {}, unmatched: [], failed: (e as ApiError).status !== 404 }; }   // only a 404 means none saved yet
 }
 async function saveCards() {
+  if (cardState.failed) return void toast('Couldn’t load your saved cards, so nothing was changed. Reload Settings and try again.');
   const data = JSON.stringify({ cards: cardState.cards, unmatched: cardState.unmatched });
   await withAuth(async () => {
     if (cardState.exists) await api('/preferences/' + CARD_PREF, { method: 'PUT', body: { data }, keepCache: true });
