@@ -97,6 +97,7 @@
   .brand { font-weight: 600; font-size: var(--fs-lg); letter-spacing: -.01em; padding: 0 12px 24px; }
   .nav a { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 10px; text-decoration: none; color: var(--muted); font-weight: 500; }
   .nav a:hover { background: var(--faint); color: var(--text); }
+  .side .nav { display: grid; gap: clamp(0px, calc(var(--row, 40px) - 24px), 4px); }   /* the hover pill and the selected pill never touch */
   .nav a.on { background: var(--panel); color: var(--text); box-shadow: 0 1px 0 var(--line), 0 0 0 1px var(--line); }
   .nav svg { width: 17px; height: 17px; flex: none; }
   .nav-h { font-size: var(--fs-xs); line-height: 1; letter-spacing: 0; color: var(--muted); padding: 16px 12px 4px; }
@@ -279,7 +280,7 @@
   .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
   .stat .val { font-size: 24px; letter-spacing: -.02em; }
   .stat .sub, .sub-s { font-size: var(--fs-xs); color: var(--muted); }
-  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-bottom: var(--card-gap); }
   /* two to a row on a phone: an odd one out at the end takes the whole row instead of sitting alone on the left */
   /* On phones the KPI cards sit two to a row, compact like the Overview's stat cards, so the page's table or chart stays near the top */
   @media (max-width: 573px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; } .kpis > .kpi:last-child:nth-child(odd) { grid-column: 1 / -1; }
@@ -327,6 +328,10 @@
   table.tbl { width: 100%; border-collapse: collapse; }
   .tbl th { text-align: left; font-size: var(--fs-xs); letter-spacing: 0; color: var(--muted); font-weight: 500; padding: 16px 16px 12px; border-bottom: 1px solid var(--line); }
   .tbl td { padding: 12px 16px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  @media (min-width: 901px) {   /* table edges line up with the card heading above */
+    .panel.flush .tbl :is(th, td):first-child { padding-left: var(--card-pad); }
+    .panel.flush .tbl :is(th, td):last-child { padding-right: var(--card-pad); }
+  }
   .tbl tr:last-child td { border-bottom: none; }
   .tbl tr.click { cursor: pointer; }
   .tbl tr.click:hover td { background: var(--faint); }
@@ -845,7 +850,7 @@
   @container (min-width: 840px) {
     .cc-body { grid-template-columns: minmax(0, 1fr) clamp(240px, 22cqi, 340px); align-items: start; }
     .cc .cc-main, .cc .cc-side { max-width: none; margin: 0; }
-    .cc-main .hm-cell { aspect-ratio: 4 / 3; min-width: 0; font-size: var(--fs-md); place-items: start; padding: 12px 12px; }
+    .cc-main .hm-cell { aspect-ratio: auto; height: 80px; min-width: 0; font-size: var(--fs-md); place-items: start; padding: 12px 12px; }
     .cc-n { font-weight: 600; color: var(--text); }
     .cc-cell:not(.risk) .cc-n { color: color-mix(in srgb, var(--text) 85%, transparent); }
     .cc .cc-dots { display: none; }
@@ -860,7 +865,6 @@
     .cc-side .cc-key { flex-direction: column; margin: 0; gap: 12px; font-size: var(--fs-sm); }
     .cc-side .hm-foot { flex-direction: column; margin: 0; padding-top: 16px; border-top: 1px solid var(--line); gap: 8px; font-size: var(--fs-md); }
   }
-  @container (min-width: 1280px) { .cc-main .hm-cell { aspect-ratio: 5 / 3; } }
   .cc-cell { position: relative; }
   .cc-cell.risk { color: var(--text); }
   .cc-cell.tight { box-shadow: inset 0 0 0 2px var(--warn); }
@@ -938,11 +942,13 @@
   input.filled { box-shadow: 0 0 0 2px color-mix(in srgb, var(--good) 35%, transparent); }
   .grab { display: none; }
   /* Privacy: blur money everywhere (hover to peek on desktop) */
-  html.privacy .num, html.privacy .amt, html.privacy .big, html.privacy .val, html.privacy .total, html.privacy .insight .d, html.privacy .tip, html.privacy .hm-foot strong,
+  html.privacy .num, html.privacy .amt, html.privacy .big, html.privacy .val, html.privacy .total, html.privacy .insight .d, html.privacy .tip:not(.side-tip), html.privacy .hm-foot strong,
   html.privacy .dhero .sub-s, html.privacy .sub, html.privacy .sub-s, html.privacy .kpi .val, html.privacy .st-p, html.privacy .bi-verdict, html.privacy .tl-moments li, html.privacy .ax-amt, html.privacy .bv { filter: blur(7px); transition: filter var(--t-hover); }
-  html.priv-snap .num, html.priv-snap .amt, html.priv-snap .big, html.priv-snap .val, html.priv-snap .total, html.priv-snap .insight .d, html.priv-snap .tip, html.priv-snap .hm-foot strong, html.priv-snap .dhero .sub-s, html.priv-snap .cat .sub, html.priv-snap .sub-s, html.priv-snap .kpi .val { transition: none; }
+  html.priv-snap .num, html.priv-snap .amt, html.priv-snap .big, html.priv-snap .val, html.priv-snap .total, html.priv-snap .insight .d, html.priv-snap .tip:not(.side-tip), html.priv-snap .hm-foot strong, html.priv-snap .dhero .sub-s, html.priv-snap .cat .sub, html.priv-snap .sub-s, html.priv-snap .kpi .val { transition: none; }
   html.privacy .settings .sub-s { filter: none; }   /* Settings hints hold no amounts */
   html.privacy .amtx { visibility: hidden; }
+  html.privacy[data-theme] .big { filter: blur(7px); }   /* (the themes' own .big glow would otherwise replace the blur) */
+  @media (hover: hover) { html.privacy[data-theme] .big:hover { filter: none; } }
   html.privacy .spark { opacity: .5; }
   @media (hover: hover) { html.privacy .num:hover, html.privacy .amt:hover, html.privacy .val:hover, html.privacy .total:hover, html.privacy .big:hover { filter: none; } }
   /* Compact density */
@@ -1887,9 +1893,9 @@
     html.side-mini .brand { gap: 0; padding-left: 0; padding-right: 0; }
     html.side-mini .side-tg { margin-right: 4px; }
     html.side-mini .side-tg svg { transform: scaleX(-1); }
-    html.side-mini .side-search { padding-left: 12px; padding-right: 0; }
-    html.side-mini .side .nav a { padding-left: 12px; padding-right: 0; }
-    html.side-mini .side .foot .toggles button { padding-left: 12px; padding-right: 0; }
+    html.side-mini .side-search { padding-left: 11px; padding-right: 0; }
+    html.side-mini .side .nav a { padding-left: 11.5px; padding-right: 0; }
+    html.side-mini .side .foot .toggles button { padding-left: 12.5px; padding-right: 0; }
     html.side-mini :is(.brand, .side .nav a, .side-search, .side .foot .toggles button) > span, html.side-mini .side-search kbd { opacity: 0; transition: opacity .1s ease; }
     html.side-mini .nav-h { height: 21px; padding-top: 0; padding-bottom: 0; color: transparent; transition: height .34s var(--ease-glide), padding .34s var(--ease-glide), color .1s ease; }
     html.side-mini .nav-h::after { opacity: 1; transition: opacity .2s ease var(--t-hover); }
@@ -2080,7 +2086,7 @@
     .side-search:hover svg, .side-tg:hover svg { scale: 1.14; }
   }
   /* Collapsed sidebar: the name of the icon under the mouse (dock.ts), in the chart tooltip's style, pointing at it */
-  .side-tip { z-index: 60; padding: 8px 12px; font-size: var(--fs-sm); font-weight: 500; line-height: 1.35; white-space: nowrap; opacity: 0; visibility: hidden; }
+  .side-tip { z-index: 60; padding: 6px 11px; font-size: var(--fs-sm); font-weight: 500; line-height: 1.35; white-space: nowrap; opacity: 0; visibility: hidden; }
   .side-tip::before { content: ""; position: absolute; left: -4px; top: 50%; width: 8px; height: 8px; margin-top: -4px; background: inherit; border-radius: 2px; transform: rotate(45deg); }
   .side-tip.on { opacity: 1; visibility: visible; }
   @media (prefers-reduced-motion: no-preference) { .side-tip.on { transition: opacity var(--t-hover) ease .06s; } }
@@ -2118,7 +2124,7 @@
     /* Folding: the label fades and the pill narrows to its dot, which lines up with the icons below */
     .side > .ff-pill { transition: padding .34s var(--ease-glide), margin .34s var(--ease-glide), gap .34s var(--ease-glide), background var(--t-hover); }
     .side > .ff-pill > span { max-width: 160px; transition: opacity .2s ease .1s, max-width .34s var(--ease-glide); }
-    html.side-mini .side > .ff-pill { gap: 0; padding: 0 8px; margin-left: 8px; }
+    html.side-mini .side > .ff-pill { gap: 0; padding: 0 7.5px; margin-left: 8px; }
     html.side-mini .side > .ff-pill > span { max-width: 0; opacity: 0; transition: opacity .1s ease, max-width .34s var(--ease-glide); }
   }
   /* ---------- Loading status (loadbar.ts): what the page is waiting for, by real request counts ---------- */
@@ -2401,6 +2407,7 @@ html:not(#_) .head .actions .month .round { width: var(--ctl); }
 .sc-tr { font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; }
 .sc-name { flex: 1; min-width: 0; font-weight: 500; overflow-wrap: anywhere; }
 .sc-person .eyebrow { margin: 0 0 4px; }
+.sc-tops, .sc-person { margin-bottom: var(--card-gap); }
 .sc-traits { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 12px; }
 .sc-traits li { display: grid; gap: 2px; min-width: 0; }
 .sc-tn { font-size: var(--fs-xs); color: var(--muted); }
@@ -2636,7 +2643,7 @@ html[data-theme="glass"] .ag-c.l3, html[data-theme="glass"] .ag-c.l4 { box-shado
    whole rail shows without scrolling. Mouse rows go down to 26px; a touch screen keeps 40px+ rows and scrolls instead,
    as does a window too short for even the smallest rows. ---------- */
 @media (min-width: 901px) {
-  .side { --row: clamp(24px, calc((100vh - 275px) / 22), 36px); --hh: clamp(12px, 2.6vh, 30px); --hm: clamp(8px, 1.6vh, 21px);
+  .side { --row: clamp(24px, calc((100vh - 375px) / 22), 36px); --hh: clamp(12px, 2.6vh, 30px); --hm: clamp(8px, 1.6vh, 21px);
     padding-top: clamp(8px, 2.2vh, 24px); padding-bottom: clamp(8px, 2.2vh, 24px); gap: clamp(0px, .4vh, 4px); }
   .side .brand { padding-bottom: clamp(0px, .9vh, 16px); }
   .side .side-tg { margin-block: -6px; width: min(30px, var(--row)); height: min(30px, var(--row)); }

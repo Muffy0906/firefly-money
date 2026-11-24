@@ -116,6 +116,6 @@ describe('review follow-ups 2', () => {
     expect(f).toContain('[.05, .275, .5, .725, .95]');
   });
   it('the sidebar leaves room for all its rows on a 800px-tall window', () => {
-    expect(c).toContain('--row: clamp(24px, calc((100vh - 275px) / 22), 36px)');
+    expect(c).toContain('--row: clamp(24px, calc((100vh - 375px) / 22), 36px)');
   });
 });
