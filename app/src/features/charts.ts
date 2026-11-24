@@ -42,7 +42,7 @@ function donutSegments(parts: Part[], radius: number) {
   let at = 0;
   return htmlList(parts.map((p, i) => {
     const len = Math.max(0, p.v / total * 100 - gap), off = at; at += p.v / total * 100;
-    return html`<circle class="seg${p.key ? ' cat-seg' : ''}" cx="60" cy="60" r="${radius}" pathLength="100" stroke="${p.color || SERIES[i % SERIES.length]}" stroke-dasharray="${len.toFixed(2)} ${(100 - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" style="--at:${(off / 100).toFixed(3)}" data-tip="${p.name + ' · ' + money0(p.v) + ' · ' + Math.round(p.v / total * 100) + '%'}${p.detail ? '\n' + p.detail : ''}" data-i="${i}"${p.key ? html` data-cat="${p.key}"` : ''}${p.go ? html` data-go="${p.go}"` : ''}></circle>`;
+    return html`<circle class="seg" cx="60" cy="60" r="${radius}" pathLength="100" stroke="${p.color || SERIES[i % SERIES.length]}" stroke-dasharray="${len.toFixed(2)} ${(100 - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" style="--at:${(off / 100).toFixed(3)}" data-tip="${p.name + ' · ' + money0(p.v) + ' · ' + Math.round(p.v / total * 100) + '%'}${p.detail ? '\n' + p.detail : ''}" data-i="${i}"${p.key ? html` data-cat="${p.key}"` : ''}${p.go ? html` data-go="${p.go}"` : ''}></circle>`;
   }));
 }
 // A breakdown of a whole (spending by category, payees, income sources): a donut with the total in the middle, then

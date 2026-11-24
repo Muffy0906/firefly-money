@@ -169,7 +169,7 @@ document.addEventListener('click', e => {
   const go = t.getAttribute('data-go'); if (!go) return;
   // On touch, the first tap expands a category into its tags. Keep the chart open so the next tap can inspect a tag;
   // category transactions remain available from the category name in the legend.
-  if (lastPointer !== 'mouse' && t.matches('.donut .cat-seg.cat-expanded')) { e.preventDefault(); return; }
+  if (lastPointer !== 'mouse' && t.matches('.donut [data-cat].cat-expanded')) { e.preventDefault(); return; }
   if (lastPointer !== 'mouse' && t.hasAttribute('data-tip')) {
     if (!goArm || goArm.node !== t || Date.now() - goArm.at > 2500) {
       goArm = { node: t, at: Date.now() };

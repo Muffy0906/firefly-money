@@ -489,7 +489,7 @@
   :is(.donut, .ring) circle { fill: none; }
   .donut .base { stroke: var(--faint); stroke-width: 14; }
   .donut .seg { stroke-width: 14; }
-  .nested-donut .cat-seg.cat-expanded { opacity: 0; pointer-events: none; }
+  .nested-donut [data-cat].cat-expanded { opacity: 0; pointer-events: none; }
   .nested-donut .tag-seg { stroke-width: 14; opacity: 0; pointer-events: none; transition: opacity var(--t-hover), stroke-width var(--t-hover); }
   .nested-donut .tag-seg.tag-show { opacity: 1; pointer-events: stroke; }
   .donut .seg { transition: stroke-width var(--t-hover), opacity var(--t-hover); cursor: pointer; }
