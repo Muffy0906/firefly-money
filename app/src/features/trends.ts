@@ -6,6 +6,7 @@ import { normGroup } from '../core/feed';
 import { addDays, daysBetween } from '../core/helpers';
 import { barChart, changeBars, smoothPath } from './charts';
 import { isRefundTag } from './refunds';
+import { panelHead } from '../core/ui';
 
 /* ================= Trend insights (Reports) =================
    Three slow-moving questions, answered from the last 12 full months of transactions, whatever dates the report shows:
@@ -168,17 +169,17 @@ const gcls = (v: number | null, upBad: boolean) => v == null || Math.abs(v) < .0
 export function creepCard(c: Creep, rows: CreepRow[]): Html {
   const stat = (l: string, v: Html | string, cls = '') => html`<div><dt>${l}</dt><dd class="num ${cls}">${v}</dd></div>`;
   const stats = c.enough ? html`<dl class="tr-stats">${stat('Income', signed(c.growth.income), gcls(c.growth.income, false))}${stat('Fixed bills', signed(c.growth.fixed), gcls(c.growth.fixed, true))}${stat('Everyday spending', signed(c.growth.flex), gcls(c.growth.flex, true))}${c.shareNow != null && c.shareThen != null ? stat('Everyday share of income', Math.round(c.shareNow * 100) + '% (was ' + Math.round(c.shareThen * 100) + '%)', c.shareNow > c.shareThen + .02 ? 'up' : '') : ''}</dl>` : '';
-  return html`<section class="panel chart tr-card"><h2>Lifestyle creep</h2><p class="lead">Income, fixed bills and everyday spending, month by month</p>${verdict(c.head, c.tone, c.text)}${c.enough ? creepChart(rows, 'Income, fixed bills and everyday spending over the last 12 months') : ''}${stats}</section>`;
+  return html`<section class="panel chart tr-card">${panelHead('Lifestyle creep', 'Income, fixed bills and everyday spending, month by month')}${verdict(c.head, c.tone, c.text)}${c.enough ? creepChart(rows, 'Income, fixed bills and everyday spending over the last 12 months') : ''}${stats}</section>`;
 }
 export function yoyCard(y: Yoy): Html {
   const chg = y.enough ? changeBars(y.rows.map(r => ({ ...r })), 6) : '';
-  return html`<section class="panel tr-card"><h2>Year over year</h2><p class="lead">${y.title}</p>${verdict(y.head, y.tone, y.text)}${y.enough ? html`<div class="tr-vs"><span class="num">${money0(y.now)}</span><span class="sub-s">vs. ${money0(y.prev)} a year ago</span></div>` : ''}${chg ? html`<h3 class="tr-h">Biggest changes by category</h3>${chg}` : ''}</section>`;
+  return html`<section class="panel tr-card">${panelHead('Year over year', y.title)}${verdict(y.head, y.tone, y.text)}${y.enough ? html`<div class="tr-vs"><span class="num">${money0(y.now)}</span><span class="sub-s">vs. ${money0(y.prev)} a year ago</span></div>` : ''}${chg ? html`<h3 class="tr-h">Biggest changes by category</h3>${chg}` : ''}</section>`;
 }
 const pctFmt = (v: number) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v) + '%';
 export function rhythmCards(r: Rhythm): Html {
-  if (!r.enough) return html`<section class="panel tr-card"><h2>When you spend</h2><p class="lead">Weekdays and parts of the month</p>${verdict('Needs more history', 'none', 'This needs a few months of everyday purchases.')}</section>`;
+  if (!r.enough) return html`<section class="panel tr-card">${panelHead('When you spend', 'Weekdays and parts of the month')}${verdict('Needs more history', 'none', 'This needs a few months of everyday purchases.')}</section>`;
   const bars = (vals: number[], names: string[], label: string) => barChart(vals.map((v, i) => ({ label: names[i], v: Math.round(v * 100) })), pctFmt, label, { w: 320, h: 180 });
-  return html`<section class="panel chart tr-card"><h2>Spending by weekday</h2><p class="lead">Against a typical day (about ${money0(r.typical)}), everyday spending only</p>${verdict(r.weekHead, r.weekdays.every(v => v < .15) ? 'good' : 'warn', r.weekText)}${bars(r.weekdays, WEEKDAYS, 'Everyday spending on each weekday against a typical day')}</section><section class="panel chart tr-card"><h2>Spending through the month</h2><p class="lead">Against a typical day, everyday spending only</p>${verdict(r.partHead, r.parts.every(v => v < .1) ? 'good' : 'warn', r.partText)}${bars(r.parts, PARTS, 'Everyday spending in each part of the month against a typical day')}</section>`;
+  return html`<section class="panel chart tr-card">${panelHead('Spending by weekday', html`Against a typical day (about ${money0(r.typical)}), everyday spending only`)}${verdict(r.weekHead, r.weekdays.every(v => v < .15) ? 'good' : 'warn', r.weekText)}${bars(r.weekdays, WEEKDAYS, 'Everyday spending on each weekday against a typical day')}</section><section class="panel chart tr-card">${panelHead('Spending through the month', 'Against a typical day, everyday spending only')}${verdict(r.partHead, r.parts.every(v => v < .1) ? 'good' : 'warn', r.partText)}${bars(r.parts, PARTS, 'Everyday spending in each part of the month against a typical day')}</section>`;
 }
 
 // The last 12 full months of transactions, and the month to compare a year back. A failed request throws: the caller shows no trends.

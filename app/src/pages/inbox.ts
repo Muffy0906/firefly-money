@@ -8,6 +8,7 @@ import { addDays } from '../core/helpers';
 import { buzz } from '../core/haptics';
 import { lists } from '../core/lists';
 import { VIEWS, parseHash } from '../core/router';
+import { doneState } from '../core/ui';
 
 /* ================= Categorize inbox ================= */
 const NOISE = new Set(['SQ', 'TST', 'DD', 'POS', 'ACH', 'WEB', 'PMT', 'PAYMENT', 'PURCHASE', 'IC', 'THE', 'APLPAY', 'PP', 'PAYPAL', 'ZSK', 'IT', 'RAZ', 'DEBIT', 'CARD', 'ONLINE', 'INST', 'XFER']);
@@ -53,7 +54,7 @@ VIEWS.inbox = async (r, paint) => {
 function renderInbox() {
   const I = S.inbox, L = S.lists!, g = I.items[I.i];
   if (!g) {
-    I.paint(html`${head('To do', '', '')}${todoTabs('inbox')}<section class="panel"><div class="center-empty" style="padding:70px 20px"><div style="font-size:40px">✓</div><h2 style="font-size:18px;margin:10px 0 4px">All caught up</h2>${I.done ? 'You categorized ' + I.done + ' transaction' + (I.done === 1 ? '' : 's') + '.' : 'Every transaction has a category.'}</div></section>`);
+    I.paint(html`${head('To do', '', '')}${todoTabs('inbox')}<section class="panel">${doneState('All caught up', html`${I.done ? 'You categorized ' + I.done + ' transaction' + (I.done === 1 ? '' : 's') + '.' : 'Every transaction has a category.'}`, 70)}</section>`);
     return;
   }
   const s = g.splits.find((x: Split) => !x.category) || g.splits[0], sug = suggest(s, I.h), top = sug.cats[0];

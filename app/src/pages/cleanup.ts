@@ -5,6 +5,7 @@ import { App, arr, type ApiData } from '../core/base';
 import { confirmBox, head, toast } from '../core/dom';
 import { invalidate, lists } from '../core/lists';
 import { VIEWS, route } from '../core/router';
+import { doneState } from '../core/ui';
 
 /* ================= Clean up: payees, income sources, categories, tags and budgets that nothing uses =================
    One pass over every transaction and recurring transaction narrows it down; then each candidate is asked for its
@@ -64,7 +65,7 @@ VIEWS.cleanup = async (r, paint) => {
   found = Object.fromEntries((Object.keys(cand) as Kind[]).map(k => [k, cand[k].filter(x => !keep.has(k + ':' + x.id)).sort((a, b) => a.name.localeCompare(b.name))])) as Record<Kind, Item[]>;
   const total = Object.values(found).reduce((n, xs) => n + xs.length, 0);
   const section = ([k, title, lead]: [Kind, string, string]) => found[k].length ? html`<section class="panel cleanup"><form data-onsubmit="event.preventDefault();App.cleanupDelete(this)" data-kind="${k}"><div class="panel-head"><h2>${title}</h2><button type="button" class="link" data-onclick="App.cleanupAll(this)">Select all</button></div><p class="lead">${found[k].length} unused · ${lead}</p><div class="list">${htmlList(found[k].map(x => html`<label class="row check"><input type="checkbox" name="id" value="${x.id}" data-onchange="App.cleanupCount(this)"><span class="name">${x.name}</span></label>`))}</div><button class="btn small" disabled>Delete selected</button></form></section>` : '';
-  paint(html`<p style="margin:0 0 6px"><a class="link" href="#/settings?s=data">← Data</a></p>${head('Clean up', total ? total + ' unused item' + (total === 1 ? '' : 's') + ' found' : 'Nothing to clean up', '')}${total ? html`<p class="sub-s" style="margin:-10px 0 18px;max-width:640px">Nothing is selected until you pick it, and deleting asks first. Rules that mention a deleted item may need a look afterwards.</p><div class="cleanup-list">${htmlList(KINDS.map(section))}</div>` : html`<section class="panel"><div class="center-empty" style="padding:60px 20px"><div style="font-size:40px">✓</div><h2 style="font-size:18px;margin:10px 0 4px">All tidy</h2>Every payee, income source, category, tag and budget is in use.</div></section>`}`);
+  paint(html`<p style="margin:0 0 6px"><a class="link" href="#/settings?s=data">← Data</a></p>${head('Clean up', total ? total + ' unused item' + (total === 1 ? '' : 's') + ' found' : 'Nothing to clean up', '')}${total ? html`<p class="sub-s" style="margin:-10px 0 18px;max-width:640px">Nothing is selected until you pick it, and deleting asks first. Rules that mention a deleted item may need a look afterwards.</p><div class="cleanup-list">${htmlList(KINDS.map(section))}</div>` : html`<section class="panel">${doneState('All tidy', 'Every payee, income source, category, tag and budget is in use.', 60)}</section>`}`);
 };
 function cleanupCount(box: HTMLInputElement) {
   const f = box.form!, n = f.querySelectorAll('input[name=id]:checked').length, b = f.querySelector<HTMLButtonElement>(':scope > .btn')!;

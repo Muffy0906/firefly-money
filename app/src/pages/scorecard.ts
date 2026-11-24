@@ -11,6 +11,7 @@ import { type BillCount, type Grade, type GradeKey, type Score, type ScoreIn, ty
 import { scoreForShare } from '../features/scoreshare';
 import '../features/scoreshare';
 import type { Acct } from '../features/moneyhealth';
+import { panelHead } from '../core/ui';
 
 /* ================= Money scorecard =================
    Six plain-word ratings, a money personality and a picture to share, worked out on this device from the last 12 months
@@ -71,8 +72,8 @@ export function scoreTile(key: GradeKey, s: Score | null | undefined): Html {
 
 // The personality card: who you are with money, a way to share it and a way in to the whole page
 export function scorecardTile(s: Score | null | undefined): Html {
-  if (!s) return html`<section class="panel quiet"><h2>Money personality</h2><p class="lead">Firefly isn’t answering, so nothing is shown.</p></section>`;
-  if (s.fresh) return html`<section class="panel scorecard" id="scorecard"><h2>Money personality</h2><p class="lead">Needs about 3 months of history</p><p class="sub-s sc-note">Your personality appears here once there is a little more to look at.</p></section>`;
+  if (!s) return html`<section class="panel quiet">${panelHead('Money personality', 'Firefly isn’t answering, so nothing is shown.')}</section>`;
+  if (s.fresh) return html`<section class="panel scorecard" id="scorecard">${panelHead('Money personality', 'Needs about 3 months of history')}<p class="sub-s sc-note">Your personality appears here once there is a little more to look at.</p></section>`;
   scoreForShare(s);
   return html`<section class="panel scorecard" id="scorecard"><div class="panel-head"><div><h2>Money personality</h2><p class="lead">${s.person.label}</p></div></div>
 <p class="sc-why">${s.person.line}</p><div class="sc-acts"><button type="button" class="btn small primary" data-onclick="App.scorePreview()">Share</button><a class="sc-more" href="#/scorecard">See the details</a></div></section>`;
@@ -89,7 +90,7 @@ export function scorecardPage(s: Score): Html {
   if (s.fresh) return html`${person}<section class="panel"><div class="center-empty">Your ratings appear after about 3 months of history. Until then, categorize what you buy and let it build.</div></section>`;
   return html`<section class="panel sc-tops"><dl class="bi-stats">${topLine('Biggest improvement', s.improved, 'Nothing has moved up yet')}${topLine('Best habit', s.best, 'Still building')}</dl></section>
 ${person}
-<section class="panel"><h2>Your ratings</h2><p class="lead">The last 6 months, with the change against the 6 before</p>
+<section class="panel">${panelHead('Your ratings', 'The last 6 months, with the change against the 6 before')}
 <ul class="sc-list">${htmlList(s.grades.map(g => html`<li><div class="sc-row"><span class="sc-name">${g.name}</span>${pill(g)}</div>
 <p class="sc-why">${g.reason} ${trendMark(g)}</p>${g.detail ? html`<p class="sub-s sc-detail">${g.detail}</p>` : ''}<a class="sc-go" href="${g.href}">${g.action}<span aria-hidden="true"> →</span></a></li>`))}</ul></section>
 <p class="sub-s sc-note">Worked out on this device from your last 12 months. Nothing is stored or sent, and the picture you can share leaves out every amount and name.</p>`;

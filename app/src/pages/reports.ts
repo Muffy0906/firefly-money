@@ -12,6 +12,7 @@ import { customizeButton, pageCard, pageOpt } from '../features/pageopts';
 import { normGroup } from '../core/feed';
 import { feesIn, feesPanel, lastTwelve, type Fees } from '../features/moneyhealth';
 import { trendsHtml } from '../features/trends';
+import { panelHead } from '../core/ui';
 
 // Each account's balance on one day, from two list requests (assets, liabilities) rather than one per account.
 // The net worth chart asks for the same lists, so they're often already saved.
@@ -87,7 +88,7 @@ function overviewRow(pts: LinePoint[], daily: boolean, cats: ShareRow[], spent: 
   const lead = style === 'net' ? unit + ' · earned minus spent' : style === 'bars' ? unit : (daily ? 'Adding up day by day' : 'Month by month') + ' · hover the chart to compare';
   const lines = pageCard('reports', 'lines') && pts.length > 1 ? html`<section class="panel chart"><h2>${style === 'net' ? 'What you kept' : 'Earned vs. spent'}</h2><p class="lead">${lead}</p>${pic}</section>` : '';
   const chart = pageCard('reports', 'ring') ? shareChart(cats, html`<span class="eyebrow">Spent</span><strong class="num" data-count="${spent}">${money0(spent)}</strong>`, 'Spending by category', { limit: 6, ring: pageOpt('reports', 'share') !== 'bars', go: txHref({ type: 'withdrawal' }, R) }) : '';
-  const ring = chart ? html`<section class="panel"><h2>Where it went</h2><p class="lead">Spending by category</p>${chart}</section>` : '';
+  const ring = chart ? html`<section class="panel">${panelHead('Where it went', 'Spending by category')}${chart}</section>` : '';
   return lines || ring ? html`<div class="report-top${lines && ring ? '' : ' one'}">${lines}${ring}</div>` : '';
 }
 // A month's running totals as weeks: what came in and went out in each seven days (the last week may be shorter)
@@ -110,7 +111,7 @@ function weekdayPanel(buys: Buy[], start: string, end: string) {
   for (let d = start, i = 0; d <= last && i < 1200; d = addDays(d, 1), i++) count[(new Date(d + 'T12:00:00').getDay() + 6) % 7]++;
   if (!buys.length) return '';
   const avg = tot.map((v, i) => count[i] ? v / count[i] : 0), top = avg.indexOf(Math.max(...avg));
-  return html`<section class="panel chart"><h2>Spending by weekday</h2><p class="lead">Most on ${WD_LONG[top]}: about ${money0(avg[top])} each</p>${barChart(avg.map((v, i) => ({ label: WD[i], v })), v => money0(v), 'Average spending on each day of the week', { w: 320, h: 180 })}</section>`;
+  return html`<section class="panel chart">${panelHead('Spending by weekday', html`Most on ${WD_LONG[top]}: about ${money0(avg[top])} each`)}${barChart(avg.map((v, i) => ({ label: WD[i], v })), v => money0(v), 'Average spending on each day of the week', { w: 320, h: 180 })}</section>`;
 }
 // A typical day: the average, how many days had no purchases, and the biggest days
 function dailyPanel(buys: Buy[], start: string, end: string, spent: number) {
@@ -118,7 +119,7 @@ function dailyPanel(buys: Buy[], start: string, end: string, spent: number) {
   buys.forEach(b => { const d = b.date.slice(0, 10); by.set(d, (by.get(d) || 0) + b.amount); });
   if (!by.size) return '';
   const top = [...by].sort((a, b) => b[1] - a[1]).slice(0, 3), free = Math.max(0, days - by.size);
-  return html`<section class="panel"><h2>Average day</h2><p class="lead">Over ${days} day${days === 1 ? '' : 's'}</p><div class="total num">${money0(spent / days)}</div><div class="list"><div class="row"><span class="name">Days with no purchases</span><span class="num">${free}</span></div>${htmlList(top.map(([d, v], i) => html`<a class="row" href="${txHref({ type: 'withdrawal' }, { start: d, end: d })}"><span class="name">${i ? 'Next biggest' : 'Biggest day'} · ${fmtDay(d)}</span><span class="num">${money0(v)}</span></a>`))}</div></section>`;
+  return html`<section class="panel">${panelHead('Average day', html`Over ${days} day${days === 1 ? '' : 's'}`)}<div class="total num">${money0(spent / days)}</div><div class="list"><div class="row"><span class="name">Days with no purchases</span><span class="num">${free}</span></div>${htmlList(top.map(([d, v], i) => html`<a class="row" href="${txHref({ type: 'withdrawal' }, { start: d, end: d })}"><span class="name">${i ? 'Next biggest' : 'Biggest day'} · ${fmtDay(d)}</span><span class="num">${money0(v)}</span></a>`))}</div></section>`;
 }
 const CMP_LABEL: Record<string, string> = { prev: 'the period before', year: 'the same dates last year' };
 // The report as CSV, rebuilt each time the page is drawn
