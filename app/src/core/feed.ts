@@ -1,5 +1,5 @@
 import { Html, html, htmlList } from './html';
-import { type ApiData, approx, fmtD, money, moneyIn, num, S, todayIso } from './base';
+import { type ApiData, approx, fmtD, money, moneyIn, num, parseIso, S, todayIso } from './base';
 import { convertToPrimary, isForeign } from './fx';
 import { daysBetween } from './helpers';
 import { logoImg } from './logo';
@@ -158,7 +158,7 @@ export function dayLabel(iso: string) {
   if (diff === 0) return 'Today';
   if (diff === 1) return 'Yesterday';
   if (diff === -1) return 'Tomorrow';
-  const dt = new Date(d + 'T12:00:00');
+  const dt = parseIso(d);
   if (diff > 1 && diff < 7) return fmtD(dt, { weekday: 'long' });
   return fmtD(dt, { weekday: 'short', month: 'short', day: 'numeric', ...(dt.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) });
 }

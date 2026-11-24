@@ -1,6 +1,6 @@
 import { type Html, html, htmlList } from '../core/html';
 import { getAll } from '../core/api';
-import { absDiff, App, arr, fmtD, fmtDate, fmtDay, fmtNum, isoDate, money, money0, sumDiff, todayIso } from '../core/base';
+import { absDiff, App, arr, fmtD, fmtDate, fmtDay, fmtNum, isoDate, money, money0, parseIso, sumDiff, todayIso } from '../core/base';
 import { toast } from '../core/dom';
 import { nameAvatar, normGroup } from '../core/feed';
 import { buzz } from '../core/haptics';
@@ -27,7 +27,7 @@ export function yearStats(splits: YearSplit[], start: string, end: string) {
     const k = s.payee.trim().toLowerCase(), p = byPayee.get(k) || { name: s.payee.trim(), n: 0, v: 0 };
     p.n++; p.v += s.amount; byPayee.set(k, p);
     const d = s.date.slice(0, 10); byDay.set(d, (byDay.get(d) || 0) + s.amount);
-    byWd[new Date(d + 'T12:00:00').getDay()] += s.amount;
+    byWd[parseIso(d).getDay()] += s.amount;
   }
   const places = [...byPayee.values()].filter(p => p.name);
   const often = [...places].sort((a, b) => b.n - a.n || b.v - a.v)[0] || null;

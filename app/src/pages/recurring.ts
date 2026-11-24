@@ -1,7 +1,7 @@
 import { html, htmlList } from '../core/html';
 import { api, getAll } from '../core/api';
 import { busy, withAuth } from '../core/auth';
-import { App, S, el, fmtDate, fmtDay, moneyIn, num, sameName, todayIso, type ApiData, type Field } from '../core/base';
+import { type ApiData, App, el, type Field, fmtDate, fmtDay, moneyIn, num, parseIso, S, sameName, todayIso } from '../core/base';
 import { closeDrawer, confirmBox, formError, head, openDrawer, opt, toast, emptyState } from '../core/dom';
 import { invalidate, isLiab, lists } from '../core/lists';
 import { VIEWS, route } from '../core/router';
@@ -77,7 +77,7 @@ async function saveRecur() {
     }
     const cat = await categoryIdFor(v('rc-cat')); if (cat) tx.category_id = cat;
     if (type === 'withdrawal' && v('rc-bud')) tx.budget_id = v('rc-bud');
-    const first = v('rc-first'), freq = v('rc-freq'), d = new Date(first + 'T12:00:00');
+    const first = v('rc-first'), freq = v('rc-freq'), d = parseIso(first);
     const moment = freq === 'monthly' ? String(d.getDate()) : freq === 'weekly' ? String(d.getDay() || 7) : freq === 'yearly' ? first : '';
     const body: any = { type, title: v('rc-title'), first_date: first, apply_rules: el<HTMLInputElement>('rc-rules').checked, active: el<HTMLInputElement>('rc-active').checked, notes: el<HTMLTextAreaElement>('rc-notes').value,
       repetitions: [{ type: freq, moment, skip: Math.max(0, parseInt(v('rc-every') || '1', 10) - 1), weekend: parseInt(v('rc-weekend'), 10) }], transactions: [tx] };

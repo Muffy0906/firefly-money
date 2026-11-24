@@ -1,7 +1,7 @@
 import { type Html, html, htmlList, raw } from '../core/html';
 import { type Snap, morph, morphOk, snapshot } from '../core/morph';
 import { api, getAll } from '../core/api';
-import { absDiff, App, arr, el, fmtD, fmtDate, fmtDay, money, money0, monthOf, monthRange, PAGE_SIZE, period, type Period, S, sumDiff, todayIso, viewPeriod } from '../core/base';
+import { absDiff, App, arr, el, fmtD, fmtDate, fmtDay, money, money0, monthOf, monthRange, PAGE_SIZE, parseIso, period, type Period, S, sumDiff, todayIso, viewPeriod } from '../core/base';
 import { head, icon, monthNav, toast } from '../core/dom';
 import { catColor, normGroup, rankCats, txRows } from '../core/feed';
 import { addDays, daysBetween } from '../core/helpers';
@@ -49,7 +49,7 @@ VIEWS.transactions = async (r, paint) => {
 };
 // A period for some dates: named after its month when it is exactly one, else by its first and last day
 function rangePeriod(start: string, end: string): Period {
-  const [y, m] = monthOf(new Date(start + 'T12:00:00')), mo = monthRange(y, m);
+  const [y, m] = monthOf(parseIso(start)), mo = monthRange(y, m);
   if (mo.start === start && mo.end === end) return mo;
   const label = start === end ? fmtDate(start) : start.slice(0, 4) === end.slice(0, 4) ? fmtDay(start) + ' – ' + fmtDate(end) : fmtDate(start) + ' – ' + fmtDate(end);
   return { start, end, label, short: label };

@@ -1,9 +1,9 @@
 import { type Html, html, htmlList } from '../core/html';
 import { median } from './predict';
 import { getAll } from '../core/api';
-import { money0, monthRange, nowMonth, todayIso, txHref, type Range } from '../core/base';
+import { money0, monthRange, nowMonth, parseIso, type Range, shortMoney, todayIso, txHref, weekdayOf } from '../core/base';
 import { normGroup } from '../core/feed';
-import { addDays, daysBetween } from '../core/helpers';
+import { addDays, daysBetween, sum } from '../core/helpers';
 import { barChart, changeBars, smoothPath } from './charts';
 import { isRefundTag } from './refunds';
 import { panelHead } from '../core/ui';
@@ -19,7 +19,6 @@ export type CreepRow = { m: TMonth, income: number, fixed: number, flex: number 
 export type Tone = 'good' | 'warn' | 'none';
 
 const day = (d: string) => d.slice(0, 10);
-const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 const inMonth = (m: { start: string, end: string }, d: string) => d >= m.start && d <= m.end;
 const pct = (v: number) => Math.round(Math.abs(v) * 100);
 export const plural = (n: number, w: string) => n + ' ' + w + (n === 1 ? '' : 's');
@@ -123,7 +122,7 @@ export type Rhythm = {
 };
 export const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], WEEKDAYS_LONG = ['Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays', 'Sundays'];
 export const PARTS = ['Days 1–7', 'Days 8–14', 'Days 15–21', 'Day 22 on'], PARTS_LONG = ['the first week of the month', 'the second week of the month', 'the third week of the month', 'the last week of the month'];
-const dow = (d: string) => (new Date(d + 'T12:00:00').getDay() + 6) % 7;
+const dow = (d: string) => weekdayOf(parseIso(d));
 const partOf = (start: string, d: string) => Math.min(3, Math.floor(daysBetween(start, d) / 7));
 // Everyday spending only (bills and rent land on set days), and without one-off big purchases (over 4x a typical large purchase)
 export function rhythm(txs: TTx[], months: TMonth[], fixed = fixedPayees(txs, months)): Rhythm {
@@ -145,7 +144,6 @@ export function rhythm(txs: TTx[], months: TMonth[], fixed = fixedPayees(txs, mo
 }
 
 /* ---------- Drawing ---------- */
-const short$ = (v: number) => { const c = money0(0).replace(/[\d.,\s]/g, ''); return v >= 1e6 ? c + +(v / 1e6).toFixed(1) + 'm' : v >= 1e3 ? c + +(v / 1e3).toFixed(1) + 'k' : c + Math.round(v); };
 const niceMax = (v: number) => { const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; };
 export const CREEP_COLORS = ['var(--income)', 'var(--muted)', 'var(--spend)'];
 // Income, fixed and everyday spending by month as three lines (the same drawing and text rules as the other line charts)
@@ -154,7 +152,7 @@ export function creepChart(rows: CreepRow[], label: string) {
   const max = niceMax(Math.max(100, ...rows.flatMap(r => [r.income, r.fixed, r.flex])) / 4) * 4;
   const x = (i: number) => pl + (W - pl - pr) * (n < 2 ? .5 : i / (n - 1)), y = (v: number) => pt + (base - pt) * (1 - v / max);
   const line = (pick: (r: CreepRow) => number, c: string, w: number) => html`<path class="draw" pathLength="1" d="${smoothPath(rows.map((r, i) => [x(i), y(pick(r))]))}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
-  const grid = htmlList([0, 1, 2, 3, 4].map(k => { const v = max * k / 4, yy = y(v).toFixed(1); return html`<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 8}" y="${(+yy + 4).toFixed(1)}" text-anchor="end">${short$(v)}</text>`; }));
+  const grid = htmlList([0, 1, 2, 3, 4].map(k => { const v = max * k / 4, yy = y(v).toFixed(1); return html`<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 8}" y="${(+yy + 4).toFixed(1)}" text-anchor="end">${shortMoney(v)}</text>`; }));
   const every = Math.max(1, Math.ceil(n / (W < 500 ? 4 : 6))), ticks = htmlList(rows.map((r, i) => (i % every || x(n - 1) - x(i) < 50) && i !== n - 1 ? '' : html`<text x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}">${r.m.short}</text>`));
   const step = (W - pl - pr) / Math.max(1, n - 1);
   const hits = htmlList(rows.map((r, i) => { const a = Math.max(pl, x(i) - step / 2), b = Math.min(W - pr, x(i) + step / 2);

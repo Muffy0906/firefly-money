@@ -1,12 +1,12 @@
 import { Html, html, htmlList } from '../core/html';
-import { el, fmtD, isoDate, leadDays, todayIso, weekOrder } from '../core/base';
+import { el, fmtD, isoDate, leadDays, parseIso, todayIso, weekOrder } from '../core/base';
 import { ICON_NEXT, ICON_PREV } from '../core/dom';
 
 /* ---------- Date picker ---------- */
 let calInput: HTMLInputElement | null = null, calView = { y: 0, m: 0 };
 function openCal(input: HTMLInputElement) {
   calInput = input;
-  const v = input.value || todayIso(), d = new Date(v + 'T12:00:00');
+  const v = input.value || todayIso(), d = parseIso(v);
   calView = { y: d.getFullYear(), m: d.getMonth() };
   drawCal();
   const box = el('calpop'), r = input.getBoundingClientRect();

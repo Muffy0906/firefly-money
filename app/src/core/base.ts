@@ -55,6 +55,10 @@ export type Field = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 export const pad = (n: number) => String(n).padStart(2, '0');
 export const isoDate = (d: Date) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 export const todayIso = () => isoDate(new Date());
+// A YYYY-MM-DD string as a Date at midday, so a time-zone or daylight-saving shift never moves it to another day
+export const parseIso = (s: string) => new Date(s + 'T12:00:00');
+// 0 = Monday … 6 = Sunday, the app's week order
+export const weekdayOf = (d: Date) => (d.getDay() + 6) % 7;
 export type Period = { start: string, end: string, label: string, short: string, y?: number, m?: number, all?: boolean };
 /* A "month" can start on any day (Settings → Month starts on, e.g. payday). Month m then runs from that day of m
    to the day before it in m + 1, clamped to short months; the 1st gives calendar months. */
@@ -122,6 +126,11 @@ function fmtFor<T extends Intl.NumberFormat | Intl.DateTimeFormat>(key: string, 
 }
 export const money = (n: number, dec = 2) => fmtFor('$' + S.currency + dec, loc => new Intl.NumberFormat(loc, { style: 'currency', currency: S.currency, minimumFractionDigits: dec, maximumFractionDigits: dec })).format(!n || Math.abs(n) < 0.5 * 10 ** -dec ? 0 : n);   // a sum that rounds to nothing prints $0.00, never -$0.00
 export const money0 = (n: number) => money(n, 0);
+// A short amount for chart axes and notes in the app's currency symbol: $950, $1.2k, $3.4m (millions get mDec decimals)
+export function shortMoney(v: number, mDec = 1) {
+  const c = money0(0).replace(/[\d.,\s]/g, '');
+  return v >= 1e6 ? c + +(v / 1e6).toFixed(mDec) + 'm' : v >= 1e3 ? c + +(v / 1e3).toFixed(1) + 'k' : c + Math.round(v);
+}
 // An amount in its own currency, with that currency's symbol and decimals: ₹1,25,000.00, ¥12,000. Currencies that
 // group digits the Indian way are written that way when the app's format is an English one.
 const LAKH = /^(INR|PKR|BDT|NPR)$/;

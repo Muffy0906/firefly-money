@@ -1,7 +1,7 @@
 import { Html, html, htmlList } from '../core/html';
 import { api, getAll } from '../core/api';
 import { busy } from '../core/auth';
-import { type ApiData, App, approx, el, type Field, fmtDate, fmtDay, isoDate, leadDays, money, money0, moneyIn, monthOf, monthRange, nowMonth, num, type Period, S, todayIso, viewYM, weekOrder } from '../core/base';
+import { type ApiData, App, approx, el, type Field, fmtDate, fmtDay, isoDate, leadDays, money, money0, moneyIn, monthOf, monthRange, nowMonth, num, parseIso, type Period, S, todayIso, viewYM, weekOrder } from '../core/base';
 import { closeDrawer, formError, head, monthNav, openDrawer, opt, toast, emptyState } from '../core/dom';
 import { normGroup } from '../core/feed';
 import { LS, addDays, daysBetween } from '../core/helpers';
@@ -140,7 +140,7 @@ function billCalendar(bills: ApiData[], cur: Period) {
     return x.gid ? html`<button type="button" class="row" data-onclick="App.editTx('${x.gid}')">${inner}</button>` : html`<button type="button" class="row" data-onclick="App.billForm('${x.id}')">${inner}</button>`;
   };
   // The month's own days, from where it starts (a month can start on any day, see cycleDay) to where it ends
-  const lead = leadDays(new Date(cur.start + 'T12:00:00')), n = daysBetween(cur.start, cur.end) + 1;
+  const lead = leadDays(parseIso(cur.start)), n = daysBetween(cur.start, cur.end) + 1;
   const cells: Html[] = [];
   for (let i = 0; i < lead; i++) cells.push(html`<div class="bcal-day pad"></div>`);
   for (let i = 0; i < n; i++) {
@@ -160,7 +160,7 @@ function billsView(v: string) { LS.set('billsView', v); location.hash = hashWith
 // The last 13 months of spending, as two requests: the months that have ended (saved for a day) and this month.
 // The forecast asks for the same two, to see which account pays each bill.
 export async function recentSpending() {
-  const t = todayIso(), m0 = t.slice(0, 8) + '01', [y, m] = monthOf(new Date(m0 + 'T12:00:00')), from = monthRange(y, m - 13).start;
+  const t = todayIso(), m0 = t.slice(0, 8) + '01', [y, m] = monthOf(parseIso(m0)), from = monthRange(y, m - 13).start;
   return (await Promise.all([getAll('/transactions', { start: from, end: addDays(m0, -1), type: 'withdrawal' }), getAll('/transactions', { start: m0, end: t, type: 'withdrawal' })])).flat().map(normGroup);
 }
 // The past year's withdrawals as plain charges (the subscription audit on Overview asks for the same)

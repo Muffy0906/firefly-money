@@ -1,6 +1,6 @@
 import { Html, html, htmlList, raw } from '../core/html';
 import { getAll } from '../core/api';
-import { absDiff, type ApiData, App, fmtD, fmtDate, fmtDay, isoDate, leadDays, money, money0, type Period, todayIso, txHref, weekOrder } from '../core/base';
+import { absDiff, type ApiData, App, fmtD, fmtDate, fmtDay, isoDate, leadDays, money, money0, parseIso, type Period, shortMoney, todayIso, txHref, weekOrder } from '../core/base';
 import { SERIES, normGroup, signed, type Group } from '../core/feed';
 import { addDays, LS, daysBetween } from '../core/helpers';
 import type { Account } from '../core/lists';
@@ -75,7 +75,6 @@ export function ring(pct: number, cls = '', sub = '', mid = '') {
 
 // Two amounts over time (earned and spent) as smooth lines, the first with a soft fill under it
 export type LinePoint = { label: string, a: number, b: number, go?: string };     // go: what the point opens (see drill in polish.ts)
-const short$ = (v: number) => v >= 1e6 ? '$' + +(v / 1e6).toFixed(1) + 'm' : v >= 1e3 ? '$' + +(v / 1e3).toFixed(1) + 'k' : '$' + Math.round(v);
 function niceMax(v: number) { const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; }
 // The hover/tap strip around one point, a step wide but kept inside the plot (the first and last would stick out half a step)
 const hitBox = (cx: number, step: number, lo: number, hi: number) => { const a = Math.max(lo, cx - step / 2), b = Math.min(hi, cx + step / 2); return raw(`x="${a.toFixed(1)}" width="${(b - a).toFixed(1)}"`); };
@@ -85,7 +84,7 @@ export function twoLines(pts: LinePoint[], names: [string, string], colors: [str
   const x = (i: number) => pl + (W - pl - pr) * (n < 2 ? .5 : i / (n - 1)), y = (v: number) => pt + (base - pt) * (1 - v / max);
   const la = smoothPath(pts.map((p, i) => [x(i), y(p.a)])), lb = smoothPath(pts.map((p, i) => [x(i), y(p.b)]));
   const area = la + ' L' + x(n - 1).toFixed(1) + ' ' + base + ' L' + x(0).toFixed(1) + ' ' + base + ' Z';
-  const grid = htmlList([0, 1, 2, 3, 4].map(k => { const v = max * k / 4, yy = y(v).toFixed(1); return html`<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 8}" y="${(+yy + 4).toFixed(1)}" text-anchor="end" class="ax-amt">${short$(v)}</text>`; }));
+  const grid = htmlList([0, 1, 2, 3, 4].map(k => { const v = max * k / 4, yy = y(v).toFixed(1); return html`<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 8}" y="${(+yy + 4).toFixed(1)}" text-anchor="end" class="ax-amt">${shortMoney(v)}</text>`; }));
   const every = Math.max(1, Math.ceil(n / 6)), ticks = htmlList(pts.map((p, i) => (i % every || x(n - 1) - x(i) < 50) && i !== n - 1 ? '' : html`<text x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}">${p.label}</text>`));
   const hits = htmlList(pts.map((p, i) => html`<rect ${hitBox(x(i), (W - pl - pr) / Math.max(1, n - 1), pl, W - pr)} y="0" height="${base}" fill="transparent" data-tip="${p.label + '\n' + names[0] + ' ' + money0(p.a) + '\n' + names[1] + ' ' + money0(p.b)}"${p.go ? html` data-go="${p.go}"` : ''}/>`));
   return html`<svg class="lines" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}"><defs><linearGradient id="lg-a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${colors[0]}" stop-opacity=".32"/><stop offset="1" stop-color="${colors[0]}" stop-opacity="0"/></linearGradient></defs><g class="grid">${grid}</g><path class="area" d="${area}" fill="url(#lg-a)" style="color:${colors[0]}"/><path class="draw" pathLength="1" d="${la}" fill="none" stroke="${colors[0]}" stroke-width="2.6" stroke-linecap="round"/><path class="draw late" pathLength="1" d="${lb}" fill="none" stroke="${colors[1]}" stroke-width="2.2" stroke-linecap="round"/>${ticks}${hits}</svg><div class="legend"><span><i class="lg-ln" style="--c:${colors[0]};--w:2.6px"></i>${names[0]}</span><span><i class="lg-ln" style="--c:${colors[1]};--w:2.2px"></i>${names[1]}</span></div>`;
@@ -102,7 +101,7 @@ export function paceChart(days: number[], before: number[], dim: number, label: 
   const x = (i: number) => pl + (W - pl - pr) * (n < 2 ? .5 : i / (n - 1)), y = (v: number) => pt + (base - pt) * (1 - v / max);
   const la = a.length > 1 ? smoothPath(a.map((v, i) => [x(i), y(v)])) : '', lb = b.length > 1 ? smoothPath(b.map((v, i) => [x(i), y(v)])) : '';
   const area = la && la + ' L' + x(a.length - 1).toFixed(1) + ' ' + base + ' L' + x(0).toFixed(1) + ' ' + base + ' Z';
-  const grid = htmlList([0, 1, 2, 3, 4].map(k => { const v = max * k / 4, yy = y(v).toFixed(1); return html`<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 8}" y="${(+yy + 4).toFixed(1)}" text-anchor="end" class="ax-amt">${short$(v)}</text>`; }));
+  const grid = htmlList([0, 1, 2, 3, 4].map(k => { const v = max * k / 4, yy = y(v).toFixed(1); return html`<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 8}" y="${(+yy + 4).toFixed(1)}" text-anchor="end" class="ax-amt">${shortMoney(v)}</text>`; }));
   const ticks = htmlList([1, 8, 15, 22, n].filter((d, i, l) => d <= n && l.indexOf(d) === i).map(d => html`<text x="${x(d - 1).toFixed(1)}" y="${H - 6}" text-anchor="${d === 1 ? 'start' : d === n ? 'end' : 'middle'}">${d}</text>`));
   const i = a.length - 1, dot = i >= 0 ? html`<circle class="pace-dot" cx="${x(i).toFixed(1)}" cy="${y(a[i]).toFixed(1)}" r="4.5" fill="var(--accent)"/>` : '';
   const hits = htmlList([...Array(n)].map((_, d) => html`<rect ${hitBox(x(d), (W - pl - pr) / Math.max(1, n - 1), pl, W - pr)} y="0" height="${base}" fill="transparent" data-tip="${'Day ' + (d + 1) + (d < a.length ? '\n' + label[0] + ' ' + money0(a[d]) : '') + (d < b.length ? '\n' + label[1] + ' ' + money0(b[d]) : '')}"${dayGo && d < a.length ? html` data-go="${dayGo(d + 1)}"` : ''}/>`));
@@ -128,7 +127,7 @@ export function pairBars(pts: (LinePoint & { tip?: string })[], names: [string, 
   const W = innerWidth < 600 ? 360 : 640, H = innerWidth < 600 ? 220 : 260, pl = 46, pr = 4, pt = 10, pb = 26, n = pts.length, base = H - pb;
   const max = niceMax(Math.max(100, ...pts.flatMap(p => [p.a, p.b])) / 4) * 4, slot = (W - pl - pr) / Math.max(1, n), bw = Math.max(3, Math.min(26, slot * .32));
   const y = (v: number) => pt + (base - pt) * (1 - v / max), every = Math.max(1, Math.ceil(n / Math.floor((W - pl) / 58)));
-  const grid = htmlList([0, 1, 2, 3, 4].map(k => { const v = max * k / 4, yy = y(v).toFixed(1); return html`<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 8}" y="${(+yy + 4).toFixed(1)}" text-anchor="end" class="ax-amt">${short$(v)}</text>`; }));
+  const grid = htmlList([0, 1, 2, 3, 4].map(k => { const v = max * k / 4, yy = y(v).toFixed(1); return html`<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 8}" y="${(+yy + 4).toFixed(1)}" text-anchor="end" class="ax-amt">${shortMoney(v)}</text>`; }));
   const bars = htmlList(pts.map((p, i) => {
     const cx = pl + slot * i + slot / 2, gap = Math.min(3, bw / 4), bar = (v: number, x: number, c: string, j: number) => html`<rect class="bar" style="--j:${i}" x="${x.toFixed(1)}" y="${y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(v > 0 ? 1.5 : 0, base - y(v)).toFixed(1)}" rx="${Math.min(6, bw / 3).toFixed(1)}" fill="${c}"${j ? raw(' opacity=".85"') : ''}/>`;
     const lab = p.label.length > 10 ? p.label.slice(0, 9) + '…' : p.label;
@@ -145,7 +144,7 @@ export function budgetMonthsChart(pts: BudgetMonth[], alertPct: number, label: s
   const W = 360, H = 150, pl = 40, pr = 4, pt = 10, pb = 22, n = Math.max(1, pts.length), base = H - pb;
   const max = niceMax(Math.max(100, ...pts.flatMap(p => [p.spent, p.limit])) / 3) * 3, slot = (W - pl - pr) / n, bw = Math.max(4, Math.min(24, slot * .62));
   const y = (v: number) => pt + (base - pt) * (1 - v / max), every = n > 6 ? 2 : 1;
-  const grid = htmlList([0, 1, 2, 3].map(k => { const v = max * k / 3, yy = y(v).toFixed(1); return html`<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 6}" y="${(+yy + 4).toFixed(1)}" text-anchor="end" class="ax-amt">${short$(v)}</text>`; }));
+  const grid = htmlList([0, 1, 2, 3].map(k => { const v = max * k / 3, yy = y(v).toFixed(1); return html`<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 6}" y="${(+yy + 4).toFixed(1)}" text-anchor="end" class="ax-amt">${shortMoney(v)}</text>`; }));
   const bars = htmlList(pts.map((p, i) => {
     const cx = pl + slot * i + slot / 2, last = i === n - 1, tone = !p.limit ? 'var(--muted)' : p.spent > p.limit ? 'var(--spend)' : p.spent >= p.limit * alertPct / 100 ? 'var(--warn)' : 'var(--good)';
     const tip = p.label + '\nSpent ' + money0(p.spent) + (p.limit ? '\nBudget ' + money0(p.limit) : '\nNo amount set');
@@ -163,7 +162,7 @@ export function budgetPaceChart(now: number[], usual: number[], limit: number, l
   const x = (i: number) => pl + (W - pl - pr) * i / (n - 1), y = (v: number) => pt + (base - pt) * (1 - v / max);
   const line = (v: number[]) => v.length > 1 ? smoothPath(v.map((c, i) => [x(i), y(c)])) : '';
   const ln = line(now), lu = line(usual), i = now.length - 1;
-  const grid = htmlList([0, 1, 2, 3].map(k => { const v = max * k / 3, yy = y(v).toFixed(1); return html`<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 6}" y="${(+yy + 4).toFixed(1)}" text-anchor="end" class="ax-amt">${short$(v)}</text>`; }));
+  const grid = htmlList([0, 1, 2, 3].map(k => { const v = max * k / 3, yy = y(v).toFixed(1); return html`<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 6}" y="${(+yy + 4).toFixed(1)}" text-anchor="end" class="ax-amt">${shortMoney(v)}</text>`; }));
   const ticks = htmlList([1, 8, 15, 22, n].filter((d, k, l) => d <= n && l.indexOf(d) === k).map(d => html`<text x="${x(d - 1).toFixed(1)}" y="${H - 6}" text-anchor="${d === 1 ? 'start' : d === n ? 'end' : 'middle'}">${d}</text>`));
   const hits = htmlList([...Array(n)].map((_, d) => html`<rect ${hitBox(x(d), (W - pl - pr) / (n - 1), pl, W - pr)} y="0" height="${base}" fill="transparent" data-tip="${'Day ' + (d + 1) + (d < now.length ? '\n' + names[0] + ' ' + money0(now[d]) : '') + (d < usual.length ? '\n' + names[1] + ' ' + money0(usual[d]) : '')}"/>`));
   return html`<svg class="lines bpace" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}"><g class="grid">${grid}</g>${limit ? html`<line class="lim" x1="${pl}" x2="${W - pr}" y1="${y(limit).toFixed(1)}" y2="${y(limit).toFixed(1)}"/>` : ''}${lu ? html`<path d="${lu}" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round" opacity=".8"/>` : ''}${ahead && i >= 0 ? html`<line class="ahead" x1="${x(i).toFixed(1)}" y1="${y(now[i]).toFixed(1)}" x2="${x(n - 1).toFixed(1)}" y2="${y(ahead).toFixed(1)}"/>` : ''}${ln ? html`<path d="${ln}" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linecap="round"/>` : ''}${i >= 0 ? html`<circle cx="${x(i).toFixed(1)}" cy="${y(now[i]).toFixed(1)}" r="4.5" fill="var(--accent)"/>` : ''}${ticks}${hits}</svg>`;
@@ -236,14 +235,14 @@ export const activityCell = (_weeks: number) => 14;
 export const ACTIVITY_RANGES: Record<string, string> = { '1m': '1M', '3m': '3M', '6m': '6M', year: 'This year', all: 'All' };
 // The days an Overview range covers, up to today: 1m/3m/6m back from today, the year so far, or everything from the first purchase
 export function activityRange(key: string, today: string, first: string) {
-  const back = (n: number) => { const d = new Date(today + 'T12:00:00'); d.setMonth(d.getMonth() - n); return addDays(isoDate(d), 1); };
+  const back = (n: number) => { const d = parseIso(today); d.setMonth(d.getMonth() - n); return addDays(isoDate(d), 1); };
   const start = key === '1m' ? back(1) : key === '3m' ? back(3) : key === '6m' ? back(6) : key === 'all' ? (first || today) : today.slice(0, 4) + '-01-01';
   return { start, end: today };
 }
 export function activityPanel(buys: { date: string, amount: number }[], start: string, end: string, tile?: { range: string, weeks?: number }) {
   const days = activityDays(buys, start, end, todayIso(), tile ? 2000 : AG_WEEKS);
   if (!days.length || !buys.length) return tile ? html`<section class="panel chart ag-card" aria-label="Activity"><p class="ag-none">No spending in this range.</p></section>` : '';
-  const lead = leadDays(new Date(days[0].iso + 'T12:00:00'));    // blank cells before the first day, so each row is one weekday
+  const lead = leadDays(parseIso(days[0].iso));    // blank cells before the first day, so each row is one weekday
   const t = todayIso();
   let cells: Html | string = '';
   for (let i = 0; i < lead; i++) cells = html`${cells}<span class="ag-c pad"></span>`;
@@ -283,7 +282,7 @@ function heatmapPanel(cur: Period, groups: Group[]) {
   const by: Record<string, number> = {}, cnt: Record<string, number> = {};
   groups.forEach(g => { const d = String(g.date).slice(0, 10); by[d] = (by[d] || 0) + g.total; if (g.total > 0) cnt[d] = (cnt[d] || 0) + 1; });     // a refund (negative) comes off the day, it isn't a purchase
   for (const d of Object.keys(by)) if (by[d] <= 0) delete by[d];
-  const dim = daysBetween(cur.start, cur.end) + 1, lead = leadDays(new Date(cur.start + 'T12:00:00')), t = todayIso();      // the month's own days: it can start on any day
+  const dim = daysBetween(cur.start, cur.end) + 1, lead = leadDays(parseIso(cur.start)), t = todayIso();      // the month's own days: it can start on any day
   const max = Math.max(1, ...Object.values(by)), days = Object.keys(by).length;
   let cells: Html | string = '';
   for (let i = 0; i < lead; i++) cells = html`${cells}<span class="hm-cell pad"></span>`;

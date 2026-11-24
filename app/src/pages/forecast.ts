@@ -1,6 +1,6 @@
 import { html, htmlList, type Html } from '../core/html';
 import { getAll } from '../core/api';
-import { App, S, fmtDate, fmtDay, isoDate, leadDays, money, money0, num, sameName, todayIso, weekOrder, type ApiData } from '../core/base';
+import { type ApiData, App, fmtDate, fmtDay, isoDate, leadDays, money, money0, num, parseIso, S, sameName, todayIso, weekOrder } from '../core/base';
 import { head, ICON_X, opt } from '../core/dom';
 import { type Group, normGroup } from '../core/feed';
 import { LS, addDays, bizDay, daysBetween, monthsFrom } from '../core/helpers';
@@ -307,7 +307,7 @@ function cashCalPanel(m: Awaited<ReturnType<typeof forecastModel>>) {
   const s = m.series.slice(0, CAL_DAYS), lk = m.likely && m.likely.pNeg.length >= s.length ? m.likely : null;
   const days = cashCalendar({ dates: s.map(x => x.d), bal: s.map(x => x.v), events: m.ev, pNeg: lk ? lk.pNeg : undefined, p10: lk ? lk.p10 : undefined });
   if (days.length < 2) return '';
-  const lead = leadDays(new Date(days[0].iso + 'T12:00:00')), tight = days.find(d => d.tightest)!, risky = days.filter(d => d.risk);
+  const lead = leadDays(parseIso(days[0].iso)), tight = days.find(d => d.tightest)!, risky = days.filter(d => d.risk);
   const priv = !!LS.get('privacy', false);      // hide amounts means hide them from the aria-label too, not just blur them on screen
   let cells: Html | string = '';
   for (let i = 0; i < lead; i++) cells = html`${cells}<span class="hm-cell pad"></span>`;

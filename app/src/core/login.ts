@@ -4,7 +4,7 @@ import { App, S, el, nowMonth } from './base';
 import { closeDrawer, toast, vt } from './dom';
 import { lists } from './lists';
 import { hashWith, route } from './router';
-import { applyCustom } from './themevars';
+import { applyCustom, currentTheme } from './themevars';
 import { THEMES, themeButtons, rememberAccent } from './themepick';
 import { blankSplit, collectTx, newTx, renderTxForm } from '../features/txform';
 
@@ -19,7 +19,6 @@ el('loginForm').onsubmit = async ev => {
   finally { btn.disabled = false; }
 };
 export { THEMES, themeButtons };
-function currentTheme() { return document.documentElement.getAttribute('data-theme') || 'auto'; }
 // The theme picker on the Settings page (the focus goes back to the chosen theme after it's redrawn)
 function drawThemes() {
   document.querySelectorAll('.tpick').forEach(t => {

@@ -1,6 +1,6 @@
 import { html, htmlList, raw } from '../core/html';
 import { getAll } from '../core/api';
-import { App, absDiff, el, arr, fmtDate, fmtDay, money, money0, monthOf, monthRange, noneHref, nowMonth, type Range, sumDiff, todayIso, txHref, type ApiData } from '../core/base';
+import { absDiff, type ApiData, App, arr, el, fmtDate, fmtDay, money, money0, monthOf, monthRange, noneHref, nowMonth, parseIso, type Range, sumDiff, todayIso, txHref, weekdayOf } from '../core/base';
 import { head, ICON_X, opt, toast } from '../core/dom';
 import { LS, addDays, daysBetween, saveBlob } from '../core/helpers';
 import { type Account, isAsset, isLiab, lists, normAccount } from '../core/lists';
@@ -40,7 +40,7 @@ function reportRange(q: Record<string, string>) {
 export function compareRange(start: string, end: string, kind: string) {
   if (kind === 'prev') {
     const k = monthSpan(start, end);
-    if (k) { const [y, m] = monthOf(new Date(start + 'T12:00:00')); return { start: monthRange(y, m - k).start, end: monthRange(y, m - 1).end }; }
+    if (k) { const [y, m] = monthOf(parseIso(start)); return { start: monthRange(y, m - k).start, end: monthRange(y, m - 1).end }; }
     const n = daysBetween(start, end) + 1; return { start: addDays(start, -n), end: addDays(start, -1) };
   }
   if (kind === 'year') {
@@ -51,7 +51,7 @@ export function compareRange(start: string, end: string, kind: string) {
 }
 // How many whole months (as Settings sets them) start..end covers, or 0 if it doesn't line up with months
 export function monthSpan(start: string, end: string) {
-  const [y, m] = monthOf(new Date(start + 'T12:00:00'));
+  const [y, m] = monthOf(parseIso(start));
   if (monthRange(y, m).start !== start) return 0;
   for (let k = 1; k <= 36; k++) { const e = monthRange(y, m + k - 1).end; if (e === end) return k; if (e > end) return 0; }
   return 0;
@@ -107,8 +107,8 @@ const WD = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], WD_LONG = ['Monday
 // Spending by the day of the week: the total each weekday, and the average for one of them
 function weekdayPanel(buys: Buy[], start: string, end: string) {
   const tot = Array(7).fill(0), count = Array(7).fill(0), last = end > todayIso() ? todayIso() : end;
-  buys.forEach(b => { tot[(new Date(b.date.slice(0, 10) + 'T12:00:00').getDay() + 6) % 7] += b.amount; });
-  for (let d = start, i = 0; d <= last && i < 1200; d = addDays(d, 1), i++) count[(new Date(d + 'T12:00:00').getDay() + 6) % 7]++;
+  buys.forEach(b => { tot[weekdayOf(parseIso(b.date.slice(0, 10)))] += b.amount; });
+  for (let d = start, i = 0; d <= last && i < 1200; d = addDays(d, 1), i++) count[weekdayOf(parseIso(d))]++;
   if (!buys.length) return '';
   const avg = tot.map((v, i) => count[i] ? v / count[i] : 0), top = avg.indexOf(Math.max(...avg));
   return html`<section class="panel chart">${panelHead('Spending by weekday', html`Most on ${WD_LONG[top]}: about ${money0(avg[top])} each`)}${barChart(avg.map((v, i) => ({ label: WD[i], v })), v => money0(v), 'Average spending on each day of the week', { w: 320, h: 180 })}</section>`;
@@ -167,7 +167,7 @@ VIEWS.reports = async (r, paint) => {
   const R = reportRange(r.q), p = { start: R.start, end: R.end }, cmp = r.q.cmp || '', C = compareRange(R.start, R.end, cmp);
   const saved = LS.get('savedReports', []) as SavedReport[], here = location.hash.split('?')[1] || '';
   const months: { start: string, end: string, label: string }[] = [];
-  for (let [yy, mm] = monthOf(new Date(R.start + 'T12:00:00')), mr = monthRange(yy, mm); mr.start <= R.end && months.length < 36; mr = monthRange(mr.y, mr.m + 1)) {
+  for (let [yy, mm] = monthOf(parseIso(R.start)), mr = monthRange(yy, mm); mr.start <= R.end && months.length < 36; mr = monthRange(mr.y, mr.m + 1)) {
     months.push({ start: mr.start < R.start ? R.start : mr.start, end: mr.end > R.end ? R.end : mr.end, label: mr.short + (months.length === 0 || mr.m === 0 ? ' ’' + String(mr.y).slice(2) : '') });
   }
   const own = L.accounts.filter(a => (isAsset(a) || isLiab(a)) && a.active);
