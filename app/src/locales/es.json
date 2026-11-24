@@ -3598,7 +3598,6 @@
   "Optional. Your browser asks first. Rounded to about 10 km.": "Opcional. Tu navegador te pregunta antes. Redondeada a unos 10 km.",
   "Live (needs a place)": "En vivo (necesita un lugar)",
   "Place search isn’t available right now.": "La búsqueda de lugares no está disponible ahora.",
-  "No places found.": "No se encontraron lugares.",
   "Choose a place for live weather": "Elige un lugar para el tiempo en vivo",
   "Weather": "Tiempo",
   "Live asks Open-Meteo through this server, not from your browser. Previews show an effect now.": "En vivo consulta Open-Meteo a través de este servidor, no desde tu navegador. Las vistas previas muestran un efecto ahora.",

@@ -99,4 +99,3 @@ export function loadUnusual(): Promise<Unusual> {
   p.catch(() => { if (memo && memo.p === p) memo = null; });
   return p;
 }
-export const unusualCount = (u: Unusual) => u.flags.length;

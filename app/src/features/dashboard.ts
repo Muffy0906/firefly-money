@@ -100,7 +100,6 @@ function dashCount(L: DashLayout) {
   return gridMode(L) ? [6, 4, 3, 2, 1].find(c => c <= n)! : n;     // the freeform grid is 24 wide, so 5 columns become 4
 }
 // How many columns the Overview has right now (the insight strip shows one card per column, at least 4)
-export const dashColumns = () => dashCount(dashLayout());
 // The arrangement for n columns: a list of blocks, each a wide card's key or a band of n columns of keys.
 // Cards that are gone are dropped; new ones (and ones that changed between wide and narrow) are dealt in at the end.
 function dashPlace(L: DashLayout, keys: string[], n: number, wide: string[], est: (k: string) => number) {
