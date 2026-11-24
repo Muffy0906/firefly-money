@@ -1,4 +1,5 @@
 import { type Html, html, htmlList } from '../core/html';
+import { t } from '../core/spanish';
 import { api, getAll, sleep } from '../core/api';
 import { paceForecast } from '../features/projections';
 import { monthEnd } from '../features/predict';
@@ -287,7 +288,7 @@ function spendingPanel(cats: CatRow[], future: boolean, all: boolean, count = 6,
   const cmp = compare && !all, total = cats.reduce((t, c) => t + c.amt, 0);
   const items = cats.map(c => {
     const d = c.amt - c.prev;
-    const vs = !cmp ? '' : !c.prev ? ' · new' : Math.abs(d) < 1 ? ' · same' : html` · <span class="${d > 0 ? 'up' : 'down'}">${money0(Math.abs(d))} ${d > 0 ? 'more' : 'less'}</span>`;
+    const vs = !cmp ? '' : !c.prev ? ' · ' + t('new') : Math.abs(d) < 1 ? ' · ' + t('same') : html` · <span class="${d > 0 ? 'up' : 'down'}">${money0(Math.abs(d))} ${t(d > 0 ? 'more' : 'less')}</span>`;
     return { name: c.name, v: c.amt, href: c.id ? '#/transactions?category=' + c.id : c.name === 'Uncategorized' ? uncat || undefined : undefined, sub: html`${money0(c.amt)}${vs}`, children: [...(tagTotals?.get(c.name) || new Map())].map(([name, v]) => ({ name, v })) };
   });
   const chart = shareChart(items, html`<span class="eyebrow">Spent</span><strong class="num">${money0(total)}</strong>`, 'Spending by category', { limit: count, ring: tileOpt('spending', 'style') !== 'bars', go: txHref({ type: 'withdrawal' }), rest: '#/categories' });
@@ -407,7 +408,7 @@ function payeesPanel(now: ApiData[], prev: ApiData[], future: boolean, all: bool
   const total = rows.reduce((t, x) => t + x.amt, 0);
   const items = rows.map(x => {
     const d = x.amt - x.prev;
-    const vs = all || !compare ? '' : !x.prev ? ' · new' : Math.abs(d) < 1 ? ' · same' : html` · <span class="${d > 0 ? 'up' : 'down'}">${money0(Math.abs(d))} ${d > 0 ? 'more' : 'less'}</span>`;
+    const vs = all || !compare ? '' : !x.prev ? ' · ' + t('new') : Math.abs(d) < 1 ? ' · ' + t('same') : html` · <span class="${d > 0 ? 'up' : 'down'}">${money0(Math.abs(d))} ${t(d > 0 ? 'more' : 'less')}</span>`;
     return { name: x.name, v: x.amt, href: '#/account/' + x.id, sub: html`${money0(x.amt)}${vs}` };
   });
   const chart = shareChart(items, html`<span class="eyebrow">Paid</span><strong class="num">${money0(total)}</strong>`, 'Spending by payee', { limit: count, other: 'Everyone else', ring: tileOpt('payees', 'style') !== 'bars', go: txHref({ type: 'withdrawal' }) });
