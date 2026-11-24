@@ -1,4 +1,5 @@
 import { type Html, html, htmlList } from '../core/html';
+import { median } from './predict';
 import { getAll } from '../core/api';
 import { money0, monthRange, nowMonth, todayIso, txHref, type Range } from '../core/base';
 import { normGroup } from '../core/feed';
@@ -17,7 +18,6 @@ export type CreepRow = { m: TMonth, income: number, fixed: number, flex: number 
 export type Tone = 'good' | 'warn' | 'none';
 
 const day = (d: string) => d.slice(0, 10);
-const median = (xs: number[]) => { const s = [...xs].sort((a, b) => a - b), k = s.length >> 1; return s.length ? (s.length % 2 ? s[k] : (s[k - 1] + s[k]) / 2) : 0; };
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 const inMonth = (m: { start: string, end: string }, d: string) => d >= m.start && d <= m.end;
 const pct = (v: number) => Math.round(Math.abs(v) * 100);
