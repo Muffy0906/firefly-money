@@ -46,7 +46,7 @@ VIEWS.piggy = async (r, paint) => {
     : sort === 'left' ? (a, b) => (b.target - b.current) - (a.target - a.current) : (a, b) => a.group.localeCompare(b.group));
   const bars = pageOpt('piggy', 'style') === 'bar';
   const cards = htmlList(shown.map((p, i) => {
-    const heading = sort === 'group' && p.group && (i === 0 || shown[i - 1].group !== p.group) ? html`<div class="eyebrow full" style="margin:6px 0 -6px">${p.group}</div>` : '';
+    const heading = sort === 'group' && p.group && (i === 0 || shown[i - 1].group !== p.group) ? html`<div class="eyebrow full" style="margin:8px 0 -6px">${p.group}</div>` : '';
     const pct = pctOf(p);
     return html`${heading}<section class="panel"><div class="panel-head"><h2>${p.name}</h2><button class="btn small" data-onclick="App.piggyForm('${p.id}')">Edit</button></div><p class="lead">${p.accounts.map(a => a.name || (L.byId[a.id] || {}).name).filter(Boolean).join(', ') || 'No account'}${p.targetDate ? ' · by ' + fmtDate(p.targetDate) : ''}</p>${bars ? html`<div class="goal goal-bar"><div class="goal-nums"><span class="total num">${money0(p.current)}</span><span class="neutral">of ${money0(p.target)}</span><span class="num goal-pct">${pct.toFixed(0)}%</span></div><div class="track"><div class="fill good" style="width:${pct.toFixed(1)}%"></div></div><div class="sub-s">${paceBits(p).line} ${paceBits(p).chip}</div></div>`
       : html`<div class="goal">${ring(pct, 'good', 'saved')}<div><div class="total num" style="margin-bottom:2px">${money0(p.current)}</div><div class="neutral">of ${money0(p.target)}</div><div class="sub-s" style="margin-top:8px">${paceBits(p).line} ${paceBits(p).chip}</div></div></div>`}<div style="display:flex;gap:8px"><button class="btn small" data-onclick="App.piggyMoney('${p.id}',1)">+ Add money</button><button class="btn small" data-onclick="App.piggyMoney('${p.id}',-1)">− Take out</button></div></section>`;
@@ -64,7 +64,7 @@ function piggyForm(id?: string) {
     html`${id ? html`<button class="btn danger" data-onclick="App.deleteThing('piggy-banks','${id}','piggy bank')">Delete</button>` : ''}<span class="grow"></span><button class="btn" data-onclick="App.closeDrawer()">Cancel</button><button class="btn primary" id="pgSave" data-onclick="App.submit('pgForm')">${id ? 'Save' : 'Create piggy bank'}</button>`);
   if (id) getAll('/piggy-banks/' + id + '/events').then(ev => {
     const box = el('pgHistory'); if (!box) return;
-    box.innerHTML = String(html`<h3 style="font-size:14px;margin:8px 0 10px">History</h3>${ev.length ? html`<div class="list">${htmlList(ev.map(e => {
+    box.innerHTML = String(html`<h3 style="font-size:14px;margin:8px 0 12px">History</h3>${ev.length ? html`<div class="list">${htmlList(ev.map(e => {
       const a = num(e.attributes.amount);
       return html`<div class="row"><span class="name">${fmtDate(e.attributes.created_at || e.attributes.date)}${e.attributes.transaction_journal_id ? html` <span class="sub-s">· from a transaction</span>` : ''}</span><span class="num ${a < 0 ? 'neg' : 'pos'}">${a > 0 ? '+' : ''}${money(a)}</span></div>`;
     }))}</div>` : html`${emptyNote('No changes yet.')}`}`);

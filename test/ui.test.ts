@@ -24,7 +24,7 @@ describe('ui helpers', () => {
   it('emptyNote and doneState', () => {
     expect(str(emptyNote('No files.'))).toBe('<p class="empty">No files.</p>');
     expect(str(doneState('All tidy', 'Nothing left.', 50)))
-      .toBe('<div class="center-empty" style="padding:50px 20px"><div style="font-size:40px">✓</div><h2 style="font-size:18px;margin:10px 0 4px">All tidy</h2>Nothing left.</div>');
+      .toBe('<div class="center-empty" style="padding:50px 20px"><div style="font-size:40px">✓</div><h2 style="font-size:18px;margin:12px 0 4px">All tidy</h2>Nothing left.</div>');
     expect(str(doneState('x', 'y'))).toContain('padding:60px 20px');
   });
   it('kpi leaves out an absent sub but keeps an empty one', () => {

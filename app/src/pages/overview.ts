@@ -141,7 +141,7 @@ VIEWS[''] = async (r, paint) => {
       ['income', future ? idle('income') : wait('income') ?? incomePanel(arr(incomeSrc), all)],
       ['goals', !tileOn('goals') ? 'off' : wait('goals') ?? goalsPanel(piggies, tileOpt('goals', 'done'))],     // (empty without its data, so offered as is)
       ['cashflow', html`<section class="panel chart">${cashFlowAs(trend, tileOpt('cashflow', 'style'))}</section>`],
-      ['recent', html`<section class="panel flush"><div style="padding:24px 26px 6px" class="panel-head"><div><h2>Recent transactions</h2></div><a class="link" href="#/transactions">See all</a></div>${txRows(arr(recent).map(normGroup))}</section>`],
+      ['recent', html`<section class="panel flush"><div style="padding:24px 28px 8px" class="panel-head"><div><h2>Recent transactions</h2></div><a class="link" href="#/transactions">See all</a></div>${txRows(arr(recent).map(normGroup))}</section>`],
       ['activity', wait('activity') ?? activityTile(actTx, actRange, t0)],
       ['pace', monthOnly ? idle('pace') : wait('pace') ?? pacePanel(cur, prev, arr(dayTx).map(normGroup), arr(prevTx).map(normGroup))],
       ['savings', html`<section class="panel chart">${savingsRate(trend)}</section>`],
@@ -303,7 +303,7 @@ export function payRow(a: Account, v: number, paidOff: boolean, sparks: any = {}
 function balancesPanel(title: string, lead: string, items: Account[], val: (a: Account) => number, paidOff: boolean, sparks: any = {}, invest: Account[] = []) {
   const rows = htmlList([...items].sort((a, b) => val(b) - val(a)).map(a => payRow(a, val(a), paidOff, sparks, a.nat ? val({ ...a, ...a.nat }) : val(a))));
   const left = [...new Set([...items, ...invest].filter(a => a.unconv).map(a => a.currency))];
-  return html`<section class="panel">${panelHead(title, lead)}${items.length ? html`<div class="total num">${money0(items.reduce((s, a) => s + val(a), 0))}</div>${left.length ? html`<p class="sub-s fx-left">Leaves out ${left.join(', ')} (not converted)</p>` : ''}<div class="list">${rows}</div>` : html`${emptyNote(html`None yet. <a class="link" href="#/accounts">Add an account</a>`)}`}${invest.length ? html`<a class="row" href="#/accounts" style="margin-top:6px;padding-top:10px;border-top:1px solid var(--line);text-decoration:none;color:inherit"><span class="name">${t('Investments')}</span><span class="num neutral" style="text-decoration:none">${money0(invest.reduce((s, a) => s + val(a), 0))}</span></a>` : ''}</section>`;
+  return html`<section class="panel">${panelHead(title, lead)}${items.length ? html`<div class="total num">${money0(items.reduce((s, a) => s + val(a), 0))}</div>${left.length ? html`<p class="sub-s fx-left">Leaves out ${left.join(', ')} (not converted)</p>` : ''}<div class="list">${rows}</div>` : html`${emptyNote(html`None yet. <a class="link" href="#/accounts">Add an account</a>`)}`}${invest.length ? html`<a class="row" href="#/accounts" style="margin-top:8px;padding-top:12px;border-top:1px solid var(--line);text-decoration:none;color:inherit"><span class="name">${t('Investments')}</span><span class="num neutral" style="text-decoration:none">${money0(invest.reduce((s, a) => s + val(a), 0))}</span></a>` : ''}</section>`;
 }
 function loansPanel(loans: Account[], prog: any = {}) {
   // The biggest four; the rest are a tap away on Loans, so one long list doesn't set the height of its whole row
@@ -322,9 +322,9 @@ function loansPanel(loans: Account[], prog: any = {}) {
     else if (pr.monthly > 0) bits.push(money0(pr.monthly) + '/mo doesn’t cover the interest');
     else if (l.debt) bits.push('no payments in the last 3 months');
     if (!l.debt) bits.push('Paid off');
-    return html`<div style="padding:11px 0;border-top:1px solid var(--line)"><a class="row" href="#/account/${l.id}" style="text-decoration:none"><span class="name">${l.name}</span><span class="num">${acctAmt(l, (l.nat || l).debt, l.debt, money0)}</span></a>${paid ? html`<div class="track"><div class="fill good" style="width:${paid.toFixed(1)}%"></div></div>` : ''}<div class="sub-s">${bits.join(' · ')}</div></div>`;
+    return html`<div style="padding:12px 0;border-top:1px solid var(--line)"><a class="row" href="#/account/${l.id}" style="text-decoration:none"><span class="name">${l.name}</span><span class="num">${acctAmt(l, (l.nat || l).debt, l.debt, money0)}</span></a>${paid ? html`<div class="track"><div class="fill good" style="width:${paid.toFixed(1)}%"></div></div>` : ''}<div class="sub-s">${bits.join(' · ')}</div></div>`;
   }));
-  return html`<section class="panel">${panelHead('Loans', 'Remaining balance and payoff progress', { href: '#/loans', label: 'Plan payoff' })}${loans.length ? html`<div class="total num" style="margin-bottom:4px">${money0(loans.reduce((s, l) => s + l.debt, 0))}</div><div class="loan-rows">${rows}${more ? html`<a class="row more" href="#/loans" style="padding:11px 0;border-top:1px solid var(--line)"><span class="name">${more} more</span><span class="neutral">→</span></a>` : ''}</div>` : html`${emptyNote(html`No loans. <a class="link" href="#/accounts">Add one</a>`)}`}</section>`;
+  return html`<section class="panel">${panelHead('Loans', 'Remaining balance and payoff progress', { href: '#/loans', label: 'Plan payoff' })}${loans.length ? html`<div class="total num" style="margin-bottom:4px">${money0(loans.reduce((s, l) => s + l.debt, 0))}</div><div class="loan-rows">${rows}${more ? html`<a class="row more" href="#/loans" style="padding:12px 0;border-top:1px solid var(--line)"><span class="name">${more} more</span><span class="neutral">→</span></a>` : ''}</div>` : html`${emptyNote(html`No loans. <a class="link" href="#/accounts">Add one</a>`)}`}</section>`;
 }
 export function cashFlow(trend: CashMonth[]) {
   const W = window.innerWidth < 600 ? 420 : window.innerWidth >= 1700 ? 1500 : 960, H = 210, top = 10, bottom = 28, n = trend.length;
@@ -336,7 +336,7 @@ export function cashFlow(trend: CashMonth[]) {
   }));
   const full = fullMonths(trend), avgS = full.reduce((s, t) => s + t.spend, 0) / full.length, avgK = full.reduce((s, t) => s + t.income - t.spend, 0) / full.length;
   S.chartData = trend;
-  return html`${panelHead('Cash flow', html`Earned vs. spent over the last ${n === 6 ? 'six' : n} months · click a month to open it`)}<svg class="flowchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Income and spending by month"><line x1="0" x2="${W}" y1="${H - bottom}" y2="${H - bottom}" stroke="var(--line)"/>${bars}</svg><div style="display:flex;gap:40px;margin-top:18px"><div><div class="eyebrow">Avg. spent / month</div><div class="num" style="font-size:21px">${money0(avgS)}</div></div><div><div class="eyebrow">Avg. kept / month</div><div class="num" style="font-size:21px">${money0(avgK)}</div></div></div><div class="legend"><span><i style="background:var(--income)"></i>Earned</span><span><i style="background:var(--spend)"></i>Spent</span></div>`;
+  return html`${panelHead('Cash flow', html`Earned vs. spent over the last ${n === 6 ? 'six' : n} months · click a month to open it`)}<svg class="flowchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Income and spending by month"><line x1="0" x2="${W}" y1="${H - bottom}" y2="${H - bottom}" stroke="var(--line)"/>${bars}</svg><div style="display:flex;gap:40px;margin-top:20px"><div><div class="eyebrow">Avg. spent / month</div><div class="num" style="font-size:21px">${money0(avgS)}</div></div><div><div class="eyebrow">Avg. kept / month</div><div class="num" style="font-size:21px">${money0(avgK)}</div></div></div><div class="legend"><span><i style="background:var(--income)"></i>Earned</span><span><i style="background:var(--spend)"></i>Spent</span></div>`;
 }
 // The Cash flow tile drawn as its ⚙ says: bars (cashFlow above), smooth lines, or what was kept each month
 function cashFlowAs(trend: CashMonth[], style: string) {
@@ -399,7 +399,7 @@ function budgetsMini(budgets: ApiData[], limits: Record<string, BudgetLimit>, al
     return p && (p.tone === 'warn' || p.tone === 'over');
   }).length;
   const periodLabel = all ? 'Spent of all time' : cur && !(t >= cur.start && t <= cur.end) ? cur.label : 'This month';
-  return html`<section class="panel">${panelHead('Budgets', html`${periodLabel}${ahead ? html` · <span class="up">${ahead} over or near limit</span>` : ''}`, { href: '#/budgets', label: 'Insights' })}${rows ? html`<div class="brings">${rows}</div>${more > 0 ? html`<a class="link" href="#/budgets" style="display:inline-block;margin-top:10px">${more} more</a>` : ''}` : html`${emptyNote(html`No budgets yet. <a class="link" href="#/budgets">Set up a budget</a>`)}`}</section>`;
+  return html`<section class="panel">${panelHead('Budgets', html`${periodLabel}${ahead ? html` · <span class="up">${ahead} over or near limit</span>` : ''}`, { href: '#/budgets', label: 'Insights' })}${rows ? html`<div class="brings">${rows}</div>${more > 0 ? html`<a class="link" href="#/budgets" style="display:inline-block;margin-top:12px">${more} more</a>` : ''}` : html`${emptyNote(html`No budgets yet. <a class="link" href="#/budgets">Set up a budget</a>`)}`}</section>`;
 }
 // Where the money went by who was paid (Firefly's expense accounts), against last month
 function payeesPanel(now: ApiData[], prev: ApiData[], future: boolean, all: boolean, count = 8, compare = true) {

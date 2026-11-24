@@ -47,7 +47,7 @@ describe('hide amounts when the app is backgrounded', () => {
 describe('inbox buttons stay inside the card', () => {
   it('the action row wraps and a long Accept label is clipped, not pushed out (measured at 320 to 1280)', () => {
     const src = readFileSync('app/src/pages/inbox.ts', 'utf8'), css = readFileSync('app/assets/money.css', 'utf8');
-    expect(src).toContain('margin-top:6px;flex-wrap:wrap');
+    expect(src).toContain('margin-top:8px;flex-wrap:wrap');
     expect(css).toMatch(/\.ib-accept \{[^}]*max-width: 100%;[^}]*text-overflow: ellipsis/);
   });
 });

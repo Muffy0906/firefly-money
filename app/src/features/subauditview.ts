@@ -19,7 +19,7 @@ export function subAuditPanel(a: SubAudit) {
   if (!a.items.length) return '';
   const kpi = (label: string, v: string, sub = '', cls = '') => kpiCard(label, v, sub || null, cls);
   const flags = [a.hikes ? plural(a.hikes, 'price rise') : '', a.late ? plural(a.late, 'late charge') : '', a.quiet ? plural(a.quiet, 'quiet one') : ''].filter(Boolean).join(' · ');
-  return html`<section class="panel" style="margin-top:20px">${panelHead('Subscription audit', html`Every charge that repeats, from the past year of spending${flags ? ' · ' + flags : ''}`)}<div class="kpis" style="margin-top:14px">${kpi('A month', money0(a.monthly), plural(a.items.length - a.quiet, 'active subscription'))}${kpi('A year', money0(a.yearly))}${a.quiet ? kpi('Maybe cancelled', money0(a.quietYearly), 'a year, if it has really stopped', 'neg') : ''}</div><div class="list">${htmlList(a.items.map(row))}</div></section>`;
+  return html`<section class="panel" style="margin-top:20px">${panelHead('Subscription audit', html`Every charge that repeats, from the past year of spending${flags ? ' · ' + flags : ''}`)}<div class="kpis" style="margin-top:16px">${kpi('A month', money0(a.monthly), plural(a.items.length - a.quiet, 'active subscription'))}${kpi('A year', money0(a.yearly))}${a.quiet ? kpi('Maybe cancelled', money0(a.quietYearly), 'a year, if it has really stopped', 'neg') : ''}</div><div class="list">${htmlList(a.items.map(row))}</div></section>`;
 }
 // Overview: small enough for a slim card (one number and a line of flags)
 export function subAuditTile(a: SubAudit | null) {
