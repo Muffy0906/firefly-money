@@ -111,7 +111,7 @@ export function syncSky(refetch = true) {
     else if (w === 'live' && loc) { if (fetching && (Date.now() - liveAt > 15 * 60000 || liveFor !== loc.join(','))) fetchLive(loc); wx = live || undefined; }
     paintSky(n.getHours() * H + n.getMinutes(), { rise: sun[0], set: sun[1], wx });
   };
-  tick(refetch); timer = window.setInterval(() => tick(), 60000);
+  tick(refetch); timer = window.setInterval(() => { if (!document.hidden) tick(); }, 60000);
 }
 // Any way the theme changes (picker, palette, boot) goes through the attribute
 if (typeof MutationObserver !== 'undefined') new MutationObserver(() => syncSky()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });

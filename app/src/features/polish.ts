@@ -88,7 +88,12 @@ function bindChart() {
 
 /* ---------- Hover tooltips for chart points ---------- */
 let touchAt = 0;   // a tap also sends a mousemove; the tap already placed the tip above the finger
-document.addEventListener('mousemove', e => {
+let moveRaf = 0, moveEv: MouseEvent | null = null;
+document.addEventListener('mousemove', e => {      // at most once a frame: reading the tip's size forces a layout
+  moveEv = e;
+  if (!moveRaf) moveRaf = requestAnimationFrame(() => { moveRaf = 0; if (moveEv) placeTip(moveEv); });
+}, { passive: true });
+function placeTip(e: MouseEvent) {
   if (Date.now() - touchAt < 800) return;
   const t = e.target && (e.target as HTMLElement).closest ? (e.target as HTMLElement).closest('[data-tip]') : null, tip = el('tip');
   if (!t) { if (tip.dataset.src === 'pt') { tip.hidden = true; tip.dataset.src = ''; } return; }
@@ -96,7 +101,7 @@ document.addEventListener('mousemove', e => {
   const w = tip.offsetWidth, hgt = tip.offsetHeight;
   tip.style.left = Math.min(innerWidth - w - 8, e.clientX + 14) + 'px';
   tip.style.top = (e.clientY + hgt + 20 > innerHeight ? e.clientY - hgt - 12 : e.clientY + 14) + 'px';
-});
+}
 document.addEventListener('scroll', () => { const tip = el('tip'); if (tip.dataset.src === 'pt') tip.hidden = true; }, true);
 // Ring charts: the slice under the pointer stands out, with its row in the list beside it; on a phone a tap on any chart point shows its tip above the finger
 let ringT: ReturnType<typeof setTimeout> | undefined;

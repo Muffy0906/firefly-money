@@ -211,7 +211,7 @@ async function check() {
   // the next one; a hidden page waits until it's shown again (visibilitychange below)
   if (document.visibilityState === 'visible') pingTimer = setTimeout(check, FF.state === 'ok' || FF.state === 'checking' ? PING_OK : PING_DOWN);
 }
-setInterval(paint, 15e3);      // keeps "checked 20s ago" honest
+setInterval(() => { if (!document.hidden) paint(); }, 15e3);      // keeps "checked 20s ago" honest
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); else clearTimeout(pingTimer); });
 addEventListener('focus', () => { if (Date.now() - FF.at > 3e3) check(); });
 addEventListener('online', () => check());

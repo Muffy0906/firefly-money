@@ -1,6 +1,5 @@
-import esCatalog from '../locales/es.json';
-
-const ES: Record<string, string> = esCatalog;
+// The catalog arrives as its own script (locales/es.ts) when Spanish is picked; English never loads it
+const catalog = (): Record<string, string> => (globalThis as { MONEY_ES?: Record<string, string> }).MONEY_ES || {};
 type PhraseTemplate = { re: RegExp, names: string[], translated: string, prefix: string, strong: boolean };
 type PatternIndex<T> = { byPrefix: Map<string, T[]>, withoutPrefix: T[], order: Map<T, number> };
 // A placeholder stands for one piece of text: it never spans a line break or a " · " divider
@@ -12,8 +11,10 @@ const PLACEHOLDER = /\{([a-zA-Z][a-zA-Z0-9_]*)\}/g;
 const literalLength = (s: string) => s.replace(PLACEHOLDER, '').length;   // more fixed text = more specific
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const hasPlaceholder = (s: string) => /\{[a-zA-Z][a-zA-Z0-9_]*\}/.test(s);
-const TRANSLATED_EXACT = new Set(Object.values(ES).filter(value => !hasPlaceholder(value)));
-const TRANSLATED_PHRASES = [...new Set(Object.values(ES))].flatMap(value => {
+// The lookup tables (thousands of regular expressions) are built the first time Spanish is needed, so English never pays for them
+const lazy = <T>(build: () => T) => { let v: T | undefined; return () => v ??= build(); };
+const exactSet = lazy(() => new Set(Object.values(catalog()).filter(value => !hasPlaceholder(value))));
+const translatedPhrases = lazy(() => [...new Set(Object.values(catalog()))].flatMap(value => {
   const matches = [...value.matchAll(PLACEHOLDER)];
   // A value that is mostly placeholders ("{count} {unit}") would match any text and make it look already translated
   if (!matches.length || value.replace(PLACEHOLDER, '').replace(/[^\p{L}]/gu, '').length < 4) return [];
@@ -25,7 +26,7 @@ const TRANSLATED_PHRASES = [...new Set(Object.values(ES))].flatMap(value => {
   }
   pattern += escapeRe(value.slice(offset)) + '$';
   return [{ re: new RegExp(pattern), prefix: value.slice(0, matches[0].index!) }];
-}).sort((a, b) => b.re.source.length - a.re.source.length);
+}).sort((a, b) => b.re.source.length - a.re.source.length));
 function patternIndex<T>(items: T[], prefixOf: (item: T) => string): PatternIndex<T> {
   const byPrefix = new Map<string, T[]>(), withoutPrefix: T[] = [], order = new Map<T, number>();
   for (const item of items) {
@@ -37,7 +38,7 @@ function patternIndex<T>(items: T[], prefixOf: (item: T) => string): PatternInde
   }
   return { byPrefix, withoutPrefix, order };
 }
-const translatedPhraseIndex = patternIndex(TRANSLATED_PHRASES, phrase => phrase.prefix);
+const translatedPhraseIndex = lazy(() => patternIndex(translatedPhrases(), phrase => phrase.prefix));
 function matchingPatterns<T>(index: PatternIndex<T>, key: string): T[] {
   const out = [...index.withoutPrefix];
   for (let size = Math.min(3, key.length); size > 0; size--) {
@@ -49,7 +50,7 @@ function matchingPatterns<T>(index: PatternIndex<T>, key: string): T[] {
 }
 // Dynamic phrases match the complete text node or attribute. This translates UI copy
 // assembled with names, dates, and amounts while leaving surrounding user content alone.
-const PHRASES: PhraseTemplate[] = Object.entries(ES).flatMap(([source, translated]) => {
+const phrases = lazy((): PhraseTemplate[] => Object.entries(catalog()).flatMap(([source, translated]) => {
   const matches = [...source.matchAll(PLACEHOLDER)];
   if (!matches.length || !/\p{L}/u.test(source.replace(PLACEHOLDER, ''))) return [];   // "{a} {b}" matches any text and says nothing
   let pattern = '^', offset = 0;
@@ -61,8 +62,8 @@ const PHRASES: PhraseTemplate[] = Object.entries(ES).flatMap(([source, translate
   }
   pattern += escapeRe(source.slice(offset)) + '$';
   return [{ re: new RegExp(pattern, 'u'), names, translated, source, strong: literalLength(source) >= 10, prefix: source.slice(0, matches[0].index!) }];
-}).sort((a, b) => literalLength(b.source) - literalLength(a.source) || b.names.length - a.names.length).map(({ source, ...phrase }) => phrase);
-const phraseIndex = patternIndex(PHRASES, phrase => phrase.prefix);
+}).sort((a, b) => literalLength(b.source) - literalLength(a.source) || b.names.length - a.names.length).map(({ source, ...phrase }) => phrase));
+const phraseIndex = lazy(() => patternIndex(phrases(), phrase => phrase.prefix));
 
 // Text built from several pieces ("$102 left · 86% used", tooltips with one fact per line) is translated piece by piece
 const SEPARATORS = /(\n| · | ·$|^· |, (?=(?:In|Out|Balance|Chance below zero|Tightest day|Below zero)\b)|(?<=[.!?]) (?=[A-Z“]))/;
@@ -80,12 +81,12 @@ function bySegment(key: string): string | undefined {
   return hit ? out.join('') : undefined;
 }
 const translation = (key: string, piece = false): string | undefined => {
-  const exact = ES[key];
+  const exact = catalog()[key];
   if (exact != null) return exact;
   // t() and interpolated templates can already contain Spanish when the DOM observer sees them.
   // Don't feed that output back through a loose source pattern (e.g. "{amount} total" → "{amount} en total").
-  if (TRANSLATED_EXACT.has(key) || matchingPatterns(translatedPhraseIndex, key).some(phrase => phrase.re.test(key))) return undefined;
-  const candidates = matchingPatterns(phraseIndex, key);
+  if (exactSet().has(key) || matchingPatterns(translatedPhraseIndex(), key).some(phrase => phrase.re.test(key))) return undefined;
+  const candidates = matchingPatterns(phraseIndex(), key);
   const fill = (phrase: PhraseTemplate): string | undefined => {
     const match = phrase.re.exec(key);
     if (!match) return undefined;

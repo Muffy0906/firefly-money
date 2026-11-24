@@ -8,6 +8,11 @@ describe('quick add dates', () => {
   beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(2026, 9, 20, 9)); });   // Tue 20 Oct 2026
   afterEach(() => vi.useRealTimers());
 
+  it('leaves merchant names that only start like a month alone', () => {
+    ['Market 20', 'Decathlon 25', 'Marshalls 30', 'Junction 15', 'Octane 30'].forEach(t => expect(read(t)).toBeNull());
+    expect(read('Sept 9')).toEqual(['2026-09-09', 2]);
+    expect(read('october 3rd')).toEqual(['2026-10-03', 2]);
+  });
   it('reads relative days', () => {
     expect(read('today')).toEqual(['2026-10-20', 1]);
     expect(read('Yesterday,')).toEqual(['2026-10-19', 1]);

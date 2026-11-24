@@ -27,7 +27,7 @@ function recurForm(id?: string, forceType?: string) {
   const L = S.lists!, at = id ? S.recCache![id] : null, rep = at ? (at.repetitions || [])[0] || {} : {};
   const type = forceType || (at ? at.type : 'withdrawal');
   const t = at && at.type === type ? (at.transactions || [])[0] || {} : at ? { amount: ((at.transactions || [])[0] || {}).amount, description: ((at.transactions || [])[0] || {}).description } : {};
-  S.form = { id, type, origType: type };
+  S.form = { id, type, origType: type, currency: (at && (at.transactions || [])[0] || {}).currency_code || '' };
   const main = type === 'deposit' ? t.destination_id : t.source_id;
   const counter = type === 'deposit' ? t.source_name : t.destination_name;
   const firstDate = at ? String(at.first_date).slice(0, 10) : todayIso();
@@ -65,7 +65,7 @@ async function saveRecur() {
   if (!v('rc-title')) return formError('Give it a name.');
   if (!(num(v('rc-amount')) > 0)) return formError('Enter an amount above zero.');
   await busy(el('recSave'), async () => {
-    const tx: any = { description: v('rc-desc') || v('rc-title'), amount: String(num(v('rc-amount'))), currency_code: S.currency };
+    const tx: any = { description: v('rc-desc') || v('rc-title'), amount: String(num(v('rc-amount'))), currency_code: S.form.currency || S.currency };
     if (type === 'transfer') {
       if (!v('rc-src') || !v('rc-dst') || v('rc-src') === v('rc-dst')) throw new Error('Choose two different accounts.');
       tx.source_id = v('rc-src'); tx.destination_id = v('rc-dst');

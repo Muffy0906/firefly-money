@@ -15,7 +15,7 @@ import { route } from '../core/router';
 // The transaction form's state (S.form while it's open). Fields hold what the inputs hold, as text.
 export type SplitForm = { jid: string, description: string, amount: string, counter: string, category: string, budget: string, bill: string,
   tags: string, notes: string, fa: string, fc: string, orig: Partial<Record<string, string>> };
-export type TxForm = { id: string, type: string, date: string, title: string, main: string, src: string, dst: string, rules: boolean, splits: SplitForm[],
+export type TxForm = { id: string, type: string, date: string, fullDate?: string, title: string, main: string, src: string, dst: string, rules: boolean, splits: SplitForm[],
   nlBase?: ApiData, nl?: string, nlChips?: Html | '',   // quick add: what was typed and the chips it was read as
   refundOf?: { jid: string, label: string },              // a refund made from this purchase: linked to it when saved
   draft?: string,
@@ -64,7 +64,7 @@ let saving = false;      // guards against a double-tap or double-click firing t
 function formOf(g: Group): TxForm {
   const f = g.splits[0];
   return {
-    id: g.id, type: g.type, date: String(g.date).slice(0, 10), title: g.title, rules: false,
+    id: g.id, type: g.type, date: String(g.date).slice(0, 10), fullDate: String(g.date), title: g.title, rules: false,
     main: g.type === 'deposit' ? f.destination_id : f.source_id, src: f.source_id, dst: f.destination_id,
     splits: g.splits.map(s => {
       const x: SplitForm = { jid: s.jid, description: s.description, amount: String(s.native), counter: g.type === 'deposit' ? s.source_name : s.destination_name,
@@ -197,7 +197,7 @@ function resolveCounter(name: string, kind: string): { id?: string, name?: strin
 function buildTxPayload() {
   const f: TxForm = S.form, edit = !!f.id;
   const txs = f.splits.map(s => {
-    const o: Record<string, unknown> = { type: f.type, date: f.date, amount: String(Math.abs(num(s.amount))), description: s.description.trim() };
+    const o: Record<string, unknown> = { type: f.type, date: edit && f.fullDate && f.fullDate.slice(0, 10) === f.date ? f.fullDate : f.date, amount: String(Math.abs(num(s.amount))), description: s.description.trim() };
     if (edit && s.jid) o.transaction_journal_id = s.jid;
     const changed = (k: string) => !edit || !s.jid || String((s as unknown as Record<string, string>)[k] || '') !== String((s.orig || {})[k] || '');
     if (f.type === 'withdrawal') {

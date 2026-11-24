@@ -31,7 +31,7 @@ function parseAmount(v) {
   const dot = n.lastIndexOf('.'), comma = n.lastIndexOf(',');
   // the last separator is the decimal point when two or fewer digits follow it ("4,50"), else it groups thousands
   const dec = Math.max(dot, comma);
-  if (dec >= 0 && n.length - dec - 1 <= 2) n = n.slice(0, dec).replace(/[.,]/g, '') + '.' + n.slice(dec + 1);
+  if (dec >= 0 && (n.length - dec - 1 <= 2 || /^0[.,]\d+$/.test(n))) n = n.slice(0, dec).replace(/[.,]/g, '') + '.' + n.slice(dec + 1);
   else n = n.replace(/[.,]/g, '');
   const x = parseFloat(n);
   const out = (neg ? -x : x).toFixed(2);
@@ -55,7 +55,7 @@ function parseSpot(lat, lng) {
   return isFinite(a) && isFinite(o) && Math.abs(a) <= 90 && Math.abs(o) <= 180 && (a || o) ? { latitude: a, longitude: o } : null;
 }
 
-const words = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const words = s => String(s || '').toLowerCase().replace(/[\x00-\x2f\x3a-\x40\x5b-\x60\x7b-\x7f]+/g, ' ').trim();
 // Words that say what kind of card it is rather than which one, so they don't count as a match on their own
 const GENERIC = ['card', 'credit', 'debit', 'visa', 'mastercard', 'signature', 'preferred', 'rewards', 'world', 'elite', 'the', 'my', 'account', 'bank', 'and'];
 const telling = s => words(s).split(' ').filter(w => w.length >= 3 && GENERIC.indexOf(w) < 0);
@@ -195,7 +195,7 @@ async function endpoint(r) {
     const accounts = await own(r);
     let acc = null;
     if (b.account) {
-      acc = accounts.find(a => words(a.name) === words(b.account)) || null;
+      acc = words(b.account) ? accounts.find(a => words(a.name) === words(b.account)) || null : null;
       if (!acc) return say(r, 422, 'No account is called "' + b.account + '". Set "account" in the Shortcut to one of: ' + accounts.map(a => a.name).join(', '));
     } else {
       const prefs = await cardPrefs(r);

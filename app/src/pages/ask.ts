@@ -115,8 +115,7 @@ async function answer(q: Question, L: Lists): Promise<Answer> {
       more: { label: 'Search transactions for “' + what + '”', href: '#/transactions?search=' + encodeURIComponent(what) } };
   }
   if (q.intent === 'spent' || q.intent === 'income') {
-    const kind = q.intent === 'income' ? 'income' : 'expense', res = await insight('/insight/' + kind + '/total', p), v = sumDiff(res);
-    const top = await insight(kind === 'income' ? '/insight/income/revenue' : '/insight/expense/category', p).catch(() => []);
+    const kind = q.intent === 'income' ? 'income' : 'expense', [res, top] = await Promise.all([insight('/insight/' + kind + '/total', p), insight(kind === 'income' ? '/insight/income/revenue' : '/insight/expense/category', p).catch(() => [])]), v = sumDiff(res);
     return { title: html`You ${kind === 'income' ? 'earned' : 'spent'} <strong>${money(v)}</strong> ${r.label}.`,
       lines: arr(top).sort((a, b) => absDiff(b) - absDiff(a)).slice(0, 5).map(x => row(x.name, money0(absDiff(x)), kind === 'income' ? '#/account/' + x.id : '#/transactions?category=' + x.id)),
       how: 'All ' + (kind === 'income' ? 'deposits' : 'withdrawals') + ' from ' + fmtDate(r.start) + ' to ' + fmtDate(r.end) + '; transfers between your own accounts don’t count. Biggest ' + (kind === 'income' ? 'sources' : 'categories') + ' below.',

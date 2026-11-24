@@ -358,7 +358,6 @@
   @media (max-width: 600px) { .rulegroup summary { flex-wrap: wrap; row-gap: 12px; } .rulegroup summary > :first-child { flex: 1 1 100%; } }
   .editor-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; margin-bottom: 8px; }
   .editor-row .x { border: 0; background: none; cursor: pointer; color: var(--muted); font-size: 18px; }
-  .pager { display: flex; justify-content: space-between; align-items: center; padding: 16px 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: var(--fs-sm); }
 
   /* ---------- Drawer, dialog, toast ---------- */
   .scrim { position: fixed; inset: 0; background: rgba(20, 20, 18, .28); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .24s var(--ease-out), visibility 0s .24s; z-index: 20; }
@@ -779,7 +778,6 @@
   .dash-wrap:not([data-n="1"]) .insights { grid-auto-columns: calc((100% - (var(--n) - 1) * var(--gap)) / var(--n)); gap: var(--gap); padding: 2px 0; margin-inline: 0; margin-bottom: calc(var(--gap) - 2px); }
   .dash-wrap .insight { border-radius: var(--radius); }
   .cards.free .band { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: var(--gap); align-items: start; margin-bottom: var(--gap); }
-  .cards.free .dcol { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
   .cards.free .w { display: block; margin-bottom: 0; }
   .cards.free > .w, .cards.free .dash-rest > .w { margin-bottom: var(--gap); }
   .dash-more { display: block; width: 100%; padding: 12px; }
@@ -792,7 +790,6 @@
   .cards.grid .rsz { position: absolute; right: -6px; bottom: -6px; width: 22px; height: 22px; cursor: nwse-resize; z-index: 2; touch-action: none; border-radius: 6px;
     background: linear-gradient(135deg, transparent 0 45%, var(--accent) 45% 55%, transparent 55% 65%, var(--accent) 65% 75%, transparent 75%); }
   .cards.grid.editing .w > .rsz { pointer-events: auto; }
-  .cards.free.editing .dcol { min-height: 110px; border-radius: var(--radius); background: color-mix(in srgb, var(--accent) 5%, transparent); }
   .cards.editing .w { position: relative; border-radius: var(--radius); outline: 1.5px dashed color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 3px; cursor: grab; }
   .cards.editing .w > :not(.wctl):not(.rsz):not(.wopts) { pointer-events: none; }
   .cards.editing .w.off > :not(.wctl):not(.rsz):not(.wopts) { opacity: .35; filter: grayscale(1); }
@@ -933,7 +930,7 @@
   .grab { display: none; }
   /* Privacy: blur money everywhere (hover to peek on desktop) */
   html.privacy .num, html.privacy .amt, html.privacy .big, html.privacy .val, html.privacy .total, html.privacy .insight .d, html.privacy .tip, html.privacy .hm-foot strong,
-  html.privacy .dhero .sub-s, html.privacy .sub, html.privacy .sub-s, html.privacy .kpi .val, html.privacy .st-p, html.privacy .bi-verdict, html.privacy .tl-moments li, html.privacy .ax-amt, html.privacy .bv, html.privacy .priv-txt { filter: blur(7px); transition: filter var(--t-hover); }
+  html.privacy .dhero .sub-s, html.privacy .sub, html.privacy .sub-s, html.privacy .kpi .val, html.privacy .st-p, html.privacy .bi-verdict, html.privacy .tl-moments li, html.privacy .ax-amt, html.privacy .bv { filter: blur(7px); transition: filter var(--t-hover); }
   html.priv-snap .num, html.priv-snap .amt, html.priv-snap .big, html.priv-snap .val, html.priv-snap .total, html.priv-snap .insight .d, html.priv-snap .tip, html.priv-snap .hm-foot strong, html.priv-snap .dhero .sub-s, html.priv-snap .cat .sub, html.priv-snap .sub-s, html.priv-snap .kpi .val { transition: none; }
   html.privacy .settings .sub-s { filter: none; }   /* Settings hints hold no amounts */
   html.privacy .amtx { visibility: hidden; }
@@ -2415,8 +2412,6 @@ html:not(#_) .head .actions .month .round { width: var(--ctl); }
 .sc-detail { margin: 2px 0 0; }
 .sc-go { display: inline-block; margin-top: 6px; padding: 6px 0; font-size: var(--fs-sm); color: var(--accent); text-decoration: none; }
 .sc-note { margin: 12px 0 0; }
-.scorecard .sc-mini { list-style: none; margin: 12px 0 0; padding: 0; }
-.scorecard .sc-mini a { display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 4px 0; color: inherit; text-decoration: none; }
 .scorecard.sc-one .sc-why { margin: 10px 0 0; }
 .scorecard.sc-one .panel-head { align-items: center; }
 .sc-acts { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin-top: 14px; }
@@ -2687,7 +2682,6 @@ html[data-theme="spatial"] .opill { background: rgba(255, 255, 255, .18); box-sh
   .bi-chart .legend { flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; }
   .bi-chart .legend i.lg-lim { width: 12px; height: 0; border-radius: 0; background: none; border-top: 2px solid var(--text); vertical-align: 3px; }
   .legend i.lg-ln { width: 16px; height: 0; border-radius: 0; background: none; border-top: var(--w, 2px) var(--s, solid) var(--c); opacity: var(--o, 1); vertical-align: 3px; }
-  .bi-chart .legend i.lg-dash { width: 12px; height: 0; border-radius: 0; border-top: 2px dashed var(--muted); vertical-align: 3px; }
   .lines .lim { stroke: var(--text); stroke-width: 2; stroke-linecap: round; }
   .bpace .lim { stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 2 4; }
   .bpace .ahead { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 2 5; stroke-linecap: round; opacity: .7; }
@@ -2805,7 +2799,7 @@ html[data-theme="dark"] { --e1: var(--rim), var(--lift); --e2: 0 1px 0 rgba(0,0,
 /* Touch: the drawer's close button, and the small checkboxes, reach the finger */
 @media (pointer: coarse) {
   .drawer header .round { width: 44px; height: 44px; }
-  .tbl input[type=checkbox], .cl-row input[type=checkbox] { width: 20px; height: 20px; }
+  .tbl input[type=checkbox] { width: 20px; height: 20px; }
 }
 
 .field-err { display: block; margin-top: 4px; font-size: var(--fs-xs); font-weight: 500; color: var(--spend); }
