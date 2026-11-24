@@ -2,7 +2,7 @@ import { type Html, html, htmlList } from './html';
 import { type ApiError, AuthError, CACHE, CAP, capNote, INFLIGHT, PAGES, dropSavedCopies, netBusy, sleep } from './api';
 import { showLogin } from './auth';
 import { App, S, type State, el, monthOf, nowMonth, setToday, today } from './base';
-import { VT_OK, drawNav, monthNav, toast, vt, vtName } from './dom';
+import { VT_OK, drawNav, errText, monthNav, toast, vt, vtName } from './dom';
 import { lists } from './lists';
 import { loadBegin } from './progress';
 import { pagedHtml } from './pagescroll';
@@ -236,7 +236,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
   } catch (e) {
     if (e instanceof AuthError) return showLogin(e.message);
     const onError = !!v.querySelector(':scope > .pg > .error');
-    if (opts.quiet && S.pageLive && !onError) { toast('Couldn’t refresh: ' + (e as Error).message); return; }
+    if (opts.quiet && S.pageLive && !onError) { toast('Couldn’t refresh: ' + errText(e)); return; }
     if ((e as ApiError).network) {
       paint(html`<div class="error" role="alert"><strong>Couldn’t load this page.</strong><br>${errText(e)}<br>Trying again by itself…<br><br><button class="btn small" data-onclick="App.reload()">Try again now</button></div>`);
       if (tok === S.tok) retryWhenBack(tok);
@@ -248,7 +248,6 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
 // The server couldn't be reached: try the page again after a short wait (longer each time, up to 30 s),
 // or straight away when the device comes back online or the tab is shown again. Stops once you go elsewhere.
 // A server message is worth showing; a JavaScript error ("Cannot read properties of undefined…") is not
-export const errText = (e: unknown) => e instanceof TypeError || e instanceof ReferenceError || e instanceof RangeError || e instanceof SyntaxError ? 'Something went wrong while showing this page.' : (e as Error)?.message || 'Something went wrong.';
 let netFails = 0, netTimer: ReturnType<typeof setTimeout> | undefined;
 function retryWhenBack(tok: number) {
   const go = () => {
@@ -313,7 +312,7 @@ async function recalcAll(btn?: HTMLButtonElement) {
     toast('Recalculated everything from Firefly III');
   } catch (e) {
     if (e instanceof AuthError) return showLogin(e.message);
-    toast('Couldn’t recalculate: ' + (e as Error).message);
+    toast('Couldn’t recalculate: ' + errText(e));
   } finally {
     S.recalcing = false; endLoad();
     if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = label; }

@@ -231,3 +231,5 @@ document.addEventListener('keydown', e => {
   const box = c && c.open ? c : p && !p.hidden ? p.querySelector('.palette-box') : k && !k.hidden ? k : null;
   trapTab(e, box);
 }, true);
+// What to tell the person about a failure: Firefly's own message, but never a JavaScript error's wording ("Cannot read properties of undefined")
+export const errText = (e: unknown) => e instanceof TypeError || e instanceof ReferenceError || e instanceof RangeError || e instanceof SyntaxError ? 'Something went wrong while showing this page.' : (e as Error)?.message || 'Something went wrong.';

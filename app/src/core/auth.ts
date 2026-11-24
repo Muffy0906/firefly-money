@@ -1,6 +1,6 @@
 import { AuthError, CACHE, PAGES, dropSavedCopies } from './api';
 import { S, el } from './base';
-import { closeDrawer, formError, toast } from './dom';
+import { closeDrawer, errText, formError, toast } from './dom';
 
 /* Signing in and out, and what happens when Firefly or the session check says no.
    The server keeps the session in an HttpOnly cookie that scripts can't read (see app/session.js), so the page
@@ -46,9 +46,9 @@ export function showLogin(msg?: string) {
   const e = el('loginErr'); e.hidden = !msg; e.textContent = msg || '';
   el<HTMLInputElement>('loginPw').value = ''; el<HTMLInputElement>('loginPw').focus();
 }
-export async function withAuth<T>(fn: () => Promise<T>) { try { return await fn(); } catch (e) { if (e instanceof AuthError) return showLogin(e.message); toast((e as Error).message, true); } }
+export async function withAuth<T>(fn: () => Promise<T>) { try { return await fn(); } catch (e) { if (e instanceof AuthError) return showLogin(e.message); toast(errText(e), true); } }
 export async function busy(btn: HTMLButtonElement | null | undefined, fn: () => Promise<unknown>) {
   if (btn) { btn.disabled = true; btn.dataset.l = btn.textContent; btn.textContent = 'Saving…'; }
-  try { await fn(); } catch (e) { if (e instanceof AuthError) return showLogin(e.message); formError((e as Error).message); }
+  try { await fn(); } catch (e) { if (e instanceof AuthError) return showLogin(e.message); formError(errText(e)); }
   finally { if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = btn.dataset.l!; } }
 }
