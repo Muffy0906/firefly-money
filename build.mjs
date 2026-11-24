@@ -9,7 +9,7 @@ import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 
 const demo = process.argv.includes('--demo');
 const options = {
-  entryPoints: { boot: 'app/src/boot.ts', app: 'app/src/main.ts', leaflet: 'app/src/vendor/leaflet.ts', ...(demo ? { demo: 'app/src/demo/demo.ts' } : {}) },
+  entryPoints: { boot: 'app/src/boot.ts', app: 'app/src/main.ts', leaflet: 'app/src/vendor/leaflet.ts', es: 'app/src/locales/es.ts', ...(demo ? { demo: 'app/src/demo/demo.ts' } : {}) },
   outdir: demo ? 'site/assets/js' : 'app/assets/js',
   bundle: true,
   minify: true,

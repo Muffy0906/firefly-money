@@ -1,6 +1,5 @@
-import esCatalog from '../locales/es.json';
-
-const ES: Record<string, string> = esCatalog;
+// The catalog arrives as its own script (locales/es.ts) when Spanish is picked; English never loads it
+const catalog = (): Record<string, string> => (globalThis as { MONEY_ES?: Record<string, string> }).MONEY_ES || {};
 type PhraseTemplate = { re: RegExp, names: string[], translated: string, prefix: string, strong: boolean };
 type PatternIndex<T> = { byPrefix: Map<string, T[]>, withoutPrefix: T[], order: Map<T, number> };
 // A placeholder stands for one piece of text: it never spans a line break or a " · " divider
@@ -14,8 +13,8 @@ const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const hasPlaceholder = (s: string) => /\{[a-zA-Z][a-zA-Z0-9_]*\}/.test(s);
 // The lookup tables (thousands of regular expressions) are built the first time Spanish is needed, so English never pays for them
 const lazy = <T>(build: () => T) => { let v: T | undefined; return () => v ??= build(); };
-const exactSet = lazy(() => new Set(Object.values(ES).filter(value => !hasPlaceholder(value))));
-const translatedPhrases = lazy(() => [...new Set(Object.values(ES))].flatMap(value => {
+const exactSet = lazy(() => new Set(Object.values(catalog()).filter(value => !hasPlaceholder(value))));
+const translatedPhrases = lazy(() => [...new Set(Object.values(catalog()))].flatMap(value => {
   const matches = [...value.matchAll(PLACEHOLDER)];
   // A value that is mostly placeholders ("{count} {unit}") would match any text and make it look already translated
   if (!matches.length || value.replace(PLACEHOLDER, '').replace(/[^\p{L}]/gu, '').length < 4) return [];
@@ -51,7 +50,7 @@ function matchingPatterns<T>(index: PatternIndex<T>, key: string): T[] {
 }
 // Dynamic phrases match the complete text node or attribute. This translates UI copy
 // assembled with names, dates, and amounts while leaving surrounding user content alone.
-const phrases = lazy((): PhraseTemplate[] => Object.entries(ES).flatMap(([source, translated]) => {
+const phrases = lazy((): PhraseTemplate[] => Object.entries(catalog()).flatMap(([source, translated]) => {
   const matches = [...source.matchAll(PLACEHOLDER)];
   if (!matches.length || !/\p{L}/u.test(source.replace(PLACEHOLDER, ''))) return [];   // "{a} {b}" matches any text and says nothing
   let pattern = '^', offset = 0;
@@ -82,7 +81,7 @@ function bySegment(key: string): string | undefined {
   return hit ? out.join('') : undefined;
 }
 const translation = (key: string, piece = false): string | undefined => {
-  const exact = ES[key];
+  const exact = catalog()[key];
   if (exact != null) return exact;
   // t() and interpolated templates can already contain Spanish when the DOM observer sees them.
   // Don't feed that output back through a loose source pattern (e.g. "{amount} total" → "{amount} en total").
