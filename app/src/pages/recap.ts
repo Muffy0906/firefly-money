@@ -99,12 +99,12 @@ VIEWS.recap = async (r, paint) => {
   const top = [...splits].sort((a, b) => b.amount - a.amount).slice(0, pageOpt('recap', 'top'));
   const byDay = new Map<string, number>(); splits.forEach(s => { const d = String(s.date).slice(0, 10); byDay.set(d, (byDay.get(d) || 0) + s.amount); });
   const bigDay = [...byDay].sort((a, b) => b[1] - a[1])[0];
-  const topHtml = htmlList(top.map(s => html`<button type="button" class="row recap-row" data-onclick="App.editTx('${s.gid}')"><span class="name" style="display:flex;gap:10px;align-items:center">${nameAvatar(s.destination_name || s.description, 'sm')}<span>${s.description}<br><span class="sub-s">${fmtDay(s.date)}${s.category ? ' · ' + s.category : ''}</span></span></span><span class="num">${money(s.amount)}</span></button>`));
+  const topHtml = htmlList(top.map(s => html`<button type="button" class="row recap-row" data-onclick="App.editTx('${s.gid}')"><span class="name" style="display:flex;gap:12px;align-items:center">${nameAvatar(s.destination_name || s.description, 'sm')}<span>${s.description}<br><span class="sub-s">${fmtDay(s.date)}${s.category ? ' · ' + s.category : ''}</span></span></span><span class="num">${money(s.amount)}</span></button>`));
 
   // Payees you paid this month and not once in the twelve months before
   const seen = new Set(arr(payees12).map(x => String(x.id)));
   const fresh = arr(payees).filter(x => !seen.has(String(x.id)) && absDiff(x) > 0).sort((a, b) => absDiff(b) - absDiff(a));
-  const freshHtml = htmlList(fresh.slice(0, 6).map(x => html`<a class="row" href="#/account/${x.id}"><span class="name" style="display:flex;gap:10px;align-items:center">${nameAvatar(x.name, 'sm')}${x.name}</span><span class="num">${money(absDiff(x))}</span></a>`));
+  const freshHtml = htmlList(fresh.slice(0, 6).map(x => html`<a class="row" href="#/account/${x.id}"><span class="name" style="display:flex;gap:12px;align-items:center">${nameAvatar(x.name, 'sm')}${x.name}</span><span class="num">${money(absDiff(x))}</span></a>`));
 
   // What went out each week of the month, counted from the day it starts (the last one runs to the month's end)
   const wk = [0, 7, 14, 21, 28].filter(o => o < dim).map((o, i, l) => ({ from: o, to: (l[i + 1] ?? dim) - 1, v: 0 }));

@@ -40,7 +40,7 @@ function pickList(): PickItem[] {
 function pickFilter(q: string) { const c = pickCtx!; c.q = q; c.idx = q ? 0 : Math.max(0, pickList().findIndex(x => String(x.v) === String(c.cur || ''))); drawPick(); }
 function drawPick() {
   const c = pickCtx!, list = pickList();
-  el('pkList').innerHTML = String(htmlList(list.map((x, i) => html`<div class="pal-item${i === c.idx ? ' on' : ''}" data-onmouseenter="App.pickHover(${i})" data-onmousedown="event.preventDefault();App.pickChoose(${i})"><span>${x.l}</span>${String(x.v) === String(c.cur) && !x.create ? html`<span class="k">✓</span>` : ''}</div>`)) || html`<div class="empty" style="padding:10px 14px">Nothing matches.</div>`);
+  el('pkList').innerHTML = String(htmlList(list.map((x, i) => html`<div class="pal-item${i === c.idx ? ' on' : ''}" data-onmouseenter="App.pickHover(${i})" data-onmousedown="event.preventDefault();App.pickChoose(${i})"><span>${x.l}</span>${String(x.v) === String(c.cur) && !x.create ? html`<span class="k">✓</span>` : ''}</div>`)) || html`<div class="empty" style="padding:12px 16px">Nothing matches.</div>`);
   const on = el('pkList').querySelector('.on'); if (on) on.scrollIntoView({ block: 'nearest' });
 }
 function pickHover(i: number) { if (pickCtx && i !== pickCtx.idx) { pickCtx.idx = i; drawPick(); } }

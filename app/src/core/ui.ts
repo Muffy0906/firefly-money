@@ -20,7 +20,7 @@ export const emptyNote = (text: string | Html) => html`<p class="empty">${text}<
 
 // A tick, a title and a line: the page is done, there is nothing to do. pad is the vertical padding in px
 export const doneState = (title: string, text: string | Html, pad = 60) =>
-  html`<div class="center-empty" style="padding:${pad}px 20px"><div style="font-size:40px">✓</div><h2 style="font-size:18px;margin:10px 0 4px">${title}</h2>${text}</div>`;
+  html`<div class="center-empty" style="padding:${pad}px 20px"><div style="font-size:40px">✓</div><h2 style="font-size:18px;margin:12px 0 4px">${title}</h2>${text}</div>`;
 
 // A figure with a small caption above it, and an optional line under it. A sub of null, undefined or false is left out
 export const kpi = (label: string | Html, value: unknown, sub?: unknown, cls = '') =>
