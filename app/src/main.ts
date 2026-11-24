@@ -60,6 +60,7 @@ import './pages/cleanup';
 import './features/palette';
 import './features/polish';
 import './features/activity3d';
+import './features/carddrawer';
 import './features/refine';
 import './features/dock';
 import './features/datepicker';

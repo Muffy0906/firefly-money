@@ -18,6 +18,7 @@ import { DASH_NAMES, tileOn, tileOpt } from '../features/dashboard';
 import { activityPanel, activityRange, barChart, paceChart, ring, shareChart, sparkBars, twoLines } from '../features/charts';
 import { type NetWorthPoint, nwGear, nwLine, nwOptsForm, nwWords } from '../features/networth';
 import { bindSwipe } from '../features/phone';
+import { detailSet, shareList } from '../features/carddrawer';
 import { drafts } from '../features/txform';
 import { billAmount, billDueDates, billsFrom, subCharges } from './bills';
 import { auditSubs } from '../features/subaudit';
@@ -110,11 +111,22 @@ VIEWS[''] = async (r, paint) => {
   if (un || unP) cats.set('Uncategorized', { name: 'Uncategorized', amt: un, prev: unP });
   rankCats([...cats.values()].map(c => ({ name: c.name, v: c.amt })));     // the feed's category colours follow the donut's
 
+  const budgetRows = arr(budgets).filter((b: ApiData) => b.attributes.active !== false);
   let unusual: Unusual | null = null, lastSlow: ApiData[] | null = null;     // odd charges: found after the page is up (below)
   const build = (slow: ApiData[] | null) => {
     lastSlow = slow;
     const [prog, safe, insights, sparks, dayTx, incomeSrc, payNow, payPrev, piggies, nw, prevTx, monthCats, actTx, subAudit, scoreData, habTx] = slow || [];
     const wait = (k: string) => slow ? null : skeletonPanel(k);
+    // Overview cards that open a drawer with everything behind them (features/carddrawer.ts)
+    const cmpOn = !all && tileOpt('spending', 'compare') !== false, catRows = [...cats.values()];
+    const cname = all ? 'of all time' : 'this month';
+    detailSet('spending', 'Where it went', catRows.some(c => c.amt > 0) ? () => html`<p class="sub-s" style="margin:0 0 12px">Spending by category ${cname}${cmpOn ? ', against last month' : ''}</p>${shareList(catRows.map(c => ({ name: c.name, amt: c.amt, prev: c.prev, href: c.id ? '#/transactions?category=' + c.id : undefined })), catRows.reduce((t, c) => t + c.amt, 0), cmpOn)}` : null);
+    const payRows = slow ? arr(payNow).map((x: ApiData) => ({ id: String(x.id), name: x.name as string, amt: absDiff(x) })).filter((x: { amt: number }) => x.amt > 0) : [], payBefore = slow ? Object.fromEntries(arr(payPrev).map((x: ApiData) => [String(x.id), absDiff(x)])) : {};
+    detailSet('payees', 'Top payees', payRows.length ? () => html`<p class="sub-s" style="margin:0 0 12px">Who you paid ${cname}${cmpOn ? ', against last month' : ''}</p>${shareList(payRows.map(x => ({ name: x.name, amt: x.amt, prev: payBefore[x.id] || 0, href: '#/account/' + x.id })), payRows.reduce((t, x) => t + x.amt, 0), cmpOn)}` : null);
+    const incRows = slow ? arr(incomeSrc).map((x: ApiData) => ({ name: x.name as string, amt: absDiff(x), href: '#/account/' + x.id })).filter((x: { amt: number }) => x.amt > 0) : [];
+    detailSet('income', 'Income sources', incRows.length ? () => html`<p class="sub-s" style="margin:0 0 12px">Where your money came from ${cname}</p>${shareList(incRows, incRows.reduce((t, x) => t + x.amt, 0), false)}` : null);
+    detailSet('budgets', 'Budgets', budgetRows.length ? () => budgetsDetail(budgetRows, limits, all ? 'Spent of all time' : cur.label) : null);
+    detailSet('cashflow', 'Cash flow', trend.length ? () => cashDetail(trend) : null);
     // A card with nothing to show for this month says so rather than vanishing, so the cards around it stay put
     const idle = (k: string, why = future ? 'Fills in once this month starts.' : 'Shows for one month at a time: pick a month at the top.') => quietPanel(k, why);
     const W: [string, unknown][] = [
@@ -375,6 +387,20 @@ function trendsPanel(labels: string[], months: ApiData[][], ranges: Period[]) {
   return html`<section class="panel"><h2>Category trends</h2><p class="lead">Your biggest categories, ${labels[0]} to ${labels[labels.length - 1]}</p>${rows ? html`<div class="trends">${rows}</div>` : html`<p class="empty">No spending recorded yet.</p>`}</section>`;
 }
 // Each budget as a ring of how much of it is used, and what's left
+// Every budget with its limit, spent and what's left, the most used first
+function budgetsDetail(budgets: ApiData[], limits: Record<string, BudgetLimit>, label: string) {
+  const rows = budgets.map(b => { const spent = spentSum(b), lim = limits[String(b.id)], cap = lim && lim.amount ? lim.amount : 0; return { b, spent, cap, pct: cap ? spent / cap * 100 : 0 }; }).sort((x, y) => y.pct - x.pct || y.spent - x.spent);
+  return html`<p class="sub-s" style="margin:0 0 12px">${label}</p><div class="goal-rows">${htmlList(rows.map(r => {
+    const cls = !r.cap ? '' : r.pct > 100 ? 'over' : r.pct >= budgetAlert() ? 'warn' : 'good';
+    const sub = !r.cap ? 'No limit set' : r.pct > 100 ? html`<span class="up">${money0(r.spent - r.cap)} over</span>` : html`${money0(r.cap - r.spent)} left of ${money0(r.cap)}`;
+    return html`<div class="cat"><div class="row"><span class="name"><a href="#/transactions?budget=${r.b.id}" data-onclick="App.closeDrawer()">${r.b.attributes.name}</a></span><span class="num">${money0(r.spent)}</span></div>${r.cap ? html`<div class="track"><div class="fill ${cls}" style="width:${Math.min(100, r.pct).toFixed(1)}%"></div></div>` : ''}<div class="sub">${sub}</div></div>`;
+  }))}</div>`;
+}
+// Month by month: what came in, what went out, what was left (and the share kept)
+function cashDetail(trend: CashMonth[]) {
+  const rows = [...trend].reverse().map(m => { const net = m.income - m.spend, kept = m.income > 0 ? Math.round(net / m.income * 100) : null; return html`<tr><td>${m.go ? html`<a href="${m.go}" data-onclick="App.closeDrawer()">${m.label}</a>` : m.label}</td><td class="num">${money0(m.income)}</td><td class="num">${money0(m.spend)}</td><td class="num ${net < 0 ? 'up' : ''}">${net < 0 ? '−' : ''}${money0(Math.abs(net))}</td><td class="num">${kept === null ? '–' : kept + '%'}</td></tr>`; });
+  return html`<p class="sub-s" style="margin:0 0 12px">Income, spending and what was left each month</p><table class="tbl"><thead><tr><th scope="col">Month</th><th scope="col">In</th><th scope="col">Out</th><th scope="col">Left</th><th scope="col">Kept</th></tr></thead><tbody>${htmlList(rows)}</tbody></table>`;
+}
 function budgetsMini(budgets: ApiData[], limits: Record<string, BudgetLimit>, all: boolean, unset = true, cur: Period | null = null) {
   const entries = budgets.filter(b => b.attributes.active !== false && (unset || all || limits[String(b.id)])).map(b => {
     const spent = spentSum(b), lim = limits[String(b.id)];

@@ -2865,3 +2865,6 @@ html[data-theme="dark"] { --e1: var(--rim), var(--lift); --e2: 0 1px 0 rgba(0,0,
 
 /* A destructive confirm: still the primary button (same place, same test hooks), in the spend colour */
 #confirm .btn.primary.danger { background: var(--spend); border-color: var(--spend); color: #fff; }
+
+/* Overview cards that open a drawer with the full list behind them (features/carddrawer.ts) */
+#dash:not(.editing) .w[data-w="spending"], #dash:not(.editing) .w[data-w="payees"], #dash:not(.editing) .w[data-w="income"], #dash:not(.editing) .w[data-w="budgets"], #dash:not(.editing) .w[data-w="cashflow"] { cursor: pointer; }
