@@ -25,7 +25,7 @@ describe('Skill review: touch, keyboard and announcements', () => {
     expect(dom).toContain("export function toast(msg: string, failed = FAILED.test(msg))");
     expect(dom).toContain("setAttribute('role', failed ? 'alert' : 'status')");
     expect(dom).toContain("setAttribute('aria-live', failed ? 'assertive' : 'polite')");
-    expect(src('core/auth.ts')).toContain('toast((e as Error).message, true)');
+    expect(src('core/auth.ts')).toContain('toast(errText(e), true)');
   });
   it('moves focus into the drawer on a phone', () => {
     const dom = src('core/dom.ts');

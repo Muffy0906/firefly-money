@@ -13,7 +13,7 @@ export class Html {
   }
 }
 const ESC: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-const escape = (s: string) => s.replace(/[&<>"']/g, c => ESC[c]);
+export const escape = (s: string) => s.replace(/[&<>"']/g, c => ESC[c]);
 // While testing (the smoke test sets MONEY_CHECK_HTML), report text that looks like markup (a tag, an entity or an
 // attribute) but gets escaped: that's usually a helper still returning a plain string where it should return html``.
 const LOOKS_LIKE_HTML = /<\/?[a-z][a-z0-9-]*[\s/>]|&(?:[a-z]+|#\d+);|[\w-]="/i;

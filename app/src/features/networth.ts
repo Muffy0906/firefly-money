@@ -1,6 +1,6 @@
 import { html } from '../core/html';
 import { api, getAll, PAGES } from '../core/api';
-import { App, el, fmtD, money0, monthOf, monthRange, S, todayIso } from '../core/base';
+import { App, el, fmtD, money0, monthOf, monthRange, parseIso, S, todayIso } from '../core/base';
 import { toast } from '../core/dom';
 import { buzz } from '../core/haptics';
 import { type Account, isAsset, isLiab, lists, normAccount } from '../core/lists';
@@ -115,7 +115,7 @@ function show(box: HTMLElement, i: number) {
 function settle(box: HTMLElement) {
   const card = box.closest<HTMLElement>('.nw'), p = SCRUB[cur]; if (!card) return;
   if (!p || cur === SCRUB.length - 1) return reset(card);
-  const [y, m] = monthOf(new Date(p.date + 'T12:00:00')), sub = part(card, 'sub');
+  const [y, m] = monthOf(parseIso(p.date)), sub = part(card, 'sub');
   if (sub) sub.insertAdjacentHTML('beforeend', String(html` <button type="button" class="link nw-open" data-onclick="App.nwOpen(${y},${m})">See ${monthRange(y, m).short} →</button>`));
   // Hold that month while a mouse heads for the link, rather than scrubbing on the way there
   held = true;

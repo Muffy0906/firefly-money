@@ -1,7 +1,7 @@
 import { Html, html, htmlList } from '../core/html';
 import { api, getAll } from '../core/api';
 import { busy } from '../core/auth';
-import { App, S, absDiff, arr, el, fmtDate, fmtDay, isoDate, money, money0, moneyIn, monthRange, nowMonth, num, period, sumDiff, today, todayIso, type Field, viewYM } from '../core/base';
+import { absDiff, App, arr, el, type Field, fmtDate, fmtDay, isoDate, money, money0, moneyIn, monthRange, nowMonth, num, parseIso, period, S, sumDiff, today, todayIso, viewYM } from '../core/base';
 import { closeDrawer, confirmBox, formError, head, monthNav, openDrawer, opt, toast } from '../core/dom';
 import { type Group, acctAmt, fxEq, nameAvatar, nativeFor, normGroup, openingRepairs, txRows } from '../core/feed';
 import { sumPrimary } from '../core/fx';
@@ -54,7 +54,7 @@ VIEWS.accounts = async (r, paint) => {
     const t = groupTotal(items, x => x.balance); total = t.text + ' total' + t.note;
   } else if (tab === 'cards') {
     cols = html`<th>Name</th><th class="hide-s">Payment due</th><th class="r">Owed</th>`;
-    row = a => html`<td class="desc"><span class="acct">${nameAvatar(a.name, 'sm')}<span class="nm">${a.name}</span></span></td><td class="hide-s neutral">${a.paymentDate ? 'Day ' + new Date(String(a.paymentDate).slice(0, 10) + 'T12:00:00').getDate() + ' of the month' : '—'}</td><td class="amt">${(a.nat || a).balance < 0 ? ownAmt(a, -(a.nat || a).balance, -a.balance) : (a.nat || a).balance > 0 ? html`<span class="pos">Credit ${ownAmt(a, (a.nat || a).balance, a.balance)}</span>` : html`<span class="pos">Paid off</span>`}</td>`;
+    row = a => html`<td class="desc"><span class="acct">${nameAvatar(a.name, 'sm')}<span class="nm">${a.name}</span></span></td><td class="hide-s neutral">${a.paymentDate ? 'Day ' + parseIso(String(a.paymentDate).slice(0, 10)).getDate() + ' of the month' : '—'}</td><td class="amt">${(a.nat || a).balance < 0 ? ownAmt(a, -(a.nat || a).balance, -a.balance) : (a.nat || a).balance > 0 ? html`<span class="pos">Credit ${ownAmt(a, (a.nat || a).balance, a.balance)}</span>` : html`<span class="pos">Paid off</span>`}</td>`;
     const t = groupTotal(items, x => Math.max(0, -x.balance)); total = t.text + ' owed in total' + t.note;
   } else if (tab === 'liabilities') {
     cols = html`<th>Name</th><th class="hide-s">Paid off</th><th class="hide-s">Interest</th><th class="r">Remaining</th>`;
@@ -212,8 +212,8 @@ function balanceChart(groups: Group[], a: Account, range: string) {
   const W = innerWidth < 600 ? 420 : 960, H = 190, pl = 6, pr = 6, pt = 26, pb = 26;
   const vals = pts.map(p => p.v), lo = Math.min(...vals, owed ? 0 : Infinity), hi = Math.max(...vals);
   const span = (hi - lo) || 1, n = pts.length, long = range && range !== 'month';
-  const t0 = new Date(pts[0].d.slice(0, 10) + 'T12:00:00').getTime(), t1 = new Date(pts[n - 1].d.slice(0, 10) + 'T12:00:00').getTime();
-  const x = (i: number) => n === 1 ? W / 2 : long && t1 > t0 ? pl + (W - pl - pr) * (new Date(pts[i].d.slice(0, 10) + 'T12:00:00').getTime() - t0) / (t1 - t0) : pl + (W - pl - pr) * i / (n - 1);
+  const t0 = parseIso(pts[0].d.slice(0, 10)).getTime(), t1 = parseIso(pts[n - 1].d.slice(0, 10)).getTime();
+  const x = (i: number) => n === 1 ? W / 2 : long && t1 > t0 ? pl + (W - pl - pr) * (parseIso(pts[i].d.slice(0, 10)).getTime() - t0) / (t1 - t0) : pl + (W - pl - pr) * i / (n - 1);
   const y = (v: number) => pt + (H - pt - pb) * (1 - (v - lo) / span);
   let path = '';
   pts.forEach((p, i) => { path += (i ? ' H' + x(i).toFixed(1) + ' V' : 'M' + x(i).toFixed(1) + ' ') + y(p.v).toFixed(1); });

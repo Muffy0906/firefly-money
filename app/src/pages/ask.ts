@@ -1,6 +1,6 @@
 import { type Html, html, htmlList } from '../core/html';
 import { getAll } from '../core/api';
-import { App, absDiff, arr, fmtDate, fmtDay, money, money0, monthRange, nowMonth, sumDiff, todayIso, type ApiData } from '../core/base';
+import { absDiff, type ApiData, App, arr, fmtDate, fmtDay, money, money0, monthRange, nowMonth, parseIso, sumDiff, todayIso, weekdayOf } from '../core/base';
 import { head, icon } from '../core/dom';
 import { normGroup } from '../core/feed';
 import { addDays, daysBetween } from '../core/helpers';
@@ -29,8 +29,8 @@ export function questionRange(q: string, today: string): Range {
   if (/\bthis year\b|\bso far this year\b|\bytd\b/.test(s)) return { start: ty + '-01-01', end: today, label: 'this year' };
   if (/\blast year\b/.test(s)) return { start: (ty - 1) + '-01-01', end: (ty - 1) + '-12-31', label: 'last year' };
   if (/\btoday\b/.test(s)) return { start: today, end: today, label: 'today' };
-  if (/\bthis week\b/.test(s)) { const d = new Date(today + 'T12:00:00'), back = (d.getDay() + 6) % 7; return { start: addDays(today, -back), end: today, label: 'this week' }; }
-  if (/\blast week\b/.test(s)) { const d = new Date(today + 'T12:00:00'), back = (d.getDay() + 6) % 7 + 7; return { start: addDays(today, -back), end: addDays(today, -back + 6), label: 'last week' }; }
+  if (/\bthis week\b/.test(s)) { const d = parseIso(today), back = weekdayOf(d); return { start: addDays(today, -back), end: today, label: 'this week' }; }
+  if (/\blast week\b/.test(s)) { const d = parseIso(today), back = weekdayOf(d) + 7; return { start: addDays(today, -back), end: addDays(today, -back + 6), label: 'last week' }; }
   if ((x = /\b(?:last|past) (\d{1,3}) days\b/.exec(s))) return { start: addDays(today, -(+x[1] - 1)), end: today, label: 'the last ' + x[1] + ' days' };
   if ((x = /\b(?:last|past) (\d{1,2}) months\b/.exec(s))) { const a = monthRange(y, m - +x[1] + 1); return { start: a.start, end: today, label: 'the last ' + x[1] + ' months' }; }
   const mi = MONTHS.findIndex(n => new RegExp('\\b' + n + '\\b|\\b' + n.slice(0, 3) + '\\b').test(s.replace(/\bmay i\b/, '')));

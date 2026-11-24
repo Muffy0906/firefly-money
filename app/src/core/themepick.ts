@@ -1,7 +1,7 @@
 import { html, htmlList } from './html';
+import { currentTheme } from './themevars';
 
 /* ================= The theme list and its picker (grouped chips with a swatch) ================= */
-const currentTheme = () => document.documentElement.getAttribute('data-theme') || 'auto';
 export const THEMES = [
   ['auto', 'Calm (follows your system)', 'linear-gradient(135deg,#f6f5f1 50%,#1d1e1b 50%)'],
   ['light', 'Calm light', '#f6f5f1'], ['dark', 'Calm dark', '#1d1e1b'],

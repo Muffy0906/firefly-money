@@ -9,7 +9,7 @@ import { buzz, hapticsOn } from '../core/haptics';
 import { logosOn } from '../core/logo';
 import { hourlyRate, learnRate, lensOn, setWorkSkip, workHours, workSkip, workSources } from '../core/worklens';
 import { THEMES, themeButtons } from '../core/login';
-import { type Custom, KEY, PHOTO_KEY, SCENES, applyCustom, isHex, lum, readCustom } from '../core/themevars';
+import { applyCustom, currentTheme, type Custom, isHex, KEY, lum, PHOTO_KEY, readCustom, SCENES } from '../core/themevars';
 import { type Account, invalidate, isAsset, isLiab, lists, ordinal } from '../core/lists';
 import { VIEWS, route } from '../core/router';
 import { fxStatus } from '../core/fx';
@@ -134,8 +134,7 @@ export const SET_SECTIONS: [string, string, string][] = [['months', 'Months & bu
   ['sync', 'Sync', 'Settings on all your devices'], ['applepay', 'Apple Pay', 'Add expenses as you pay'], ['currencies', 'Currencies', 'Main currency, exchange rates'],
   ['data', 'Data', 'Export, webhooks, clean up'], ['about', 'About', 'Versions and what’s new']];
 /* ---------- Customize colors: your own background, accent and (for the glass themes) light, tint and blur ---------- */
-const curTheme = () => document.documentElement.getAttribute('data-theme') || 'auto';
-const themeName = () => { const t = THEMES.find(x => x[0] === curTheme()); return t ? t[1] : ''; };
+const themeName = () => { const t = THEMES.find(x => x[0] === currentTheme()); return t ? t[1] : ''; };
 // The colour the theme shows right now (yours, or its own), as #rrggbb for a colour well
 function shown(v: string) {
   const x = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -207,7 +206,7 @@ function skyWeather(v: string) {
   LS.set('skyWx', v); skyChanged();
 }
 function customizer() {
-  const t = curTheme();
+  const t = currentTheme();
   if (t === 'auto') return html`<p class="sub-s" style="margin:4px 0 0">Calm switches between light and dark with your system, so it can’t take your own colors. Pick Calm light, Calm dark or another theme to customize it.</p>`;
   const c: Custom = readCustom()[t] || {}, num = (v: string) => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(v)) || 0;
   const frost = num('--glass-tint'), blur = num('--glass-blur');
@@ -231,7 +230,7 @@ function drawThemeCustom() {
   document.querySelectorAll('.tc-name').forEach(e => { e.textContent = themeName(); });
 }
 function saveCustom(k: keyof Custom, v: string | number | boolean) {
-  const t = curTheme(), all = readCustom(), had = !!all[t];
+  const t = currentTheme(), all = readCustom(), had = !!all[t];
   all[t] = { ...all[t], [k]: v };
   LS.set(KEY, all); applyCustom(t);
   if (!had) drawThemeCustom();        // shows the Reset button (the colour well being dragged stays: same value)
@@ -248,7 +247,7 @@ function themeRange(k: 'frost' | 'blur', input: HTMLInputElement) {
 // A scene brings its own colors, so picking one drops colors you'd set for the last
 function themeScene(k: string) {
   if (k !== 'photo' && !SCENES.some(x => x[0] === k)) return;
-  const t = curTheme(), all = readCustom(), c = { ...all[t], scene: k };
+  const t = currentTheme(), all = readCustom(), c = { ...all[t], scene: k };
   delete c.bg; delete c.glow1; delete c.glow2; delete c.glow3; delete c.accent;
   all[t] = c; LS.set(KEY, all); applyCustom(t); drawThemeCustom(); buzz(8);
 }
@@ -271,7 +270,7 @@ function themePhoto(input: HTMLInputElement) {
 }
 function resetThemeCustom() {
   const all = readCustom();
-  delete all[curTheme()];
+  delete all[currentTheme()];
   LS.set(KEY, all); applyCustom(); drawThemeCustom();
 }
 // The build stamped into the Docker image by GitHub, e.g. "c78fd51 · 2026-09-30". Empty for a local build or plain files.

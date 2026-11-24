@@ -1,6 +1,6 @@
 import { type Html, html, htmlList } from '../core/html';
 import { api } from '../core/api';
-import { absDiff, App, arr, fmtD, money0, monthRange, nowMonth, S, sumDiff, todayIso } from '../core/base';
+import { absDiff, App, arr, fmtD, money0, monthRange, nowMonth, S, shortMoney, sumDiff, todayIso } from '../core/base';
 import { head } from '../core/dom';
 import { type Account, isAsset, isLiab, lists } from '../core/lists';
 import { VIEWS, parseHash } from '../core/router';
@@ -20,11 +20,10 @@ let startAcc: Account | undefined, shown = BATCH, floor = '', loading = false, d
 
 // The round numbers worth a mention when net worth passes them
 const MARKS = [1e3, 5e3, 1e4, 2.5e4, 5e4, 7.5e4, 1e5, 1.5e5, 2e5, 2.5e5, 5e5, 7.5e5, 1e6, 1.5e6, 2e6, 2.5e6, 5e6, 1e7];
-const short$ = (v: number) => v >= 1e6 ? '$' + +(v / 1e6).toFixed(2) + 'm' : '$' + +(v / 1e3).toFixed(1) + 'k';
 export function crossed(before: number, now: number) {
   if (before < 0 && now >= 0) return 'Net worth turned positive';
   const up = MARKS.filter(t => before < t && now >= t).pop(), down = MARKS.filter(t => before >= t && now < t)[0];
-  return up ? 'Net worth passed ' + short$(up) : down ? 'Dipped below ' + short$(down) : '';
+  return up ? 'Net worth passed ' + shortMoney(up, 2) : down ? 'Dipped below ' + shortMoney(down, 2) : '';
 }
 // What made the month stand out, best news first
 function momentsOf(o: { start: string, end: string, earned: number, spent: number, nw: NetWorthPoint, before: NetWorthPoint, accounts: Account[] }) {

@@ -1,4 +1,4 @@
-import { html, raw } from '../core/html';
+import { escape, html, raw } from '../core/html';
 import { App } from '../core/base';
 import { openDrawer, toast } from '../core/dom';
 import { t } from '../core/spanish';
@@ -11,7 +11,6 @@ import { type Rating, type Score, TREND_WORD } from './scorecard';
    Tested in test/scorecard.test.ts: the picture holds no digits and no currency. */
 export const SHARE_W = 1080;
 const COLOR: Record<Rating, string> = { Strong: '#2d8a57', Steady: '#3a78b0', Building: '#b9801a', 'Needs attention': '#b8503b' };
-const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const wrap = (text: string, max: number) => {
   const out: string[] = []; let line = '';
   for (const w of text.split(' ')) { if (line && (line + ' ' + w).length > max) { out.push(line); line = w; } else line = line ? line + ' ' + w : w; }
@@ -22,10 +21,10 @@ export function shareSvg(score: Score): string {
   const M = 80, FONT = 'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif', parts: string[] = [];
   let y = 150;
   const text = (x: number, yy: number, size: number, weight: number, fill: string, v: string, anchor = 'start') =>
-    parts.push('<text x="' + x + '" y="' + yy + '" font-size="' + size + '" font-weight="' + weight + '" fill="' + fill + '" text-anchor="' + anchor + '">' + esc(t(v)) + '</text>');
+    parts.push('<text x="' + x + '" y="' + yy + '" font-size="' + size + '" font-weight="' + weight + '" fill="' + fill + '" text-anchor="' + anchor + '">' + escape(t(v)) + '</text>');
   text(M, y, 34, 600, '#6b6b6b', 'My money scorecard'); y += 100;
   text(M, y, 82, 700, '#1c1c1c', score.person.label); y += 62;
-  for (const l of wrap(t(score.person.line), 46)) { parts.push('<text x="' + M + '" y="' + y + '" font-size="34" fill="#4a4a4a">' + esc(l) + '</text>'); y += 46; }
+  for (const l of wrap(t(score.person.line), 46)) { parts.push('<text x="' + M + '" y="' + y + '" font-size="34" fill="#4a4a4a">' + escape(l) + '</text>'); y += 46; }
   y += 30;
   for (const g of score.grades) {
     parts.push('<rect x="' + M + '" y="' + y + '" width="' + (SHARE_W - 2 * M) + '" height="104" rx="22" fill="#f4f1ea"/>');

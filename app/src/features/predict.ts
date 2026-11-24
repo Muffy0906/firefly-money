@@ -1,3 +1,4 @@
+import { sum } from '../core/helpers';
 /* Local prediction engine: deterministic, no network, no storage. Pure logic, tested in test/predict.test.ts.
    - monthEnd: where a month's spending will end, with a likely range from how well the same method called past months.
    - cashBands: p10/p50/p90 balance for each day ahead, simulated from the scheduled events (seeded, so repeatable).
@@ -18,7 +19,6 @@ function wMedian(v: number[], w: number[]) {
   for (const [x, wt] of o) { acc += wt; if (acc >= half) return x; }
   return o.length ? o[o.length - 1][0] : 0;
 }
-const sum = (xs: number[]) => xs.reduce((s, x) => s + x, 0);
 // Small seeded generator (mulberry32), so the same inputs always give the same numbers
 export function rng(seed: number) {
   let a = seed >>> 0;

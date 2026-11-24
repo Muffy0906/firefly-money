@@ -1,4 +1,5 @@
-import { daysBetween } from '../core/helpers';
+import { isoDate, parseIso } from '../core/base';
+import { daysBetween, sum } from '../core/helpers';
 import { type Acct, INTEREST_RE, runway } from './moneyhealth';
 import { type Charge, findRecurring } from './subs';
 
@@ -28,7 +29,6 @@ export type Personality = { key: PersonKey, label: string, line: string, traits:
 export type Score = { fresh: boolean, months: number, grades: Grade[], improved: Grade | null, best: Grade | null, person: Personality };
 
 const pct = (v: number) => Math.round(v);
-const sum = (v: number[]) => v.reduce((s, x) => s + x, 0);
 const mean = (v: number[]) => v.length ? sum(v) / v.length : 0;
 export const FRESH_DAYS = 90;
 export const rank = (r: Rating) => RATINGS.indexOf(r);
@@ -65,7 +65,7 @@ export function lastMonths(today: string, n = 12): string[] {
   return out;
 }
 const byMonth = (xs: Tx[], months: string[]) => months.map(k => sum(xs.filter(x => monthKey(x.date) === k).map(x => x.amount)));
-const monthEnd = (k: string) => { const d = new Date(+k.slice(0, 4), +k.slice(5, 7), 0, 12); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const monthEnd = (k: string) => isoDate(new Date(+k.slice(0, 4), +k.slice(5, 7), 0, 12));
 const sd = (v: number[]) => { const a = mean(v); return Math.sqrt(mean(v.map(x => (x - a) ** 2))); };
 const s = (n: number) => n === 1 ? '' : 's';
 
@@ -121,7 +121,7 @@ export type Behaviour = {
   ranks: Partial<Record<GradeKey, number>>,
 };
 const DINING_RE = /dining|restaurant|eating out|takeout|take-out|take out|coffee|caf[eé]|\bbars?\b|drinks|fast food|delivery/i;
-const weekendDay = (d: string) => { const w = new Date(d.slice(0, 10) + 'T12:00:00').getDay(); return w === 5 || w === 6 || w === 0; };
+const weekendDay = (d: string) => { const w = parseIso(d.slice(0, 10)).getDay(); return w === 5 || w === 6 || w === 0; };
 export function behaviour(inp: ScoreIn, cur: Period, ranks: Behaviour['ranks'], fresh: boolean): Behaviour {
   if (fresh) return { fresh, weekend: null, subs: null, saver: null, ranks };
   const share = (xs: Tx[]) => { const t = sum(xs.map(x => x.amount)); return t > 0 ? sum(xs.filter(x => weekendDay(x.date)).map(x => x.amount)) / t : 0; };

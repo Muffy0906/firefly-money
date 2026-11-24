@@ -1,5 +1,5 @@
 import { type Html, html, htmlList } from '../core/html';
-import { App, S, money0, todayIso } from '../core/base';
+import { App, money0, parseIso, S, todayIso, weekdayOf } from '../core/base';
 import { PAGES } from '../core/api';
 import { ICON_X } from '../core/dom';
 import { LS, addDays, daysBetween } from '../core/helpers';
@@ -17,7 +17,7 @@ export type Goal = { name: string, target: number, current: number, active: bool
 const WEEKDAYS = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'];
 export const habitsOn = () => LS.get('habits', true) !== false;
 export const habitsHiddenToday = () => LS.get('habitsHide', '') === todayIso();
-const mondayOf = (d: string) => addDays(d, -((new Date(d + 'T12:00:00').getDay() + 6) % 7));
+const mondayOf = (d: string) => addDays(d, -weekdayOf(parseIso(d)));
 const median = (v: number[]) => { const s = [...v].sort((a, b) => a - b), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 
 export type Habits = {
@@ -74,7 +74,7 @@ export function habitStats(buys: Buy[], today: string): Habits | null {
   }
   if (daysBetween(from, today) >= 28) {
     const tot = Array(7).fill(0), n = Array(7).fill(0);
-    for (let d = from; d <= today; d = addDays(d, 1)) { const w = new Date(d + 'T12:00:00').getDay(); tot[w] += (byDay.get(d) || { total: 0 }).total; n[w]++; }
+    for (let d = from; d <= today; d = addDays(d, 1)) { const w = parseIso(d).getDay(); tot[w] += (byDay.get(d) || { total: 0 }).total; n[w]++; }
     const avg = tot.map((t, i) => t / n[i]), lo = avg.indexOf(Math.min(...avg));
     if (avg[lo] > 0) facts.push(WEEKDAYS[lo] + ' are your quietest day: about ' + money0(avg[lo]) + ' on average.');
   }

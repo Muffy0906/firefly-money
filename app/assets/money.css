@@ -118,6 +118,7 @@
   .head .actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   .month { display: flex; align-items: center; gap: 4px; }
   .month span { min-width: 132px; white-space: nowrap; text-align: center; font-weight: 500; }
+  @media (max-width: 360px) { .month span { min-width: 108px; } }     /* the arrows, month and Today button fit the 320px gutter (Bills) */
   .month .today-gap { visibility: hidden; }
   /* the label in full ("September 2026"), or short ("Sep 2026") where Overview's header row is tight on a phone */
   .month i { font-style: normal; } .month .ms { display: none; }
@@ -2429,9 +2430,9 @@ html:not(#_) .head .actions .month .round { width: var(--ctl); }
 
 /* Touch targets: small buttons, the phone search button and the Timeline links keep their look but get a 44px tap area on touch screens */
 @media (pointer: coarse) {
-  .btn.small, .tl-go, .search-btn { position: relative; }
+  .btn.small, .tl-go, .search-btn, .nw-gear { position: relative; }
   .search-btn { position: fixed; }
-  .btn.small::after, .tl-go::after, .search-btn::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%); }
+  .btn.small::after, .tl-go::after, .search-btn::after, .nw-gear::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%); }
 }
 
 /* ---------- Pastel themes: a soft page, white cards, a pastel accent for fills and a deeper tone of the same hue for text, buttons and lines (all 4.5:1 or better) ---------- */

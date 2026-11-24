@@ -1,5 +1,6 @@
 import { el } from '../core/base';
 import { closeDrawer } from '../core/dom';
+import { escape } from '../core/html';
 
 /* ---------- Accessibility glue: current page/tab marked for screen readers, keyboard on clickable rows, skip link, Menu sheet ---------- */
 
@@ -81,14 +82,13 @@ function chartTables() {
     const rows = tips.map(t => {
       const lines = t.split('\n'); let label = lines[0], rest = lines.slice(1).join(' · ');
       if (!rest && label.includes(' · ')) { const i = label.indexOf(' · '); rest = label.slice(i + 3); label = label.slice(0, i); }
-      return '<tr><th scope="row"></th><td></td></tr>'.replace('<th scope="row"></th>', '<th scope="row">' + esc(label) + '</th>').replace('<td></td>', '<td>' + esc(rest) + '</td>');
+      return '<tr><th scope="row"></th><td></td></tr>'.replace('<th scope="row"></th>', '<th scope="row">' + escape(label) + '</th>').replace('<td></td>', '<td>' + escape(rest) + '</td>');
     });
     const d = document.createElement('details'); d.className = 'sk-table chart-data';
     d.innerHTML = '<summary>Show as table</summary><table class="tbl"><thead><tr><th scope="col">Point</th><th scope="col">Value</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
     at.insertAdjacentElement('afterend', d);
   });
 }
-const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 let ctQueued = false;
 const view0 = document.getElementById('view');
 // Added in the same frame as the chart (a microtask, before the browser paints), so the card doesn't grow once it is on screen
