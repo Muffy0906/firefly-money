@@ -106,18 +106,38 @@ document.addEventListener('scroll', () => { const tip = el('tip'); if (tip.datas
 // Ring charts: the slice under the pointer stands out, with its row in the list beside it; on a phone a tap on any chart point shows its tip above the finger
 let ringT: ReturnType<typeof setTimeout> | undefined;
 function ringHot(seg: Element | null) {
-  document.querySelectorAll('.donut.hot').forEach(d => { if (!seg || !d.contains(seg)) { d.classList.remove('hot'); d.closest('.share')?.querySelectorAll('.part.hot').forEach(p => p.classList.remove('hot')); } });
+  if (seg instanceof HTMLElement && seg.matches('.part[data-cat]')) {
+    const d = seg.closest('.share')?.querySelector('.donut');
+    seg = d ? [...d.querySelectorAll<HTMLElement>('.seg:not(.tag-seg)')].find(x => x.dataset.cat === (seg as HTMLElement).dataset.cat) || null : null;
+  }
+  document.querySelectorAll('.donut.hot').forEach(d => { if (!seg || !d.contains(seg)) {
+    d.classList.remove('hot'); d.querySelectorAll('.cat-expanded,.tag-show').forEach(x => x.classList.remove('cat-expanded', 'tag-show'));
+    d.closest('.share')?.querySelectorAll('.part.hot').forEach(p => p.classList.remove('hot'));
+  } });
   if (!seg) return;
-  const d = seg.closest('.donut')!, i = Number((seg as HTMLElement).dataset.i);
-  d.classList.add('hot'); d.querySelectorAll('.seg').forEach(x => x.classList.toggle('on', x === seg));
-  d.closest('.share')?.querySelectorAll('.part').forEach((p, k) => p.classList.toggle('hot', k === i));
+  const d = seg.closest('.donut')!;
+  d.classList.add('hot'); d.querySelectorAll('.seg:not(.tag-seg)').forEach(x => x.classList.toggle('on', x === seg));
+  const cat = (seg as HTMLElement).dataset.cat;
+  const tags = [...d.querySelectorAll<HTMLElement>('.tag-seg')].filter(x => !!cat && x.dataset.parent === cat);
+  (seg as HTMLElement).classList.toggle('cat-expanded', tags.length > 0);
+  d.querySelectorAll<HTMLElement>('.tag-seg').forEach(x => x.classList.toggle('tag-show', !!cat && x.dataset.parent === cat));
+  d.closest('.share')?.querySelectorAll<HTMLElement>('.part').forEach(p => p.classList.toggle('hot', p.dataset.cat === cat));
 }
-document.addEventListener('pointerover', e => { if (e.pointerType === 'mouse') ringHot(e.target instanceof Element ? e.target.closest('.donut .seg[data-tip]') : null); });
+document.addEventListener('pointerover', e => {
+  if (e.pointerType !== 'mouse') return;
+  const target = e.target instanceof Element ? e.target : null;
+  if (target?.closest('.donut .tag-seg.tag-show')) return;
+  ringHot(target?.closest('.donut .seg:not(.tag-seg)[data-tip], .share .part[data-cat]') || null);
+});
 document.addEventListener('pointerup', e => {
   if (e.pointerType === 'mouse') return;
   touchAt = Date.now();
   const seg = e.target instanceof Element ? e.target.closest<HTMLElement>('[data-tip]') : null, tip = el('tip');
-  ringHot(seg && seg.matches('.donut .seg') ? seg : null); clearTimeout(ringT);
+  if (!seg?.matches('.donut .tag-seg.tag-show')) {
+    const category = seg && (seg.matches('.donut .seg:not(.tag-seg), .share .part[data-cat]')) ? seg : null;
+    ringHot(category);
+  }
+  clearTimeout(ringT);
   if (!seg) { if (tip.dataset.src === 'ring' || tip.dataset.src === 'pt') tip.hidden = true; return; }
   tip.textContent = seg.getAttribute('data-tip'); tip.dataset.src = 'ring'; tip.hidden = false;
   const w = tip.offsetWidth, hgt = tip.offsetHeight;
@@ -147,6 +167,9 @@ document.addEventListener('click', e => {
   const inner = (e.target as Element).closest('a[href], button, input, select, label');
   if (inner && t.contains(inner) && inner !== t) return;
   const go = t.getAttribute('data-go'); if (!go) return;
+  // On touch, the first tap expands a category into its tags. Keep the chart open so the next tap can inspect a tag;
+  // category transactions remain available from the category name in the legend.
+  if (lastPointer !== 'mouse' && t.matches('.donut [data-cat].cat-expanded')) { e.preventDefault(); return; }
   if (lastPointer !== 'mouse' && t.hasAttribute('data-tip')) {
     if (!goArm || goArm.node !== t || Date.now() - goArm.at > 2500) {
       goArm = { node: t, at: Date.now() };
@@ -178,12 +201,18 @@ export async function payeeFill(i: number, name: string) {
     const res = await api('/accounts/' + acc.id + '/transactions', { params: { limit: 25, page: 1 } });
     const mine = arr(res).map(normGroup).flatMap(g => g.splits).filter(x => x.source_id === acc.id || x.destination_id === acc.id);
     const s = mine.find(x => x.category) || mine[0];       // most recent one that was categorized
-    if (!s || !S.form || S.form !== f) return;
+    const tagged = mine.find(x => x.tags.length);          // latest tagged movement for this payee
+    if ((!s && !tagged) || !S.form || S.form !== f) return;
     const card = document.querySelector<HTMLElement>('#txForm .split[data-i="' + i + '"]'); if (!card) return;
-    const set = (k: string, v: string) => { const inp = card.querySelector<HTMLInputElement>('[data-k="' + k + '"]'); if (inp && (!inp.value || (k === 'category' && inp.value === f.catPre)) && v) { inp.value = v; inp.classList.add('filled'); f.splits[i][k] = v; } };
-    set('category', s.category);
-    if (f.type === 'withdrawal') set('budget', s.budget_id);
-    if (!card.querySelector<HTMLInputElement>('[data-k="description"]')!.value) set('description', s.description);
+    const set = (k: string, v: string) => { const inp = card.querySelector<HTMLInputElement | HTMLSelectElement>('[data-k="' + k + '"]'); if (inp && (!inp.value || (k === 'category' && inp.value === f.catPre)) && v) { inp.value = v; inp.classList.add('filled'); f.splits[i][k] = v; return true; } return false; };
+    if (s) {
+      set('category', s.category);
+      if (f.type === 'withdrawal') set('budget', s.budget_id);
+      if (!card.querySelector<HTMLInputElement>('[data-k="description"]')!.value) set('description', s.description);
+    }
+    if (tagged && set('tags', tagged.tags.join(', '))) {
+      const more = card.querySelector<HTMLDetailsElement>('.tx-more'); if (more) more.open = true;
+    }
   } catch (e) { /* suggestions are optional */ }
 }
 

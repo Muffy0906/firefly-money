@@ -1,4 +1,5 @@
 import { html, htmlList, raw } from '../core/html';
+import { t as tr } from '../core/spanish';
 import { getAll } from '../core/api';
 import { absDiff, type ApiData, App, arr, el, fmtDate, fmtDay, money, money0, monthOf, monthRange, noneHref, nowMonth, parseIso, type Range, sumDiff, todayIso, txHref, weekdayOf } from '../core/base';
 import { head, ICON_X, opt, toast } from '../core/dom';
@@ -119,7 +120,7 @@ function dailyPanel(buys: Buy[], start: string, end: string, spent: number) {
   buys.forEach(b => { const d = b.date.slice(0, 10); by.set(d, (by.get(d) || 0) + b.amount); });
   if (!by.size) return '';
   const top = [...by].sort((a, b) => b[1] - a[1]).slice(0, 3), free = Math.max(0, days - by.size);
-  return html`<section class="panel">${panelHead('Average day', html`Over ${days} day${days === 1 ? '' : 's'}`)}<div class="total num">${money0(spent / days)}</div><div class="list"><div class="row"><span class="name">Days with no purchases</span><span class="num">${free}</span></div>${htmlList(top.map(([d, v], i) => html`<a class="row" href="${txHref({ type: 'withdrawal' }, { start: d, end: d })}"><span class="name">${i ? 'Next biggest' : 'Biggest day'} · ${fmtDay(d)}</span><span class="num">${money0(v)}</span></a>`))}</div></section>`;
+  return html`<section class="panel">${panelHead('Average day', html`Over ${days} day${days === 1 ? '' : 's'}`)}<div class="total num">${money0(spent / days)}</div><div class="list"><div class="row"><span class="name">${tr('Days with no purchases')}</span><span class="num">${free}</span></div>${htmlList(top.map(([d, v], i) => html`<a class="row" href="${txHref({ type: 'withdrawal' }, { start: d, end: d })}"><span class="name">${i ? tr('Next biggest') : tr('Biggest day')} · ${fmtDay(d)}</span><span class="num">${money0(v)}</span></a>`))}</div></section>`;
 }
 const CMP_LABEL: Record<string, string> = { prev: 'the period before', year: 'the same dates last year' };
 // The report as CSV, rebuilt each time the page is drawn

@@ -21,7 +21,7 @@ function req({ method = 'POST', body = {} as any, auth = '', session = '', firef
     if (path === '/accounts') return reply(200, { data: ACCOUNTS[/type=(\w+)/.exec(o.args)![1]] });
     if (path === '/search/accounts') return reply(200, { data: firefly.payee ? [{ id: '9', attributes: { name: firefly.payee } }] : [] });
     if (firefly.existing && path === '/accounts/1/transactions') return reply(200, { data: [{ attributes: { transactions: firefly.existing } }] });
-    if (path === '/accounts/9/transactions') return reply(200, { data: [{ attributes: { transactions: [{ destination_id: '9', category_name: 'Coffee', budget_id: '5' }] } }] });
+    if (path === '/accounts/9/transactions') return reply(200, { data: [{ attributes: { transactions: [{ destination_id: '9', category_name: 'Coffee', budget_id: '5', tags: firefly.payeeTags }] } }] });
     if (path === '/preferences/money_cards') {
       if (o.method === 'GET') return firefly.prefs ? reply(200, { data: { attributes: { name: 'money_cards', data: JSON.stringify(firefly.prefs) } } }) : reply(404, { message: 'Not found' });
       firefly.saved = JSON.parse(JSON.parse(o.body!).data); return reply(200, {});
@@ -81,6 +81,26 @@ describe('ingest.js', () => {
     expect(posted(r)).toMatchObject({ type: 'withdrawal', amount: '4.75', description: 'Blue Bottle', source_id: '3', destination_name: 'Blue Bottle', tags: ['Apple Pay'], category_name: 'Coffee', budget_id: '5' });
     expect(r.calls.find((c: any) => c.uri.endsWith('/transactions') && c.method === 'POST').body).toMatchObject({ error_if_duplicate_hash: true, apply_rules: true });
   });
+  it('reuses the payee’s recent tags, but never the automatic ones', async () => {
+    const r = req({ auth: 'Bearer ' + await keyFor(), body: { amount: '$4.75', merchant: 'Blue Bottle', card: 'Apple Card' }, firefly: { payee: 'Blue Bottle', payeeTags: ['Apple Pay', 'Coffee run', 'check AMOUNT', 'Refund'] } });
+    await ingest.endpoint(r);
+    expect(posted(r).tags).toEqual(['Apple Pay', 'Coffee run']);
+    const refund = req({ auth: 'Bearer ' + await keyFor(), body: { amount: '-$4.75', merchant: 'Blue Bottle', card: 'Apple Card' }, firefly: { payee: 'Blue Bottle', payeeTags: ['Coffee run'] } });
+    await ingest.endpoint(refund);
+    expect(posted(refund).tags).toEqual(['Apple Pay', 'Refund']);   // a refund doesn't inherit the purchase's tags
+  });
+  it('leaves off the Apple Pay tag when Settings turns it off, and keeps that choice when saving cards', async () => {
+    const firefly: any = { payee: 'Blue Bottle', payeeTags: ['Coffee run', 'Apple Pay'], prefs: { cards: {}, unmatched: [], applePayTag: false } };
+    const r = req({ auth: 'Bearer ' + await keyFor(), body: { amount: '$4.75', merchant: 'Blue Bottle', card: 'Apple Card' }, firefly });
+    await ingest.endpoint(r);
+    expect(posted(r).tags).toEqual(['Coffee run']);
+    const refund = req({ auth: 'Bearer ' + await keyFor(), body: { amount: '-$4', merchant: 'Shop', card: 'Apple Card' }, firefly: { prefs: { cards: {}, unmatched: [], applePayTag: false } } });
+    await ingest.endpoint(refund);
+    expect(posted(refund).tags).toEqual(['Refund']);
+    const unmatched: any = { prefs: { cards: {}, unmatched: [], applePayTag: false } };
+    await ingest.endpoint(req({ auth: 'Bearer ' + await keyFor(), body: { amount: '$4', merchant: 'Shop', card: 'Amex Gold' }, firefly: unmatched }));
+    expect(unmatched.saved).toEqual({ cards: {}, unmatched: ['Amex Gold'], applePayTag: false });
+  });
   it('reads the currency from the amount', () => {
     expect(ingest.parseCurrency('€12.00')).toBe('EUR');
     expect(ingest.parseCurrency('12,00 €')).toBe('EUR');
@@ -100,7 +120,8 @@ describe('ingest.js', () => {
     expect(r.text).toBe('Logged 8.00 EUR (about 10.00 USD) at Blue Bottle (Apple Card).\n');
     const s = posted(r);
     expect(s).toMatchObject({ amount: '10.00', foreign_amount: '8.00', foreign_currency_code: 'EUR', latitude: 48.8584, longitude: 2.2945, category_name: 'Treats', budget_id: '5', tags: ['Apple Pay'] });
-    expect(s.notes).toContain('https://maps.apple.com/?ll=48.8584,2.2945');
+    expect(s.zoom_level).toBe(16);
+    expect(s.notes).not.toContain('maps.apple.com');   // the spot is in Firefly's location fields, not the notes
     // no rate: the same number, tagged for a check
     const noRate = req({ auth: key, body: { amount: '£3', merchant: 'Pret', card: 'Apple Card', category: 'Skip', latitude: '', longitude: '' } });
     await ingest.endpoint(noRate);
@@ -129,7 +150,7 @@ describe('ingest.js', () => {
     const none = req({ auth: key, body: { amount: '$4', merchant: 'Shop', card: 'Amex Gold' }, firefly }); await ingest.endpoint(none);
     expect(none.status).toBe(422);
     expect(none.text).toContain('Settings → Apple Pay');
-    expect([firefly.created, firefly.saved]).toEqual(['money_cards', { cards: {}, unmatched: ['Amex Gold'] }]);
+    expect([firefly.created, firefly.saved]).toEqual(['money_cards', { cards: {}, unmatched: ['Amex Gold'], applePayTag: true }]);
     const wrongName = req({ auth: key, body: { amount: '$4', merchant: 'Shop', card: 'x', account: 'Nope' } }); await ingest.endpoint(wrongName);
     expect(wrongName.status).toBe(422);
     expect(wrongName.text).toContain('Checking, Savings, Apple Card, Chase Sapphire');

@@ -9,14 +9,14 @@ import type { SplitForm, TxForm } from '../app/src/features/txform';
 import { nlParse } from '../app/src/features/nlparse';
 
 const acct = (id: string, name: string, role = 'defaultAsset') => ({ id, name, type: 'asset', role, active: true });
-const blankSplit = (): SplitForm => ({ jid: '', description: '', amount: '', counter: '', category: '', budget: '', bill: '', tags: '', notes: '', fa: '', fc: '', orig: {} });
+const blankSplit = (): SplitForm => ({ jid: '', description: '', amount: '', counter: '', category: '', budget: '', bill: '', tags: '', notes: '', location: '', fa: '', fc: '', orig: {} });
 const form = (): TxForm => ({ id: '', type: 'withdrawal', date: '2026-10-20', title: '', main: '1', src: '1', dst: '', rules: true, splits: [blankSplit()] });
 
 describe('quick add text', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(2026, 9, 20, 9));      // Tue 20 Oct 2026
     const own = [acct('1', 'Checking'), acct('2', 'Savings')];
-    S.lists = { own, expense: [{ id: '10', name: 'Starbucks' }], revenue: [{ id: '20', name: 'Acme Payroll' }], categories: [{ id: '5', name: 'Groceries' }], budgets: [], bills: [], tags: [],
+    S.lists = { own, expense: [{ id: '10', name: 'Starbucks' }], revenue: [{ id: '20', name: 'Acme Payroll' }], categories: [{ id: '5', name: 'Groceries' }, { id: '6', name: 'Eating Out' }, { id: '7', name: 'Eat' }, { id: '8', name: 'Eating' }], budgets: [], bills: [], tags: [{ id: '1', name: 'Work' }, { id: '2', name: 'Weekend trip' }, { id: '3', name: 'Weekend' }, { id: '4', name: 'Wine' }, { id: '5', name: 'Wind' }],
       byId: Object.fromEntries(own.map(a => [a.id, a])) } as never;
     S.form = form();
   });
@@ -41,6 +41,37 @@ describe('quick add text', () => {
     expect(S.form.type).toBe('deposit'); expect(S.form.splits[0].amount).toBe('2500'); expect(S.form.main).toBe('2'); expect(S.form.splits[0].category).toBe('Salary');
     nlParse('40 starbucks #groc');
     expect(S.form.type).toBe('withdrawal'); expect(S.form.splits[0].category).toBe('Groceries'); expect(S.form.main).toBe('1');
+  });
+  it('takes an exact category before a prefix match, and quoted names with spaces', () => {
+    nlParse('9 cafe #eat');
+    expect(S.form.splits[0].category).toBe('Eat');          // "Eat" is exact; "Eating Out" and "Eating" also start with it
+    nlParse('9 cafe #eating');
+    expect(S.form.splits[0].category).toBe('Eating');
+    nlParse('9 cafe #"eating out"');
+    expect(S.form.splits[0].category).toBe('Eating Out');
+    expect(S.form.splits[0].description).toBe('Cafe');
+    nlParse('9 cafe #Brand-new');
+    expect(S.form.splits[0].category).toBe('Brand-new');    // unknown names are kept as typed
+  });
+  it('reads @tags: exact, unique prefix, quoted, and several at once', () => {
+    nlParse('9 cafe @work');
+    expect(S.form.splits[0].tags).toBe('Work');
+    nlParse('9 cafe @wor @"weekend trip"');
+    expect(S.form.splits[0].tags).toBe('Work, Weekend trip');
+    nlParse('9 cafe @weekend');
+    expect(S.form.splits[0].tags).toBe('Weekend');          // exact beats the longer "Weekend trip"
+    nlParse('9 cafe @win');
+    expect(S.form.splits[0].tags).toBe('win');              // "Wine" and "Wind" both fit: not guessed
+    nlParse('9 cafe @new @new');
+    expect(S.form.splits[0].tags).toBe('new');              // no repeats
+    nlParse('9 cafe @"big night"');
+    expect(S.form.splits[0].tags).toBe('big night');
+    expect(S.form.splits[0].description).toBe('Cafe');
+  });
+  it('keeps quoted payees whole and out of the tags and category', () => {
+    nlParse('12 "Shop #5 @Home" #groc @work');
+    const sp = S.form.splits[0];
+    expect(sp.description).toBe('Shop #5 @Home'); expect(sp.category).toBe('Groceries'); expect(sp.tags).toBe('Work');
   });
   it('makes a transfer when two accounts are named, from the one after "from"', () => {
     nlParse('transfer 100 from savings to checking');

@@ -6,7 +6,7 @@ import { closeDrawer, confirmBox, formError, head, ICON_X, monthNav, openDrawer,
 import { invalidate, lists } from '../core/lists';
 import { VIEWS, route } from '../core/router';
 import { insight } from '../features/refunds';
-import { changeBars, shareChart } from '../features/charts';
+import { categoryTagBreakdown, changeBars, shareChart } from '../features/charts';
 import { customizeButton, pageCard, pageOpt } from '../features/pageopts';
 import { emptyNote } from '../core/ui';
 
@@ -28,9 +28,10 @@ VIEWS.categories = async (r, paint) => {
   if (sort === 'name') listed.sort((x, y) => x.name.localeCompare(y.name));
   if (sort === 'change' && !all) listed.sort((x, y) => Math.abs(y.now - y.prev) - Math.abs(x.now - x.prev) || y.now - x.now);
   const kind = pageOpt('categories', 'chart'), href = (x: { id: string }) => '#/transactions?category=' + x.id;
+  const tagTotals = kind === 'donut' ? await categoryTagBreakdown(cur.start, cur.end, cats.map(x => ({ name: x.name, v: x.now }))).catch(() => new Map<string, Map<string, number>>()) : new Map<string, Map<string, number>>();
   const spentAll = cats.reduce((t, x) => t + x.now, 0);
   const pic = kind === 'none' ? '' : kind === 'change' ? (all ? '' : changeBars(cats.map(x => ({ name: x.name, now: x.now, prev: x.prev, href: href(x) }))))
-    : shareChart(cats.map(x => ({ name: x.name, v: x.now, href: href(x), sub: money0(x.now) })), html`<span class="eyebrow">Spent</span><strong class="num">${money0(spentAll)}</strong>`, 'Spending by category', { limit: 8, ring: kind === 'donut', go: txHref({ type: 'withdrawal' }) });
+    : shareChart(cats.map(x => ({ name: x.name, v: x.now, href: href(x), sub: money0(x.now), children: [...(tagTotals.get(x.name) || new Map())].map(([name, v]) => ({ name, v })) })), html`<span class="eyebrow">Spent</span><strong class="num">${money0(spentAll)}</strong>`, 'Spending by category', { limit: 8, ring: kind === 'donut', go: txHref({ type: 'withdrawal' }) });
   const chart = kind === 'none' ? '' : html`<section class="panel cat-chart" style="margin-bottom:20px"><h2>${kind === 'change' ? 'What changed' : 'Where it went'}</h2><p class="lead">${kind === 'change' ? (all ? 'Pick a month to compare it with the one before' : 'Each category in ' + cur.short + ' against ' + prev.short + ', biggest moves first') : 'Spending by category ' + (all ? 'of all time' : 'in ' + cur.short)}</p>${pic || html`${emptyNote(html`${kind === 'change' ? 'Nothing changed.' : 'Nothing spent.'}`)}`}</section>`;
   const rows = htmlList(listed.map(x => {
     const d = x.now - x.prev;

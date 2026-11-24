@@ -42,7 +42,7 @@ To always use one account whatever the card, add a fourth field `account` with t
 
 ### Optional extras
 
-- **Where you paid.** Before **Get Contents of URL**, add **Get Current Location**. Then add two more Text fields to the JSON: `latitude` → **Current Location → Latitude**, and `longitude` → **Current Location → Longitude**. Money saves the spot on the transaction, and it shows up as a pin on Money's **Map** page and puts an Apple Maps link in its notes. It helps when the merchant's name is cryptic. The first time it runs, iOS asks to let Shortcuts use your location.
+- **Where you paid.** Before **Get Contents of URL**, add **Get Current Location**. Then add two more Text fields to the JSON: `latitude` → **Current Location → Latitude**, and `longitude` → **Current Location → Longitude**. Money saves coordinates in Firefly's location fields, separate from notes, and the purchase shows up as a pin on Money's **Map** page. The first time it runs, iOS asks to let Shortcuts use your location.
 - **Pick a category as you pay.** Before **Get Contents of URL**, add **Choose from Menu** with your usual categories plus `Skip`. In each option add a **Text** action holding that category's name, then set a `category` field to the **Chosen Item** / menu result. Money uses it instead of last time's category, and `Skip` keeps last time's. You'll have to answer the menu at the register, so leave this out if you'd rather not.
 - **Other currencies** need nothing extra: Wallet's amount carries its currency (`€8.00`). Money records what you paid as the foreign amount, and the account's amount using Firefly's latest exchange rate (Settings → Exchange rates), noting it's an estimate. With no rate in Firefly, it uses the same number and tags it **Check amount**, so you can fix it when the bank posts the charge.
 
@@ -54,8 +54,8 @@ A test payment from a throwaway shortcut with `amount` `0.01`, `merchant` `Money
 
 ## What gets logged
 
-- A withdrawal from the card's account to the merchant (Firefly creates the payee if it's new), dated now, tagged **Apple Pay**.
-- The category and budget you used last time with that merchant, like quick add does. Your Firefly rules then run on it too, so they can rename or recategorize it.
+- A withdrawal from the card's account to the merchant (Firefly creates the payee if it's new), dated now. **Apple Pay** is added as a tag when enabled in Money → Settings → Apple Pay.
+- The category, budget and tags from the merchant's most recent categorized/tagged movements. Your Firefly rules then run on it too, so they can rename or recategorize it.
 - A negative amount (a refund) is logged as income from the merchant.
 - With the extras: where you paid, the category you picked, and the foreign amount and currency.
 - If the same payment is sent twice, Firefly spots the duplicate and Money answers `Already logged.`

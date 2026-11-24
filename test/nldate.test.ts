@@ -32,6 +32,25 @@ describe('quick add dates', () => {
     expect(read('sep 12th')).toEqual(['2026-09-12', 2]);
     expect(read('november 3')).toEqual(['2025-11-03', 2]);
   });
+  it('reads an obvious day/month order whatever the locale', () => {
+    expect(read('13/9')).toEqual(['2026-09-13', 1]);     // 13 can't be a month
+    expect(read('9/13')).toEqual(['2026-09-13', 1]);
+    expect(read('25/12/2025')).toEqual(['2025-12-25', 1]);
+  });
+  it('follows the selected date locale when both orders are possible', () => {
+    localStorage.setItem('money.locale', JSON.stringify('en-US'));
+    expect(read('8/9')).toEqual(['2026-08-09', 1]);
+    expect(read('1/5/24')).toEqual(['2024-01-05', 1]);
+    expect(read('11/12')).toEqual(['2025-11-12', 1]);   // 12 Nov is still ahead, so last year's
+    localStorage.setItem('money.locale', JSON.stringify('en-GB'));
+    expect(read('8/9')).toEqual(['2026-09-08', 1]);     // day first
+    expect(read('1/5/24')).toEqual(['2024-05-01', 1]);
+    localStorage.removeItem('money.locale');
+  });
+  it('rejects dates that do not exist', () => {
+    ['0/5', '5/0', '13/13', '2/30', '31/4', '4/31', '32/1', '30/2/2024'].forEach(t => expect(read(t)).toBeNull());
+    expect(read('2/29/24')).toEqual(['2024-02-29', 1]);   // a real leap day
+  });
   it('ignores words that are not dates', () => {
     expect(read('coffee')).toBeNull();
     expect(read('12')).toBeNull();

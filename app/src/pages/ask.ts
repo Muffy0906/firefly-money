@@ -10,6 +10,7 @@ import { fcHorizon, forecastModel, horizonText, shortText } from './forecast';
 import { compareRange, monthSpan } from './reports';
 import { insight } from '../features/refunds';
 import { netWorthOn } from '../features/networth';
+import { t } from '../core/spanish';
 
 /* ================= Ask: plain questions answered from your Firefly data =================
    No AI: the question is matched against a few kinds Money knows how to answer, and every answer shows how it was
@@ -18,27 +19,34 @@ type Range = { start: string, end: string, label: string };
 export type Target = { kind: 'category' | 'payee' | 'tag' | 'budget', id: string, name: string };
 export type Question = { intent: string, range: Range, target: Target | null, words: string, unmatched?: string };
 type Pool = Pick<Lists, 'categories' | 'expense' | 'tags' | 'budgets'>;
-const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+const MONTHS = [
+  ['january', 'jan', 'enero'], ['february', 'feb', 'febrero'], ['march', 'mar', 'marzo'],
+  ['april', 'apr', 'abril'], ['may', 'mayo'], ['june', 'jun', 'junio'], ['july', 'jul', 'julio'],
+  ['august', 'aug', 'agosto'], ['september', 'sep', 'septiembre', 'setiembre'], ['october', 'oct', 'octubre'],
+  ['november', 'nov', 'noviembre'], ['december', 'dec', 'diciembre'],
+];
+const normalizeQuestion = (s: string) => s.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[¿¡]/g, '');
 
 // The period a question is about; this month when it doesn't say
 export function questionRange(q: string, today: string): Range {
-  const s = q.toLowerCase(), [y, m] = nowMonth(), ty = +today.slice(0, 4);
+  const s = normalizeQuestion(q), [y, m] = nowMonth(), ty = +today.slice(0, 4);
   const mr = (yy: number, mm: number, label?: string) => { const r = monthRange(yy, mm); return { start: r.start, end: r.end, label: label || r.label }; };
   let x;
-  if (/\blast month\b/.test(s)) return mr(y, m - 1, 'last month');
-  if (/\bthis year\b|\bso far this year\b|\bytd\b/.test(s)) return { start: ty + '-01-01', end: today, label: 'this year' };
-  if (/\blast year\b/.test(s)) return { start: (ty - 1) + '-01-01', end: (ty - 1) + '-12-31', label: 'last year' };
-  if (/\btoday\b/.test(s)) return { start: today, end: today, label: 'today' };
-  if (/\bthis week\b/.test(s)) { const d = parseIso(today), back = weekdayOf(d); return { start: addDays(today, -back), end: today, label: 'this week' }; }
-  if (/\blast week\b/.test(s)) { const d = parseIso(today), back = weekdayOf(d) + 7; return { start: addDays(today, -back), end: addDays(today, -back + 6), label: 'last week' }; }
-  if ((x = /\b(?:last|past) (\d{1,3}) days\b/.exec(s))) return { start: addDays(today, -(+x[1] - 1)), end: today, label: 'the last ' + x[1] + ' days' };
-  if ((x = /\b(?:last|past) (\d{1,2}) months\b/.exec(s))) { const a = monthRange(y, m - +x[1] + 1); return { start: a.start, end: today, label: 'the last ' + x[1] + ' months' }; }
-  const mi = MONTHS.findIndex(n => new RegExp('\\b' + n + '\\b|\\b' + n.slice(0, 3) + '\\b').test(s.replace(/\bmay i\b/, '')));
+  if (/\blast month\b|\b(?:el )?mes pasado\b/.test(s)) return mr(y, m - 1, t('last month'));
+  if (/\bthis year\b|\bso far this year\b|\bytd\b|\beste ano\b|\blo que va de ano\b/.test(s)) return { start: ty + '-01-01', end: today, label: t('this year') };
+  if (/\blast year\b|\b(?:el )?ano pasado\b/.test(s)) return { start: (ty - 1) + '-01-01', end: (ty - 1) + '-12-31', label: t('last year') };
+  if (/\btoday\b|\bhoy\b/.test(s)) return { start: today, end: today, label: t('today') };
+  if (/\bthis week\b|\besta semana\b/.test(s)) { const d = parseIso(today), back = weekdayOf(d); return { start: addDays(today, -back), end: today, label: t('this week') }; }
+  if (/\blast week\b|\bsemana pasada\b/.test(s)) { const d = parseIso(today), back = weekdayOf(d) + 7; return { start: addDays(today, -back), end: addDays(today, -back + 6), label: t('last week') }; }
+  if ((x = /\b(?:last|past) (\d{1,3}) days\b|\b(?:ultimos?|ultimas?) (\d{1,3}) dias\b/.exec(s))) { const count = x[1] || x[2]; return { start: addDays(today, -(+count - 1)), end: today, label: t('the last {count} days', { count }) }; }
+  if ((x = /\b(?:last|past) (\d{1,2}) months\b|\b(?:ultimos?|ultimas?) (\d{1,2}) meses\b/.exec(s))) { const count = x[1] || x[2], a = monthRange(y, m - +count + 1); return { start: a.start, end: today, label: t('the last {count} months', { count }) }; }
+  const monthText = s.replace(/\bmay i\b/, '');
+  const mi = MONTHS.findIndex(names => names.some(n => new RegExp('\\b' + n + '\\b').test(monthText)));
   if (mi >= 0) {
     const yr = /\b(20\d\d)\b/.exec(s), yy = yr ? +yr[1] : (mi > +today.slice(5, 7) - 1 ? ty - 1 : ty);
     return mr(yy, mi);
   }
-  return mr(y, m, 'this month');
+  return mr(y, m, t('this month'));
 }
 // The category, payee, tag or budget a question names: the longest name found in it
 const targetPool = (L: Pool): Target[] => [
@@ -46,39 +54,39 @@ const targetPool = (L: Pool): Target[] => [
   ...L.tags.map(t => ({ kind: 'tag' as const, id: t.id, name: t.name })), ...L.expense.map(a => ({ kind: 'payee' as const, id: a.id, name: a.name })),
 ].filter(t => t.name && t.name.length >= 3);
 export function questionTarget(q: string, L: Pool): Target | null {
-  const s = ' ' + q.toLowerCase().replace(/[?.!,]/g, ' ') + ' ', pool = targetPool(L);
-  const hits = pool.filter(t => s.includes(' ' + t.name.toLowerCase() + ' ') || s.includes(' ' + t.name.toLowerCase() + 's '));
+  const s = ' ' + normalizeQuestion(q).replace(/[^\p{L}\p{N}]+/gu, ' ').trim() + ' ', pool = targetPool(L);
+  const hits = pool.filter(t => { const name = normalizeQuestion(t.name).replace(/[^\p{L}\p{N}]+/gu, ' ').trim(); return s.includes(' ' + name + ' ') || s.includes(' ' + name + 's '); });
   return hits.sort((a, b) => b.name.length - a.name.length)[0] || null;
 }
 // What a "spent on …" question is about when it names something: "groceries" in "how much did I spend on groceries this year"
-const TIME_WORDS = '(?:this|last|past|in|so far|over|during|since|today|yesterday|for the|ytd|january|february|march|april|may|june|july|august|september|october|november|december)';
-const VAGUE = /^(?:the|my|a|an|all|stuff|things?|everything|anything|money|it|me|something|what|that|this)$/;
+const TIME_WORDS = '(?:this|last|past|in|so far|over|during|since|today|yesterday|for the|ytd|january|february|march|april|may|june|july|august|september|october|november|december|este|esta|el|la|lo que va de|hoy|ayer|semana|mes|ano|dias|meses|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)';
+const VAGUE = /^(?:the|my|a|an|all|stuff|things?|everything|anything|money|it|me|something|what|that|this|el|la|los|las|mi|mis|un|una|todo|toda|todos|todas|cosa|cosas|dinero|algo|esto|eso)$/;
 export function spendSubject(q: string): string {
-  const m = new RegExp('\\b(?:on|for|at|towards?)\\s+(.+?)(?=\\s+' + TIME_WORDS + '\\b|$)').exec(q.toLowerCase().replace(/[?!.,]/g, ' ').replace(/\s+/g, ' ').trim());
-  const subject = m ? m[1].replace(/^(?:the|my|a|an)\s+/, '').trim() : '';
+  const m = new RegExp('\\b(?:on|for|at|towards?|en|por|para)\\s+(.+?)(?=\\s+' + TIME_WORDS + '\\b|$)').exec(normalizeQuestion(q).replace(/[?!.,]/g, ' ').replace(/\s+/g, ' ').trim());
+  const subject = m ? m[1].replace(/^(?:the|my|a|an|el|la|los|las|mi|mis|un|una)\s+/, '').trim() : '';
   return subject && !VAGUE.test(subject) ? subject : '';
 }
 const stem = (w: string) => w.replace(/(?:ies|es|s)$/, '');
 // The nearest category, payee, tag or budget to a name Money couldn't match: one that contains it (or it contains), then a close spelling
 export function closestTarget(name: string, L: Pool): Target | null {
-  const want = stem(name.toLowerCase()), pool = targetPool(L);
+  const want = stem(normalizeQuestion(name)), pool = targetPool(L);
   const dist = (a: string, b: string) => { const d = Array.from({ length: b.length + 1 }, (_, j) => j); for (let i = 1; i <= a.length; i++) { let prev = d[0]; d[0] = i; for (let j = 1; j <= b.length; j++) { const t = d[j]; d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = t; } } return d[b.length]; };
-  const score = (t: Target) => { const n = stem(t.name.toLowerCase()); if (n.includes(want) || want.includes(n)) return 0; const e = dist(want, n); return e <= Math.max(1, Math.floor(Math.min(want.length, n.length) / 4)) ? e : 99; };
+  const score = (t: Target) => { const n = stem(normalizeQuestion(t.name)); if (n.includes(want) || want.includes(n)) return 0; const e = dist(want, n); return e <= Math.max(1, Math.floor(Math.min(want.length, n.length) / 4)) ? e : 99; };
   const best = pool.map(t => ({ t, s: score(t) })).filter(x => x.s < 99).sort((a, b) => a.s - b.s)[0];
   return best ? best.t : null;
 }
 export function parseQuestion(q: string, L: Pool, today: string): Question {
-  const s = q.toLowerCase(), range = questionRange(q, today), target = questionTarget(q, L);
-  const words = s.replace(/[?!.]/g, '').trim();
+  const s = normalizeQuestion(q), range = questionRange(q, today), target = questionTarget(q, L);
+  const words = q.replace(/[?!.]/g, '').trim();
   let intent = 'search';
-  if (/\bbills?\b.*\b(before|until|till)\b.*\bpay/.test(s) || /\bdue before\b/.test(s)) intent = 'bills';
-  else if (/\bsafe to spend\b|\bcan i (spend|afford)\b|\bhow much (can|do) i have\b/.test(s)) intent = 'safe';
-  else if (/\bnet worth\b|\bwhat am i worth\b/.test(s)) intent = 'networth';
-  else if (/\bwhy\b|\bwent up\b|\bmore than\b|\bless than\b|\bincrease|\bcompare/.test(s) && /spen[dt]|spending|cost|expens/.test(s)) intent = 'why';
-  else if (/\b(biggest|largest|most expensive|top)\b.*\b(expense|purchase|transaction|payment|spend)/.test(s)) intent = 'biggest';
-  else if (/\bwhere\b.*\b(money|spend|spent)\b|\btop (categories|payees)\b|\bwhat did i spend (on|most)\b/.test(s)) intent = 'where';
-  else if (/\b(earn|earned|income|made|paid me|salary)\b/.test(s)) intent = 'income';
-  else if (/spen[dt]|spending|cost|pay(ed)? for|paid/.test(s)) intent = target ? 'spentOn' : 'spent';
+  if (/\bbills?\b.*\b(before|until|till)\b.*\bpay|\bfacturas?\b.*\b(antes de|hasta|previo a)\b.*\b(cobrar|cobro|paga|nomina|sueldo)\b|\bque pagos?\b.*\b(antes de|hasta)\b.*\b(cobrar|cobro|nomina|sueldo)\b|\bvencen?\b.*\bantes del?\b.*\b(cobro|pago|sueldo|nomina)\b/.test(s) || /\bdue before\b/.test(s)) intent = 'bills';
+  else if (/\bsafe to spend\b|\bcan i (spend|afford)\b|\bhow much (can|do) i have\b|\b(seguro para gastar|cuanto puedo gastar|cuanto puedo permitirme gastar|cuanto tengo disponible para gastar|dinero disponible para gastar)\b/.test(s)) intent = 'safe';
+  else if (/\bnet worth\b|\bwhat am i worth\b|\bpatrimonio neto\b|\bcuanto valgo\b/.test(s)) intent = 'networth';
+  else if (/\bwhy\b|\bwent up\b|\bmore than\b|\bless than\b|\bincrease|\bcompare|\bpor que\b|\bha subido\b|\baumento\b|\bmas que\b|\bmenos que\b|\bcomparar\b/.test(s) && /spen[dt]|spending|cost|expens|gast|gasto|coste|pag/.test(s)) intent = 'why';
+  else if (/\b(biggest|largest|most expensive|top)\b.*\b(expense|purchase|transaction|payment|spend)|\b(mayor|mas grande|mas caro|mas costosa)\b.*\b(gasto|compra|movimiento|pago)|\b(gasto|compra|movimiento|pago)\b.*\b(mayor|mas grande|mas caro|mas costoso)\b/.test(s)) intent = 'biggest';
+  else if (/\bwhere\b.*\b(money|spend|spent)\b|\btop (categories|payees)\b|\bwhat did i spend (on|most)\b|\ben que\b.*\b(gaste|gasto|dinero)\b|\bdonde\b.*\b(gaste|gasto|dinero)\b|\btop categorias\b|\bcategorias principales\b/.test(s)) intent = 'where';
+  else if (/\b(earn|earned|income|made|paid me|salary)\b|\b(ingresos?|ingrese|ingresado|cobre|cobrado|cobro|gane|ganado|recibi|recibido|sueldo|nomina)\b/.test(s)) intent = 'income';
+  else if (/spen[dt]|spending|cost|pay(ed)? for|paid|gast[aeo]|gastado|gastos|coste|costo|pague|pagado/.test(s)) intent = target ? 'spentOn' : 'spent';
   // A question about something Money has no match for isn't the same as one about all spending
   const unmatched = intent === 'spent' ? spendSubject(s) : '';
   if (unmatched) intent = 'unmatched';
@@ -186,7 +194,7 @@ VIEWS.ask = async (r, paint) => {
       out = html`<section class="panel ask-answer"><div class="eyebrow">${text}</div><p class="ask-title">${a.title}</p>${a.lines && a.lines.length ? html`<div class="list">${htmlList(a.lines)}</div>` : ''}<p class="sub-s" style="margin-top:12px"><strong>How this was worked out:</strong> ${a.how}</p>${a.more ? html`<a class="btn small" href="${a.more.href}" style="margin-top:6px">${a.more.label} →</a>` : ''}</section>`;
     } catch (e) { out = html`<section class="panel"><p class="form-err">${(e as Error).message}</p></section>`; }
   }
-  paint(html`${head('Ask a question')}<form class="ask" data-onsubmit="event.preventDefault();App.ask(this.q.value)">${icon('spark')}<input type="text" id="askQ" name="q" value="${text}" placeholder="Ask about your money, e.g. why did I spend more this month?" autocomplete="off" enterkeyhint="go"></form>${out}<div class="ask-examples">${htmlList(examples(L).map(x => html`<button type="button" class="chip" data-onclick="App.ask(this.textContent)">${x}</button>`))}</div>`);
+  paint(html`${head('Ask a question')}<form class="ask" data-onsubmit="event.preventDefault();App.ask(this.q.value)">${icon('spark')}<input type="text" id="askQ" name="q" value="${text}" placeholder="${t('Ask about your money, e.g. why did I spend more this month?')}" autocomplete="off" enterkeyhint="go"></form>${out}<div class="ask-examples">${htmlList(examples(L).map(x => html`<button type="button" class="chip" data-onclick="App.ask(this.textContent)">${x}</button>`))}</div>`);
 };
 function ask(q: string) { const t = String(q || '').trim(); if (t) location.hash = '#/ask?q=' + encodeURIComponent(t); }
 

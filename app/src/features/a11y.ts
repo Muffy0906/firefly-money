@@ -74,6 +74,9 @@ document.addEventListener('input', clearBad); document.addEventListener('change'
 // numbers too. Charts with more than 60 points (the activity grid) keep their summary label instead.
 function chartTables() {
   document.querySelectorAll<SVGSVGElement>('#view svg[role="img"][aria-label]').forEach(svg => {
+    // Share charts already have a visible category/payee list with the same values. Adding a separate table toggle
+    // inside the donut/list grid creates a third column and pushes the list below the ring.
+    if (svg.closest('.share')) return;
     // A donut or ring is a grid centred on its own box, so the table goes after the whole chart (and its list), never inside it: a row in there pushes the ring up and its centre text down.
     const at: Element = svg.closest('.share, .donut, .ring') || svg;
     if (at.nextElementSibling?.classList.contains('chart-data') || svg.closest('.sk-table, .tile-preview, .mini')) return;

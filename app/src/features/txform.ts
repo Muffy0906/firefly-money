@@ -14,14 +14,14 @@ import { route } from '../core/router';
 /* ================= Transaction form ================= */
 // The transaction form's state (S.form while it's open). Fields hold what the inputs hold, as text.
 export type SplitForm = { jid: string, description: string, amount: string, counter: string, category: string, budget: string, bill: string,
-  tags: string, notes: string, fa: string, fc: string, orig: Partial<Record<string, string>> };
+  tags: string, notes: string, location: string, fa: string, fc: string, orig: Partial<Record<string, string>> };
 export type TxForm = { id: string, type: string, date: string, fullDate?: string, title: string, main: string, src: string, dst: string, rules: boolean, splits: SplitForm[],
   nlBase?: ApiData, nl?: string, nlChips?: Html | '',   // quick add: what was typed and the chips it was read as
   refundOf?: { jid: string, label: string },              // a refund made from this purchase: linked to it when saved
   draft?: string,
   catPre?: string,                                        // a category filled in from the last transaction: a payee's own category replaces it
   maybeSaved?: boolean };                              // a save got no answer: check for a copy in Firefly before saving again                                    // the draft this form was opened from (see drafts below)
-export function blankSplit(): SplitForm { return { jid: '', description: '', amount: '', counter: '', category: '', budget: '', bill: '', tags: '', notes: '', fa: '', fc: '', orig: {} }; }
+export function blankSplit(): SplitForm { return { jid: '', description: '', amount: '', counter: '', category: '', budget: '', bill: '', tags: '', notes: '', location: '', fa: '', fc: '', orig: {} }; }
 /* ---------- Last used: a new transaction starts from the account and category you used last (this device) ---------- */
 export type LastTx = { acc?: Record<string, string>, src?: string, dst?: string, cat?: Record<string, string> };
 export function lastUsed(): LastTx { const v = LS.get('lastTx', {}) as LastTx; return v && typeof v === 'object' ? v : {}; }
@@ -68,7 +68,7 @@ function formOf(g: Group): TxForm {
     main: g.type === 'deposit' ? f.destination_id : f.source_id, src: f.source_id, dst: f.destination_id,
     splits: g.splits.map(s => {
       const x: SplitForm = { jid: s.jid, description: s.description, amount: String(s.native), counter: g.type === 'deposit' ? s.source_name : s.destination_name,
-        category: s.category, budget: s.budget_id, bill: s.bill_id, tags: s.tags.join(', '), notes: s.notes, fa: s.fa, fc: s.fc, orig: {} };
+        category: s.category, budget: s.budget_id, bill: s.bill_id, tags: s.tags.join(', '), notes: s.notes, location: s.lat != null && s.lng != null ? s.lat + ', ' + s.lng : '', fa: s.fa, fc: s.fc, orig: {} };
       const { orig, ...fields } = x; x.orig = fields;
       return x;
     }),
@@ -141,9 +141,9 @@ export function renderTxForm() {
   }
   const dateAcct = html`<label>Date<input type="date" id="f-date" value="${f.date}" required></label>${accountsHtml}`;
   const splitHtml = htmlList(f.splits.map((s, i) =>
-    html`<div class="split" data-i="${i}">${multi ? html`<div class="split-head"><span>Split ${i + 1}</span><button type="button" class="link" data-onclick="App.removeSplit(${i})">Remove</button></div>` : ''}<label>Description<input type="text" data-k="description" value="${s.description}" required></label><div class="grid2"><label>Amount<input type="number" data-k="amount" value="${s.amount}" step="0.01" min="0.01" inputmode="decimal" required></label>${f.type !== 'transfer' ? html`<label>${f.type === 'withdrawal' ? 'Paid to' : 'Received from'}<input type="text" data-k="counter" list="dl-counter" value="${s.counter}" placeholder="Name" data-onchange="App.payeeFill(${i}, this.value)"></label>` : html`<span></span>`}</div>${i === 0 && !multi ? dateAcct : ''}<div class="grid2"><label>Category<input type="text" data-k="category" list="dl-cat" value="${s.category}" placeholder="None"></label>${f.type === 'withdrawal' ? html`<label>Budget<select data-k="budget">${opt('', 'None', s.budget)}${htmlList(L.budgets.filter(b => b.active || b.id === s.budget).map(b => opt(b.id, b.name, s.budget)))}</select></label>` : html`<span></span>`}</div><details class="tx-more"${txMoreOpen || s.bill || s.tags || s.notes || s.fa ? ' open' : ''}><summary data-onclick="App.txMore(this)">More details</summary><div class="grid2">${f.type === 'withdrawal' ? html`<label>Bill<select data-k="bill">${opt('', 'None', s.bill)}${htmlList(L.bills.map(b => opt(b.id, b.name, s.bill)))}</select></label>` : html`<span></span>`}<label>Tags<input type="text" data-k="tags" list="dl-tags" value="${s.tags}" placeholder="Comma separated"></label></div>${L.foreign.length ? html`<div class="grid2"><label>Foreign amount (optional)<input type="number" data-k="fa" step="0.01" min="0" value="${s.fa}"></label><label>Foreign currency<select data-k="fc">${opt('', 'None', s.fc)}${htmlList(L.foreign.map(c => opt(c.code, c.code + ' · ' + c.name, s.fc)))}</select></label></div>` : ''}<label>Notes<textarea data-k="notes" rows="2">${s.notes}</textarea></label></details></div>`));
+    html`<div class="split" data-i="${i}">${multi ? html`<div class="split-head"><span>Split ${i + 1}</span><button type="button" class="link" data-onclick="App.removeSplit(${i})">Remove</button></div>` : ''}<label>Description<input type="text" data-k="description" value="${s.description}" required></label><div class="grid2"><label>Amount<input type="number" data-k="amount" value="${s.amount}" step="0.01" min="0.01" inputmode="decimal" required></label>${f.type !== 'transfer' ? html`<label>${f.type === 'withdrawal' ? 'Paid to' : 'Received from'}<input type="text" data-k="counter" list="dl-counter" value="${s.counter}" placeholder="Name" data-onchange="App.payeeFill(${i}, this.value)"></label>` : html`<span></span>`}</div>${i === 0 && !multi ? dateAcct : ''}<div class="grid2"><label>Category<input type="text" data-k="category" list="dl-cat" value="${s.category}" placeholder="None"></label>${f.type === 'withdrawal' ? html`<label>Budget<select data-k="budget">${opt('', 'None', s.budget)}${htmlList(L.budgets.filter(b => b.active || b.id === s.budget).map(b => opt(b.id, b.name, s.budget)))}</select></label>` : html`<span></span>`}</div><details class="tx-more"${txMoreOpen || s.bill || s.tags || s.notes || s.location || s.fa ? ' open' : ''}><summary data-onclick="App.txMore(this)">More details</summary><div class="grid2">${f.type === 'withdrawal' ? html`<label>Bill<select data-k="bill">${opt('', 'None', s.bill)}${htmlList(L.bills.map(b => opt(b.id, b.name, s.bill)))}</select></label>` : html`<span></span>`}<label>Tags<input type="text" data-k="tags" list="dl-tags" value="${s.tags}" placeholder="Comma separated"></label></div><label>Location<input type="text" data-k="location" value="${s.location}" placeholder="Coordinates or Apple Maps link"></label>${L.foreign.length ? html`<div class="grid2"><label>Foreign amount (optional)<input type="number" data-k="fa" step="0.01" min="0" value="${s.fa}"></label><label>Foreign currency<select data-k="fc">${opt('', 'None', s.fc)}${htmlList(L.foreign.map(c => opt(c.code, c.code + ' · ' + c.name, s.fc)))}</select></label></div>` : ''}<label>Notes<textarea data-k="notes" rows="2">${s.notes}</textarea></label></details></div>`));
   const body =
-    html`<form id="txForm" data-haptic="saved" data-onsubmit="event.preventDefault();App.saveTx(this)">${f.refundOf ? html`<p class="sub-s refund-of">Refund of ${f.refundOf.label}. It goes back into the account you paid from, and Reports and Budgets take it off that spending.</p>` : ''}${f.id ? '' : html`<div class="nlq">${icon('spark')}<input type="text" id="nlq" value="${f.nl || ''}" placeholder="Describe it — e.g. starbucks 5.40 amex yesterday" autocomplete="off" enterkeyhint="done" data-oninput="App.nlParse(this.value)" data-onkeydown="App.nlKey(event,this)"><div id="nlChips" class="nlchips">${f.nlChips || ''}</div></div>`}<div class="seg">${typeBtn('withdrawal', 'Expense')}${typeBtn('deposit', 'Income')}${typeBtn('transfer', 'Transfer')}</div>${multi ? dateAcct : ''}${multi ? html`<label>Title for the whole transaction<input type="text" id="f-title" value="${f.title}" required></label>` : ''}${splitHtml}<button type="button" class="btn small" data-onclick="App.addSplit()" style="margin-bottom:18px">+ Split into another part</button><label class="check"><input type="checkbox" id="f-rules"${f.rules ? ' checked' : ''}> Run my Firefly rules on this transaction</label><datalist id="dl-counter">${htmlList(counterList.map(a => html`<option value="${a.name}">`))}</datalist><datalist id="dl-cat">${htmlList(L.categories.map(c => html`<option value="${c.name}">`))}</datalist><datalist id="dl-tags">${htmlList(L.tags.map(t => html`<option value="${t.name}">`))}</datalist><button type="submit" hidden></button></form>${f.id ? html`<div id="txExtras"><p class="sub-s">Loading attachments and links…</p></div>` : ''}`;
+    html`<form id="txForm" data-haptic="saved" data-onsubmit="event.preventDefault();App.saveTx(this)">${f.refundOf ? html`<p class="sub-s refund-of">Refund of ${f.refundOf.label}. It goes back into the account you paid from, and Reports and Budgets take it off that spending.</p>` : ''}${f.id ? '' : html`<div class="nlq">${icon('spark')}<input type="text" id="nlq" value="${f.nl || ''}" placeholder="Describe it — e.g. starbucks 5.40 amex yesterday #Food @Work" autocomplete="off" enterkeyhint="done" data-oninput="App.nlParse(this.value)" data-onkeydown="App.nlKey(event,this)"><div id="nlChips" class="nlchips">${f.nlChips || ''}</div></div>`}<div class="seg">${typeBtn('withdrawal', 'Expense')}${typeBtn('deposit', 'Income')}${typeBtn('transfer', 'Transfer')}</div>${multi ? dateAcct : ''}${multi ? html`<label>Title for the whole transaction<input type="text" id="f-title" value="${f.title}" required></label>` : ''}${splitHtml}<button type="button" class="btn small" data-onclick="App.addSplit()" style="margin-bottom:18px">+ Split into another part</button><label class="check"><input type="checkbox" id="f-rules"${f.rules ? ' checked' : ''}> Run my Firefly rules on this transaction</label><datalist id="dl-counter">${htmlList(counterList.map(a => html`<option value="${a.name}">`))}</datalist><datalist id="dl-cat">${htmlList(L.categories.map(c => html`<option value="${c.name}">`))}</datalist><datalist id="dl-tags">${htmlList(L.tags.map(t => html`<option value="${t.name}">`))}</datalist><button type="submit" hidden></button></form>${f.id ? html`<div id="txExtras"><p class="sub-s">Loading attachments and links…</p></div>` : ''}`;
   // The extra actions: inline on a roomy screen, behind a "more actions" button on a phone, so the footer keeps just Cancel and Save
   const extra = f.id ? html`<button class="btn danger" type="button" data-onclick="App.deleteTx()">Delete</button><button class="btn" type="button" data-onclick="App.duplicateTx()" title="A new transaction with the same details, dated today">Duplicate</button>${f.type === 'withdrawal' ? html`<button class="btn" type="button" data-onclick="App.refundTx()" title="Money back for this purchase, into the account it was paid from">Refund</button>` : ''}` : html`<button class="btn" type="button" data-onclick="App.saveDraft()" title="Keep it on this list to finish later; nothing goes to Firefly yet">${f.draft ? 'Update draft' : 'Save as draft'}</button>`;
   const phone = matchMedia('(max-width: 600px)').matches;
@@ -194,6 +194,16 @@ function resolveCounter(name: string, kind: string): { id?: string, name?: strin
   const hit = pool.find(a => sameName(a.name, name));
   return hit ? { id: hit.id } : { name: name.trim() };
 }
+function parseLocation(value: string): { latitude: number, longitude: number } | null | undefined {
+  let raw = value.trim(); if (!raw) return null;
+  const link = /[?&]ll=([^&]+)/i.exec(raw);
+  if (link) { try { raw = decodeURIComponent(link[1]); } catch (e) { return undefined; } }
+  const parts = raw.split(/[\s,;]+/).filter(Boolean);
+  if (parts.length !== 2) return undefined;
+  const latitude = Number(parts[0]), longitude = Number(parts[1]);
+  return Number.isFinite(latitude) && Number.isFinite(longitude) && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180
+    ? { latitude, longitude } : undefined;
+}
 function buildTxPayload() {
   const f: TxForm = S.form, edit = !!f.id;
   const txs = f.splits.map(s => {
@@ -214,6 +224,11 @@ function buildTxPayload() {
     if (changed('category')) o.category_name = s.category.trim();
     if (changed('tags')) o.tags = s.tags.split(',').map(t => t.trim()).filter(Boolean);
     if (changed('notes')) o.notes = s.notes;
+    if (changed('location')) {
+      const spot = parseLocation(s.location);
+      if (spot) Object.assign(o, { ...spot, zoom_level: 16 });
+      else if (edit && s.jid) Object.assign(o, { latitude: null, longitude: null, zoom_level: null });
+    }
     if (changed('fa') || changed('fc')) {
       if (s.fa && num(s.fa) > 0 && s.fc) { o.foreign_amount = String(num(s.fa)); o.foreign_currency_code = s.fc; }
       else if (edit && s.jid) { o.foreign_amount = '0'; }
@@ -279,6 +294,7 @@ async function saveTxInner(formEl: HTMLFormElement) {
   } else if (!f.main) return formError('Choose the account.');
   for (const s of f.splits) {
     if (s.fa && num(s.fa) > 0 && !s.fc) return formError('Pick the currency for the foreign amount.');
+    if (s.location.trim() && !parseLocation(s.location)) return formError('Enter a location as latitude, longitude or an Apple Maps link.');
     if (!s.description.trim()) return formError('Every part needs a description.');
     if (num(s.amount) < 0) return formError('Enter the amount without a minus sign. The type above (expense, income or transfer) sets the direction.');
     if (!(num(s.amount) > 0)) return formError('Every part needs an amount above zero.');
