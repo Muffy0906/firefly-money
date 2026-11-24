@@ -201,12 +201,18 @@ export async function payeeFill(i: number, name: string) {
     const res = await api('/accounts/' + acc.id + '/transactions', { params: { limit: 25, page: 1 } });
     const mine = arr(res).map(normGroup).flatMap(g => g.splits).filter(x => x.source_id === acc.id || x.destination_id === acc.id);
     const s = mine.find(x => x.category) || mine[0];       // most recent one that was categorized
-    if (!s || !S.form || S.form !== f) return;
+    const tagged = mine.find(x => x.tags.length);          // latest tagged movement for this payee
+    if ((!s && !tagged) || !S.form || S.form !== f) return;
     const card = document.querySelector<HTMLElement>('#txForm .split[data-i="' + i + '"]'); if (!card) return;
-    const set = (k: string, v: string) => { const inp = card.querySelector<HTMLInputElement>('[data-k="' + k + '"]'); if (inp && (!inp.value || (k === 'category' && inp.value === f.catPre)) && v) { inp.value = v; inp.classList.add('filled'); f.splits[i][k] = v; } };
-    set('category', s.category);
-    if (f.type === 'withdrawal') set('budget', s.budget_id);
-    if (!card.querySelector<HTMLInputElement>('[data-k="description"]')!.value) set('description', s.description);
+    const set = (k: string, v: string) => { const inp = card.querySelector<HTMLInputElement | HTMLSelectElement>('[data-k="' + k + '"]'); if (inp && (!inp.value || (k === 'category' && inp.value === f.catPre)) && v) { inp.value = v; inp.classList.add('filled'); f.splits[i][k] = v; return true; } return false; };
+    if (s) {
+      set('category', s.category);
+      if (f.type === 'withdrawal') set('budget', s.budget_id);
+      if (!card.querySelector<HTMLInputElement>('[data-k="description"]')!.value) set('description', s.description);
+    }
+    if (tagged && set('tags', tagged.tags.join(', '))) {
+      const more = card.querySelector<HTMLDetailsElement>('.tx-more'); if (more) more.open = true;
+    }
   } catch (e) { /* suggestions are optional */ }
 }
 

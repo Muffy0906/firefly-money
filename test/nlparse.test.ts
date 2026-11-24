@@ -9,7 +9,7 @@ import type { SplitForm, TxForm } from '../app/src/features/txform';
 import { nlParse } from '../app/src/features/nlparse';
 
 const acct = (id: string, name: string, role = 'defaultAsset') => ({ id, name, type: 'asset', role, active: true });
-const blankSplit = (): SplitForm => ({ jid: '', description: '', amount: '', counter: '', category: '', budget: '', bill: '', tags: '', notes: '', fa: '', fc: '', orig: {} });
+const blankSplit = (): SplitForm => ({ jid: '', description: '', amount: '', counter: '', category: '', budget: '', bill: '', tags: '', notes: '', location: '', fa: '', fc: '', orig: {} });
 const form = (): TxForm => ({ id: '', type: 'withdrawal', date: '2026-10-20', title: '', main: '1', src: '1', dst: '', rules: true, splits: [blankSplit()] });
 
 describe('quick add text', () => {

@@ -9,7 +9,7 @@
 // njs supports less JavaScript than a browser: no for…of, and no await inside a call's arguments.
 import crypto from 'crypto';
 
-const TAG = 'Apple Pay', REFUND_TAG = 'Refund';
+const TAG = 'Apple Pay', REFUND_TAG = 'Refund', AUTO_TAGS = [TAG, REFUND_TAG, 'Check amount'];
 const FF = '/__firefly/api/v1';     // the internal location that forwards to Firefly with its token
 
 const env = k => process.env[k] || '';
@@ -102,12 +102,12 @@ async function cardPrefs(r) {
   const res = await ff(r, 'GET', '/preferences/' + PREF);
   let d = res.status === 200 && res.data && res.data.data && res.data.data.attributes ? res.data.data.attributes.data : null;
   try { if (typeof d === 'string') d = JSON.parse(d); } catch (e) { d = null; }
-  return { exists: res.status === 200, cards: (d && d.cards) || {}, unmatched: (d && d.unmatched) || [] };
+  return { exists: res.status === 200, cards: (d && d.cards) || {}, unmatched: (d && d.unmatched) || [], applePayTag: !d || d.applePayTag !== false };
 }
 // Remember a card nothing matched, so the app can offer to pick its account
 async function noteUnmatched(r, prefs, card) {
   if (!card || prefs.unmatched.some(x => words(x) === words(card))) return;
-  const data = JSON.stringify({ cards: prefs.cards, unmatched: prefs.unmatched.concat([String(card).slice(0, 100)]).slice(-10) });
+  const data = JSON.stringify({ cards: prefs.cards, unmatched: prefs.unmatched.concat([String(card).slice(0, 100)]).slice(-10), applePayTag: prefs.applePayTag });
   try {
     if (prefs.exists) await ff(r, 'PUT', '/preferences/' + PREF, '', { data });
     else await ff(r, 'POST', '/preferences', '', { name: PREF, data });
@@ -144,8 +144,9 @@ async function lastUse(r, payee) {
     if (!acc) return {};
     const txs = await ff(r, 'GET', '/accounts/' + acc.id + '/transactions', 'limit=25&type=withdrawal');
     const splits = ((txs.data && txs.data.data) || []).reduce((all, g) => all.concat((g.attributes && g.attributes.transactions) || []), []).filter(s => s.destination_id === acc.id);
-    const s = splits.find(x => x.category_name) || splits[0];
-    return s ? { category_name: s.category_name || undefined, budget_id: s.budget_id || undefined } : {};
+    const s = splits.find(x => x.category_name) || splits[0], tagged = splits.find(x => Array.isArray(x.tags) && x.tags.some(tag => !AUTO_TAGS.some(auto => words(auto) === words(tag))));
+    const tags = tagged ? tagged.tags.filter(tag => !AUTO_TAGS.some(auto => words(auto) === words(tag))) : [];
+    return { category_name: s && s.category_name || undefined, budget_id: s && s.budget_id || undefined, tags };
   } catch (e) { return {}; }
 }
 
@@ -193,12 +194,12 @@ async function endpoint(r) {
 
   try {
     const accounts = await own(r);
+    const prefs = await cardPrefs(r);
     let acc = null;
     if (b.account) {
       acc = words(b.account) ? accounts.find(a => words(a.name) === words(b.account)) || null : null;
       if (!acc) return say(r, 422, 'No account is called "' + b.account + '". Set "account" in the Shortcut to one of: ' + accounts.map(a => a.name).join(', '));
     } else {
-      const prefs = await cardPrefs(r);
       acc = pickedAccount(accounts, prefs, b.card) || matchAccount(accounts, b.card);
       if (!acc) {
         await noteUnmatched(r, prefs, b.card);
@@ -210,7 +211,8 @@ async function endpoint(r) {
     const category = String(b.category || '').trim().slice(0, 100);
     if (category && !/^(skip|none|-)$/i.test(category)) { usual.category_name = category; delete usual.category_id; }
     // A refund is a deposit tagged Refund too (that's what takes it off spending in Money, see features/refunds.ts)
-    const tags = refund ? [TAG, REFUND_TAG] : [TAG], notes = ['Logged by the Apple Pay shortcut' + (b.card ? ' (' + String(b.card).slice(0, 100) + ')' : '') + '.'];
+    const tags = prefs.applePayTag ? [TAG] : [], notes = [];
+    if (refund) tags.push(REFUND_TAG); else (usual.tags || []).forEach(tag => { if (!tags.some(x => words(x) === words(tag))) tags.push(tag); });
     // Paid in another currency: record what was paid as the foreign amount, and the account's amount from Firefly's
     // exchange rate (the bank's will differ a little), or the same number to fix by hand when there's no rate.
     const cur = parseCurrency(b.amount);
@@ -222,7 +224,6 @@ async function endpoint(r) {
       else { tags.push('Check amount'); notes.push('Paid ' + paid + ' ' + cur + '. Firefly has no ' + cur + ' to ' + acc.currency + ' rate, so set the ' + acc.currency + ' amount when the bank posts it.'); }
     }
     const spot = parseSpot(b.latitude, b.longitude);
-    if (spot) notes.push('Where: https://maps.apple.com/?ll=' + spot.latitude + ',' + spot.longitude);
     const split = Object.assign(usual, {
       type: refund ? 'deposit' : 'withdrawal',
       date: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),

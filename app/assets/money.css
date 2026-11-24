@@ -516,8 +516,8 @@
      and its list on the right, the pair centred, so the card stays short and the bars stay close to their names.
      The Overview tiles have their own rules (.cards .share). */
   .panel:has(> .share):not(.cards .panel) { container-type: inline-size; }
-  @container (min-width: 520px) {
-    .panel:not(.cards .panel) > .share { display: grid; grid-template-columns: clamp(150px, 30%, 220px) minmax(0, 560px); justify-content: center; align-items: center; gap: clamp(28px, 6cqi, 72px); margin-top: 8px; }
+  @container (min-width: 420px) {
+    .panel:not(.cards .panel) > .share { display: grid; grid-template-columns: clamp(140px, 34%, 220px) minmax(0, 560px); justify-content: center; align-items: center; gap: clamp(20px, 4cqi, 48px); margin-top: 8px; }
     .panel:not(.cards .panel) > .share .donut { width: 100%; margin: 0; }
     .panel:not(.cards .panel) > .share .part { grid-template-columns: 10px minmax(0, 220px) minmax(0, 1fr) 38px; }
   }
@@ -2289,8 +2289,8 @@
 
   /* ---------- Rings and donuts use the room their card has, and sit in the middle of it ---------- */
   .donut { width: min(240px, 72%); }
-  @container (min-width: 520px) {
-    .panel:not(.cards .panel) > .share { grid-template-columns: clamp(150px, 34%, 300px) minmax(0, 560px); }
+  @container (min-width: 420px) {
+    .panel:not(.cards .panel) > .share { grid-template-columns: clamp(140px, 34%, 260px) minmax(0, 560px); }
   }
   .panel:has(> .share):not(.cards .panel) { display: flex; flex-direction: column; }
   .panel:has(> .share):not(.cards .panel) > .share { flex: 1; align-content: center; }

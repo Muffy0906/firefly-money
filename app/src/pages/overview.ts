@@ -96,7 +96,7 @@ VIEWS[''] = async (r, paint) => {
     on('spending') && tileOpt('spending', 'style') !== 'bars' ? coreP.then(c => categoryTagBreakdown(cur.start, cur.end, [
       ...arr(c[1]).map(x => ({ name: String(x.name), v: absDiff(x) })),
       ...(sumDiff(c[3]) ? [{ name: 'Uncategorized', v: sumDiff(c[3]) }] : []),
-    ])).catch(() => new Map<string, Map<string, number>>()) : none]);
+    ])).catch(() => new Map<string, Map<string, number>>()) : Promise.resolve(new Map<string, Map<string, number>>())]);
   slowP.catch(() => {});
   if (r.at) { await Promise.all([coreP, slowP]).catch(() => {}); return; }     // loading a month ahead: the data is all it needs
   const [summary, catNow, catPrev, noCatNow, noCatPrev, trend, recent, budgets, limits, bills, uncat, allTot, prevSoFar] = await coreP;

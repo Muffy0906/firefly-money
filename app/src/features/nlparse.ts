@@ -22,7 +22,7 @@ export function nlParse(text: string, submit?: boolean) {
   const f = S.form; if (!f || f.id) return;
   collectTx();
   if (!f.nlBase) { const s0 = f.splits[0]; f.nlBase = { type: f.type, date: f.date, main: f.main, src: f.src, dst: f.dst, split: { amount: s0.amount, description: s0.description, counter: s0.counter, category: s0.category, tags: s0.tags } }; }
-  const base = f.nlBase, L = S.lists!, ws = text.trim().split(/\s+/).filter(Boolean), used = new Set(), out: any = {};
+  const base = f.nlBase, L = S.lists!, ws = text.trim().match(/(?:[#@](?:"[^"]+"|'[^']+')|"[^"]+"|'[^']+'|\S+)/g) || [], used = new Set(), out: any = {};
   // dates first (so "sep 12" isn't read as an amount of 12)
   for (let i = 0; i < ws.length; i++) { if (used.has(i) || out.date) continue; const r = nlDate(ws, i); if (r) { out.date = r[0]; for (let j = 0; j < r[1]; j++) used.add(i + j); if (/^last$/i.test(ws[i - 1] || '')) used.add(i - 1); } }
   ws.forEach((w, i) => { if (used.has(i) || out.amount != null || !/^\p{Sc}?\d[\d.,]*\p{Sc}?$/u.test(w)) return; const n = parseAmount(w); if (n != null && n > 0) { out.amount = Number.isInteger(n) || /\.\d{3,}$/.test(String(n)) ? String(n) : n.toFixed(2); used.add(i); } });
@@ -31,7 +31,15 @@ export function nlParse(text: string, submit?: boolean) {
     if (used.has(i)) return;
     if (/^(income|salary|paycheck|payday|refund|received|deposit|earned)$/.test(lw)) { out.type = 'deposit'; used.add(i); if (!/^(received|earned)$/.test(lw)) out.kw = lw[0].toUpperCase() + lw.slice(1); if (/^(salary|paycheck)$/.test(lw)) out.catHint = 'Salary'; }
     else if (/^(transfer|transferred|moved|move)$/.test(lw)) { out.type = 'transfer'; used.add(i); }
-    else if (lw[0] === '#' && lw.length > 1) { const c = L.categories.find(c => c.name.toLowerCase().startsWith(lw.slice(1))); out.category = c ? c.name : w.slice(1); used.add(i); }
+    else if (w[0] === '#' && w.length > 1) {
+      const q = w.slice(1).replace(/^["']|["']$/g, ''), key = q.toLowerCase();
+      const c = L.categories.find(c => c.name.toLowerCase() === key) || L.categories.find(c => c.name.toLowerCase().startsWith(key));
+      out.category ||= c ? c.name : q; used.add(i);
+    } else if (w[0] === '@' && w.length > 1) {
+      const q = w.slice(1).replace(/^["']|["']$/g, ''), key = q.toLowerCase();
+      const matches = L.tags.filter(t => t.name.toLowerCase().startsWith(key)), tag = matches.find(t => t.name.toLowerCase() === key) || (matches.length === 1 ? matches[0] : null);
+      (out.tags ||= []).push(tag?.name || q); used.add(i);
+    }
   });
   const accs: { a: Account, i: number, from: boolean, to: boolean }[] = [];
   ws.forEach((w, i) => { if (used.has(i) || FILLER.has(w.toLowerCase())) return; const a = nlAccount(w.replace(/[,.]$/, '')); if (a && !accs.some(x => x.a.id === a.id)) { accs.push({ a, i, from: /^from$/i.test(ws[i - 1] || ''), to: /^to$/i.test(ws[i - 1] || '') }); used.add(i); } });
@@ -39,7 +47,7 @@ export function nlParse(text: string, submit?: boolean) {
   ws.forEach((w, i) => { if (!used.has(i) && /^for$/i.test(ws[i - 1] || '') && !out.category) { const c = L.categories.find(c => c.name.toLowerCase().startsWith(w.toLowerCase())); if (c && w.length >= 3) { out.category = c.name; used.add(i); } } });
   if (accs.length >= 2 && !out.type) out.type = 'transfer';
   const payeeWords = ws.filter((w, i) => !used.has(i) && !FILLER.has(w.toLowerCase()));
-  let payee = payeeWords.join(' ').replace(/[,.]$/, '');
+  let payee = payeeWords.map(w => w.replace(/^["']|["']$/g, '')).join(' ').replace(/[,.]$/, '');
   const type = out.type || base.type;
   if (payee) {
     const pool = type === 'deposit' ? L.revenue : L.expense, q = payee.toLowerCase();
@@ -54,6 +62,7 @@ export function nlParse(text: string, submit?: boolean) {
   if (payee) { sp.description = payee; if (type !== 'transfer') sp.counter = payee; }
   else if (out.kw) sp.description = out.kw;
   if (out.category || out.catHint) sp.category = out.category || out.catHint;
+  if (out.tags?.length) sp.tags = [...new Set(out.tags)].join(', ');
   if (out.kw === 'Refund' && !sp.tags.split(',').some(isRefundTag)) sp.tags = [sp.tags.trim(), REFUND_TAG].filter(Boolean).join(', ');   // counts against spending, see refunds.ts
   f.main = base.main; f.src = base.src; f.dst = base.dst;
   if (type === 'transfer') {
@@ -70,11 +79,12 @@ export function nlParse(text: string, submit?: boolean) {
     type === 'transfer' ? (accs.length ? html`${chip('From', (L.byId[f.src] || {}).name || '?')}${f.dst ? chip('To', (L.byId[f.dst] || {}).name || '?') : ''}` : '') : accs[0] ? chip('Account', accs[0].a.name) : '',
     payee && type !== 'transfer' ? chip(type === 'deposit' ? 'From' : 'Payee', payee) : '',
     sp.category && (out.category || out.catHint) ? chip('Category', sp.category) : '',
+    out.tags?.length ? chip(out.tags.length === 1 ? 'Tag' : 'Tags', out.tags.join(', ')) : '',
   ]) : '';
   const caret = el<HTMLInputElement>('nlq') ? el<HTMLInputElement>('nlq').selectionStart : text.length;
   renderTxForm();
   const q = el<HTMLInputElement>('nlq'); if (q && document.activeElement !== q) { q.focus(); try { q.setSelectionRange(caret, caret); } catch (e) { /* ignore */ } }
-  if (payee && type !== 'transfer' && !out.category && !out.catHint) payeeFill(0, payee);
+  if (payee && type !== 'transfer') payeeFill(0, payee);   // explicit #category/@tag values are kept; missing fields can still use payee history
   if (submit) {
     if (num(sp.amount) > 0 && sp.description.trim()) el<HTMLFormElement>('txForm').requestSubmit();
     else { const miss = el('drawerBody').querySelector<HTMLElement>(num(sp.amount) > 0 ? '[data-k=description]' : '[data-k=amount]'); if (miss) miss.focus(); toast(num(sp.amount) > 0 ? 'Add a description' : 'Add an amount'); }

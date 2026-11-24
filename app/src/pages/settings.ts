@@ -356,9 +356,9 @@ async function ingestKey(): Promise<string | null> {
 }
 // Which account each Wallet card goes to, when its name doesn't say (app/ingest.js reads the same preference).
 // unmatched: cards the server couldn't place, so you can pick their account here.
-type Cards = { exists: boolean, cards: Record<string, string>, unmatched: string[], failed?: boolean };
+type Cards = { exists: boolean, cards: Record<string, string>, unmatched: string[], applePayTag: boolean, failed?: boolean };
 const CARD_PREF = 'money_cards';
-let cardState: Cards = { exists: false, cards: {}, unmatched: [] }, cardNames: string[] = [];
+let cardState: Cards = { exists: false, cards: {}, unmatched: [], applePayTag: true }, cardNames: string[] = [];
 // Kept until the next refresh (S.freshAfter), so redrawing Settings doesn't ask Firefly again; saving updates it.
 let cardsMemo: { t: number, v: Cards } | null = null;
 async function loadCards(): Promise<Cards> {
@@ -369,12 +369,12 @@ async function fetchCards(): Promise<Cards> {
   try {
     const r = await api('/preferences/' + CARD_PREF, { fresh: true }), d = r && r.data && r.data.attributes ? r.data.attributes.data : null;
     const v = typeof d === 'string' ? JSON.parse(d) : d;
-    return { exists: true, cards: (v && v.cards) || {}, unmatched: (v && v.unmatched) || [] };
-  } catch (e) { return { exists: false, cards: {}, unmatched: [], failed: (e as ApiError).status !== 404 }; }   // only a 404 means none saved yet
+    return { exists: true, cards: (v && v.cards) || {}, unmatched: (v && v.unmatched) || [], applePayTag: !v || v.applePayTag !== false };
+  } catch (e) { return { exists: false, cards: {}, unmatched: [], applePayTag: true, failed: (e as ApiError).status !== 404 }; }   // only a 404 means none saved yet
 }
 async function saveCards() {
   if (cardState.failed) return void toast('Couldn’t load your saved cards, so nothing was changed. Reload Settings and try again.');
-  const data = JSON.stringify({ cards: cardState.cards, unmatched: cardState.unmatched });
+  const data = JSON.stringify({ cards: cardState.cards, unmatched: cardState.unmatched, applePayTag: cardState.applePayTag });
   await withAuth(async () => {
     if (cardState.exists) await api('/preferences/' + CARD_PREF, { method: 'PUT', body: { data }, keepCache: true });
     else { await api('/preferences', { method: 'POST', body: { name: CARD_PREF, data }, keepCache: true }); cardState.exists = true; }
@@ -392,6 +392,10 @@ async function setCardAccount(i: number, id: string) {
 async function removeCard(i: number) {
   const name = cardNames[i]; if (name === undefined) return;
   delete cardState.cards[name]; cardState.unmatched = cardState.unmatched.filter(x => !sameCard(x, name));
+  await saveCards(); route();
+}
+async function setApplePayTag(on: boolean) {
+  cardState.applePayTag = !!on;
   await saveCards(); route();
 }
 async function addCard(f: HTMLFormElement) {
@@ -415,8 +419,9 @@ function applePayHtml(key: string | null, cards: Cards | null, accounts: Account
   return group('applepay', 'Apple Pay', html`
     ${row('Address', html`<code class="set-code">${url}</code>`, html`<button class="link" type="button" data-onclick="App.copyText('${url}', 'Address copied')">Copy</button>`)}
     <div class="set-row"><div class="set-label"><div>Key</div><div class="sub-s">Treat it like a password: anyone with it can add expenses.</div></div><div class="set-ctl set-key"><input id="applePayKey" type="password" readonly value="${key}" aria-label="Apple Pay key" autocomplete="off" spellcheck="false" data-onclick="App.selectKey()"><button class="link" type="button" data-onclick="App.showKey(this)">Show</button><button class="link" type="button" data-onclick="App.copyText('${key}', 'Key copied')">Copy</button></div></div>
+    ${row('Add Apple Pay tag', 'Keep a searchable “Apple Pay” tag on these payments.', html`<input ${SWITCH} aria-label="Add Apple Pay tag"${cards?.applePayTag !== false ? ' checked' : ''} data-onchange="App.setApplePayTag(this.checked)">`)}
     ${cardsHtml(cards, accounts)}
-    ${more('applepay-how', 'How it works', '', html`<p class="sub-s">An iPhone Shortcut sends the amount, merchant and card here when you pay, and Money adds the expense to the account named like the card, tagged “Apple Pay”, with the category from the last time. Your iPhone must be able to reach this address when you pay, so outside your home network it needs a VPN (like Tailscale) or a reverse proxy. Changing the dashboard password or Firefly token gives a new key.</p>`)}`,
+    ${more('applepay-how', 'How it works', '', html`<p class="sub-s">An iPhone Shortcut sends the amount, merchant, card and (optionally) location here when you pay. Money adds the expense to the card’s account, reuses the category, budget and tags from the merchant’s recent movements, and stores location in Firefly’s location fields. The Apple Pay tag is optional above. Your iPhone must be able to reach this address when you pay, so outside your home network it needs a VPN (like Tailscale) or a reverse proxy. Changing the dashboard password or Firefly token gives a new key.</p>`)}`,
     html`Log purchases the moment you pay. <a class="link" href="https://www.icloud.com/shortcuts/0438843e50e74fb89c7fa20e4eda6ca0" target="_blank" rel="noopener">Add the shortcut ↗</a> (it asks for the address and key) · <a class="link" href="https://github.com/Muffy0906/firefly-money/blob/main/docs/apple-pay.md" target="_blank" rel="noopener">Setup guide ↗</a>`);
 }
 // The Clipboard API only works over HTTPS (or localhost), and most installs are plain HTTP on a home network,
@@ -493,6 +498,7 @@ const methods = {
   selectKey,
   showKey,
   setCardAccount,
+  setApplePayTag,
   removeCard,
   addCard,
   addRate,
