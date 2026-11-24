@@ -66,7 +66,8 @@ export function shareChart(rows: Share[], middle: Html | string, label: string, 
     const children = [...untagged, ...top.map(([name, v]) => ({ name, v })), ...(other > 0 ? [{ name: t('Other tags'), v: other }] : [])];
     shown.push({ name: o.other || t('Everything else'), v: rest.reduce((s, r) => s + r.v, 0), c: 'var(--muted)', sub: t('{count} more', { count: rest.length }), href: o.rest, children });
   }
-  const tagDetail = (r: Share) => (r.children || []).filter(x => x.name !== r.name).map(x => x.name + ' · ' + money0(x.v)).join('\n');
+  // Keep the category-name child: it represents the part of this category with no tags.
+  const tagDetail = (r: Share) => (r.children || []).map(x => x.name + ' · ' + money0(x.v)).join('\n');
   const slices: Part[] = shown.slice(0, 6).map(r => ({ name: r.name, v: r.v, color: r.c, go: r.href, detail: tagDetail(r), key: r.name })), greyRows = shown.slice(6), grey = greyRows.reduce((s, r) => s + r.v, 0);
   const greyName = shown.length > 7 ? t('Everything else') : shown[6]?.name;
   if (grey) slices.push({ name: greyName!, v: grey, color: 'var(--muted)', go: shown.length > 7 ? o.rest : shown[6].href, detail: greyRows.map(tagDetail).filter(Boolean).join('\n'), key: greyName });
