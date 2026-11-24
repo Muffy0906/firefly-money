@@ -53,7 +53,7 @@ describe('keyboard and screen reader basics', () => {
   it('a failed page shows the server message, not JavaScript error text, and is announced', () => {
     const r = src('core/router.ts');
     expect(r).toContain('role="alert"><strong>Couldn’t load this page.');
-    expect(r).toContain("'Something went wrong while showing this page.'");
+    expect(src('core/dom.ts')).toContain("'Something went wrong while showing this page.'");
     expect(r).not.toContain('${(e as Error).message}<br>');
   });
   it('the Menu sheet closes when the page changes (Back)', () => {
