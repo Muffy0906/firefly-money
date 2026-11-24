@@ -328,6 +328,10 @@
   table.tbl { width: 100%; border-collapse: collapse; }
   .tbl th { text-align: left; font-size: var(--fs-xs); letter-spacing: 0; color: var(--muted); font-weight: 500; padding: 16px 16px 12px; border-bottom: 1px solid var(--line); }
   .tbl td { padding: 12px 16px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  @media (min-width: 901px) {   /* table edges line up with the card heading above */
+    .panel.flush .tbl :is(th, td):first-child { padding-left: var(--card-pad); }
+    .panel.flush .tbl :is(th, td):last-child { padding-right: var(--card-pad); }
+  }
   .tbl tr:last-child td { border-bottom: none; }
   .tbl tr.click { cursor: pointer; }
   .tbl tr.click:hover td { background: var(--faint); }
@@ -846,7 +850,7 @@
   @container (min-width: 840px) {
     .cc-body { grid-template-columns: minmax(0, 1fr) clamp(240px, 22cqi, 340px); align-items: start; }
     .cc .cc-main, .cc .cc-side { max-width: none; margin: 0; }
-    .cc-main .hm-cell { aspect-ratio: 4 / 3; min-width: 0; font-size: var(--fs-md); place-items: start; padding: 12px 12px; }
+    .cc-main .hm-cell { aspect-ratio: auto; height: 80px; min-width: 0; font-size: var(--fs-md); place-items: start; padding: 12px 12px; }
     .cc-n { font-weight: 600; color: var(--text); }
     .cc-cell:not(.risk) .cc-n { color: color-mix(in srgb, var(--text) 85%, transparent); }
     .cc .cc-dots { display: none; }
@@ -861,7 +865,6 @@
     .cc-side .cc-key { flex-direction: column; margin: 0; gap: 12px; font-size: var(--fs-sm); }
     .cc-side .hm-foot { flex-direction: column; margin: 0; padding-top: 16px; border-top: 1px solid var(--line); gap: 8px; font-size: var(--fs-md); }
   }
-  @container (min-width: 1280px) { .cc-main .hm-cell { aspect-ratio: 5 / 3; } }
   .cc-cell { position: relative; }
   .cc-cell.risk { color: var(--text); }
   .cc-cell.tight { box-shadow: inset 0 0 0 2px var(--warn); }

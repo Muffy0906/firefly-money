@@ -58,7 +58,7 @@ describe('cash flow calendar markup', () => {
   });
   it('scales to the card: no fixed width cap on wide cards, side column, one wording for the span', () => {
     expect(css).toMatch(/@container \(min-width: 840px\)[\s\S]*?\.cc-body \{ grid-template-columns/);
-    expect(css).toMatch(/\.cc-main \.hm-cell \{ aspect-ratio: 4 \/ 3/);
+    expect(css).toMatch(/\.cc-main \.hm-cell \{ aspect-ratio: auto; height: 80px/);
     expect(src).toContain('cc-side');
     expect(src).toContain('days of this forecast');
     expect(css).not.toContain('.cc .hm, .cc .hm-foot, .cc-key { max-width: 640px');

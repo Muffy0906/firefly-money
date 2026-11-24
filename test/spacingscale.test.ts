@@ -53,3 +53,18 @@ describe('sidebar and scorecard regressions', () => {
     expect(css).toMatch(/\.sc-tops, \.sc-person \{ margin-bottom: var\(--card-gap\); \}/);
   });
 });
+
+describe('forecast spacing', () => {
+  const css = readFileSync('app/assets/money.css', 'utf8');
+  const fc = readFileSync('app/src/pages/forecast.ts', 'utf8');
+  it('puts the hero a card gap above the first card', () => {
+    expect(fc).toContain('<section class="hero" style="margin-bottom:var(--card-gap)">');
+  });
+  it('insets flush card headings and table edges by the card padding', () => {
+    expect(fc).toContain('panel flush"><div style="padding:var(--card-pad) var(--card-pad) 8px">');
+    expect(css).toContain('.panel.flush .tbl :is(th, td):first-child { padding-left: var(--card-pad); }');
+  });
+  it('gives calendar days room for two amounts', () => {
+    expect(css).toMatch(/\.cc-main \.hm-cell \{ aspect-ratio: auto; height: 80px;/);
+  });
+});
