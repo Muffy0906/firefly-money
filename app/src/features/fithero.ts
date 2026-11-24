@@ -14,7 +14,10 @@ let raf = 0;
 const later = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; fitHero(); }); };
 (function init() {
   const v = document.getElementById('view'); if (!v) return;
-  new MutationObserver(later).observe(v, { childList: true, subtree: true, characterData: true });
+  new MutationObserver(later).observe(v, { childList: true, subtree: true });
+  // A number rolling up rewrites its text every frame: wait until it settles instead of re-measuring each tick
+  let settle = 0;
+  new MutationObserver(() => { clearTimeout(settle); settle = window.setTimeout(later, 120); }).observe(v, { characterData: true, subtree: true });
   addEventListener('resize', later);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(later).catch(() => {});
   later();
