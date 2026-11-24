@@ -1,14 +1,15 @@
 import { type Html, html, htmlList } from '../core/html';
 import { fmtDay, money, money0 } from '../core/base';
 import { head } from '../core/dom';
+import { t } from '../core/spanish';
 import { VIEWS } from '../core/router';
 import { type Flag, type Mover, loadUnusual } from '../features/unusual';
 import { panelHead, doneState } from '../core/ui';
 
 /* ================= Unusual: odd charges and merchant trends (features/unusual.ts) ================= */
 const KIND: Record<Flag['kind'], string> = { duplicate: 'Repeated', spike: 'Much higher', 'new-large': 'New merchant' };
-export const flagRow = (f: Flag): Html => html`<a class="row unusual-row" href="#/transactions" data-onclick="event.preventDefault();App.editTx('${f.charge.id}')"><span class="name">${f.charge.payee}<span class="sub-s" style="display:block">${fmtDay(f.charge.date)} · ${f.why}</span></span><span class="un-r"><span class="chip warn">${KIND[f.kind]}</span><span class="num">${money(f.charge.amount)}</span></span></a>`;
-const moverRow = (m: Mover, mode: 'up' | 'down' | 'new'): Html => html`<a class="row" href="${m.payeeId ? '#/account/' + m.payeeId : '#/transactions'}"><span class="name">${m.payee}<span class="sub-s" style="display:block">${mode === 'new' ? 'First charge this month' : 'Usually ' + money0(m.base) + ' by now'}</span></span><span class="num ${mode === 'up' ? 'up' : mode === 'down' ? 'down' : ''}">${mode === 'new' ? money0(m.now) : (mode === 'up' ? '▲ ' : '▼ ') + money0(Math.abs(m.delta))}<span class="sub-s" style="display:block;text-align:right">${mode === 'new' ? '' : money0(m.now) + ' so far'}</span></span></a>`;
+export const flagRow = (f: Flag): Html => html`<a class="row unusual-row" href="#/transactions" data-onclick="event.preventDefault();App.editTx('${f.charge.id}')"><span class="name">${f.charge.payee}<span class="sub-s" style="display:block">${fmtDay(f.charge.date)} · ${t(f.why)}</span></span><span class="un-r"><span class="chip warn">${KIND[f.kind]}</span><span class="num">${money(f.charge.amount)}</span></span></a>`;
+const moverRow = (m: Mover, mode: 'up' | 'down' | 'new'): Html => html`<a class="row" href="${m.payeeId ? '#/account/' + m.payeeId : '#/transactions'}"><span class="name">${m.payee}<span class="sub-s" style="display:block">${mode === 'new' ? t('First charge this month') : t('Usually {amount} by now', { amount: money0(m.base) })}</span></span><span class="num ${mode === 'up' ? 'up' : mode === 'down' ? 'down' : ''}">${mode === 'new' ? money0(m.now) : (mode === 'up' ? '▲ ' : '▼ ') + money0(Math.abs(m.delta))}<span class="sub-s" style="display:block;text-align:right">${mode === 'new' ? '' : t('{amount} so far', { amount: money0(m.now) })}</span></span></a>`;
 const section = (title: string, lead: string, rows: Html[]) => rows.length ? html`<section class="panel">${panelHead(title, lead)}<div class="list">${htmlList(rows)}</div></section>` : '';
 VIEWS.unusual = async (r, paint) => {
   let u;

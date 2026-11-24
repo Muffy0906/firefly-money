@@ -239,13 +239,13 @@ function attentionPanel({ uncat, bills, budgets, limits, future, unusual }: { un
   if (n) items.push(html`<a class="row" href="#/inbox"><span class="name">${n} expense${n === 1 ? '' : 's'} without a category</span><span class="neutral">Categorize →</span></a>`);
   if (unusual && unusual.flags.length) {
     const fl = unusual.flags, one = fl.length === 1 ? fl[0] : null;
-    items.push(one ? html`<a class="row" href="#/unusual" data-onclick="event.preventDefault();App.editTx('${one.charge.id}')"><span class="name">${one.charge.payee}: ${one.why}</span><span class="neutral">Look →</span></a>`
-      : html`<a class="row" href="#/unusual"><span class="name">${fl.length} unusual charges</span><span class="neutral">Review →</span></a>`);
+    items.push(one ? html`<a class="row" href="#/unusual" data-onclick="event.preventDefault();App.editTx('${one.charge.id}')"><span class="name">${one.charge.payee}: ${t(one.why)}</span><span class="neutral">Look →</span></a>`
+      : html`<a class="row" href="#/unusual"><span class="name">${fl.length === 1 ? t('1 unusual charge') : t('{count} unusual charges', { count: fl.length })}</span><span class="neutral">Review →</span></a>`);
   }
-  const t = todayIso(), week = isoDate(new Date(Date.now() + 7 * 864e5));
+  const today = todayIso(), week = isoDate(new Date(Date.now() + 7 * 864e5));
   bills.filter(b => b.attributes.active !== false).forEach(b => {
     const d = billDueDates(b.attributes, { end: week })[0];
-    if (d) items.push(html`<a class="row" href="#/bills"><span class="name">${b.attributes.name} ${d < t ? html`<span class="up">overdue since ${fmtDay(d)}</span>` : 'due ' + fmtDay(d)}</span><span class="num">${money(billAmount(b.attributes))}</span></a>`);
+    if (d) items.push(html`<a class="row" href="#/bills"><span class="name">${b.attributes.name} ${d < today ? html`<span class="up">overdue since ${fmtDay(d)}</span>` : 'due ' + fmtDay(d)}</span><span class="num">${money(billAmount(b.attributes))}</span></a>`);
   });
   if (!future) budgets.forEach(b => {
     const lim = limits[String(b.id)], spent = spentSum(b);
@@ -376,7 +376,7 @@ function trendsPanel(labels: string[], months: ApiData[][], ranges: Period[]) {
   const rows = htmlList(top.map(r => {
     const now = r.v[r.v.length - 1], past = r.v.slice(0, -1), usual = past.length ? past.reduce((s, x) => s + x, 0) / past.length : 0, d = usual ? (now - usual) / usual * 100 : 0;
     const name = r.id ? html`<a href="#/transactions?category=${r.id}" style="text-decoration:none">${r.name}</a>` : r.name;
-    return html`<div class="trend-row"><span class="name">${name}<span class="sub-s">${usual ? html`<span class="${d > 0 ? 'up' : 'down'}">${Math.abs(d) < 5 ? 'about usual' : Math.round(Math.abs(d)) + '% ' + (d > 0 ? 'above' : 'below') + ' usual'}</span>` : 'new'}</span></span>${sparkBars(r.v, max, r.v.map((v, i) => labels[i] + ' · ' + money0(v)), r.id ? ranges.map(mo => txHref({ category: r.id }, mo)) : undefined)}<span class="num">${money0(now)}</span></div>`;
+    return html`<div class="trend-row"><span class="name">${name}<span class="sub-s">${usual ? html`<span class="${d > 0 ? 'up' : 'down'}">${Math.abs(d) < 5 ? t('about usual') : t('{percentage}% {direction} usual', { percentage: Math.round(Math.abs(d)), direction: t(d > 0 ? 'above' : 'below') })}</span>` : t('new')}</span></span>${sparkBars(r.v, max, r.v.map((v, i) => labels[i] + ' · ' + money0(v)), r.id ? ranges.map(mo => txHref({ category: r.id }, mo)) : undefined)}<span class="num">${money0(now)}</span></div>`;
   }));
   return html`<section class="panel">${panelHead('Category trends', html`Your biggest categories, ${labels[0]} to ${labels[labels.length - 1]}`)}${rows ? html`<div class="trends">${rows}</div>` : html`${emptyNote('No spending recorded yet.')}`}</section>`;
 }
