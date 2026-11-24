@@ -8,6 +8,7 @@ import { addDays } from '../core/helpers';
 import { isCard, isLiab, lists, normAccount } from '../core/lists';
 import { VIEWS, route } from '../core/router';
 import { newTx } from '../features/txform';
+import { kpi } from '../core/ui';
 
 /* ================= Reconcile ================= */
 type RecRow = { gid: string, jid: string, date: string, desc: string, amt: number, rec: boolean };
@@ -46,7 +47,7 @@ function recCalc() {
   const diff = stmt === null ? null : Math.round((stmt - cleared) * 100) / 100;
   const newly = R.rows.filter(x => R.checked.has(x.jid) && !x.rec).length;
   el('rc-kpis').innerHTML =
-    String(html`<div class="kpi"><div class="eyebrow">Balance before ${fmtDay(R.start)}</div><div class="val num">${recMoney(disp(R.startBal))}</div></div><div class="kpi"><div class="eyebrow">Ticked balance</div><div class="val num">${recMoney(disp(cleared))}</div></div><div class="kpi"><div class="eyebrow">Difference</div><div class="val num ${diff === null ? '' : diff === 0 ? 'pos' : 'neg'}">${diff === null ? '—' : diff === 0 ? 'Balanced ✓' : recMoney(disp(diff))}</div></div>`);
+    String(html`${kpi(html`Balance before ${fmtDay(R.start)}`, recMoney(disp(R.startBal)), null)}${kpi('Ticked balance', recMoney(disp(cleared)), null)}${kpi('Difference', diff === null ? '—' : diff === 0 ? 'Balanced ✓' : recMoney(disp(diff)), null, diff === null ? '' : diff === 0 ? 'pos' : 'neg')}`);
   el('rc-actions').innerHTML =
     String(html`<button class="btn primary" data-onclick="App.recFinish()"${newly ? '' : ' disabled'}>Mark ${newly} as reconciled</button>${diff ? html`<button class="btn" data-onclick="App.recAdjust()">Add a ${recMoney(Math.abs(diff))} adjustment</button>` : ''}`);
   R.diff = diff;

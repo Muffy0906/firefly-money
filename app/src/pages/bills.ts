@@ -12,6 +12,7 @@ import { VIEWS, hashWith, parseHash, route } from '../core/router';
 import { billRises, type Charge, findRecurring } from '../features/subs';
 import { auditSubs } from '../features/subaudit';
 import { subAuditPanel } from '../features/subauditview';
+import { kpi as kpiCard, emptyNote, panelHead } from '../core/ui';
 
 /* ================= Bills ================= */
 const FREQ: Record<string, [string, number]> = { daily: ['day', 30.44], weekly: ['week', 4.35], monthly: ['month', 1], quarterly: ['quarter', 1 / 3], 'half-year': ['6 months', 1 / 6], yearly: ['year', 1 / 12] };
@@ -148,8 +149,8 @@ function billCalendar(bills: ApiData[], cur: Period) {
   }
   // On a phone the grid is too narrow for names, so the same month shows as a list of days
   const agenda = htmlList(Object.keys(days).sort().map(d => html`<div class="bcal-agenda-day"><div class="eyebrow">${fmtDay(d)}${d === t ? ' · today' : ''}</div>${htmlList(days[d].map(row))}</div>`));
-  const kpi = (label: string, v: number, cls = '') => html`<div class="kpi"><div class="eyebrow">${label}</div><div class="val num ${cls}">${money0(v)}</div></div>`;
-  return html`<div class="kpis">${kpi('Paid', sum.paid, 'pos')}${kpi('Still due', sum.due)}${sum.late ? kpi('Overdue', sum.late, 'neg') : ''}</div><section class="panel bcal"><div class="bcal-dow">${htmlList(weekOrder(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']).map(d => html`<span>${d}</span>`))}</div><div class="bcal-grid">${htmlList(cells)}</div></section><section class="panel bcal-agenda">${agenda ? html`<div class="list">${agenda}</div>` : html`<p class="empty">Nothing due in ${cur.label}.</p>`}</section><p class="sub-s" style="margin-top:10px">Amounts are each bill’s expected amount. Tap a paid bill to open the charge that paid it.</p>`;
+  const kpi = (label: string, v: number, cls = '') => kpiCard(label, money0(v), null, cls);
+  return html`<div class="kpis">${kpi('Paid', sum.paid, 'pos')}${kpi('Still due', sum.due)}${sum.late ? kpi('Overdue', sum.late, 'neg') : ''}</div><section class="panel bcal"><div class="bcal-dow">${htmlList(weekOrder(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']).map(d => html`<span>${d}</span>`))}</div><div class="bcal-grid">${htmlList(cells)}</div></section><section class="panel bcal-agenda">${agenda ? html`<div class="list">${agenda}</div>` : html`${emptyNote(html`Nothing due in ${cur.label}.`)}`}</section><p class="sub-s" style="margin-top:10px">Amounts are each bill’s expected amount. Tap a paid bill to open the charge that paid it.</p>`;
 }
 function billsView(v: string) { LS.set('billsView', v); location.hash = hashWith({ view: v }); }
 
@@ -178,7 +179,7 @@ async function subsPanel(bills: ApiData[]) {
     return html`<div class="row"><span class="name">${at.name}<br><span class="sub-s">Last charge ${money(r.last)} on ${fmtDay(r.date)}, above the bill’s ${money(num(at.amount_max))}</span></span><button class="btn small" data-onclick="App.billRaise('${id}')">Update to ${money(r.last)}</button></div>`;
   }));
   const subRows = htmlList(found.map((r, i) => html`<div class="row"><span class="name">${r.payee}${r.rose ? html` <span class="chip warn">Up from ${money(r.rose.from)}</span>` : ''}<br><span class="sub-s">${r.min === r.max ? money(r.amount) : 'About ' + money(r.amount)} every ${r.every} · ${r.count} charges · last ${fmtDay(r.last)}, next around ${fmtDay(r.next)}</span></span><span style="display:flex;gap:6px;flex:none"><button class="btn small" data-onclick="App.subIgnore(${i})">Not a bill</button><button class="btn small primary" data-onclick="App.subAdd(${i})">Add as bill</button></span></div>`));
-  return html`${subAuditPanel(auditSubs(charges, todayIso()))}${riseRows ? html`<section class="panel" style="margin-top:20px"><h2>Prices that went up</h2><p class="lead">These bills were charged more than their highest amount</p><div class="list">${riseRows}</div></section>` : ''}${subRows ? html`<section class="panel" style="margin-top:20px"><h2>Looks like a bill</h2><p class="lead">Charges that repeat on a schedule but aren’t bills yet. As bills they show up in Coming up and in the safe-to-spend forecast.</p><div class="list">${subRows}</div></section>` : ''}`;
+  return html`${subAuditPanel(auditSubs(charges, todayIso()))}${riseRows ? html`<section class="panel" style="margin-top:20px">${panelHead('Prices that went up', 'These bills were charged more than their highest amount')}<div class="list">${riseRows}</div></section>` : ''}${subRows ? html`<section class="panel" style="margin-top:20px">${panelHead('Looks like a bill', 'Charges that repeat on a schedule but aren’t bills yet. As bills they show up in Coming up and in the safe-to-spend forecast.')}<div class="list">${subRows}</div></section>` : ''}`;
 }
 function subAdd(i: number) {
   const r = S.subs && S.subs[i]; if (!r) return;

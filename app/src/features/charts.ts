@@ -4,6 +4,7 @@ import { absDiff, type ApiData, App, fmtD, fmtDate, fmtDay, isoDate, leadDays, m
 import { SERIES, normGroup, signed, type Group } from '../core/feed';
 import { addDays, LS, daysBetween } from '../core/helpers';
 import type { Account } from '../core/lists';
+import { panelHead } from '../core/ui';
 
 /* ---------- Shapes the charts share: smooth lines, donuts and progress rings ---------- */
 // A smooth line through the points. Monotone (as d3's curveMonotoneX), so it never bulges past a peak or dips
@@ -296,7 +297,7 @@ function heatmapPanel(cur: Period, groups: Group[]) {
   for (let i = lead + dim; i < 42; i++) cells = html`${cells}<span class="hm-cell pad"></span>`;
   const top = Object.entries(by).sort((a, b) => b[1] - a[1])[0];
   const passed = t >= cur.start && t <= cur.end ? daysBetween(cur.start, t) + 1 : t < cur.start ? 0 : dim, free = Math.max(0, passed - days);
-  return html`<section class="panel"><h2>Daily spending</h2><p class="lead">Stronger colour means more spent · tap a day to see it</p><div class="hm"><div class="hm-dow">${htmlList(weekOrder(['S', 'M', 'T', 'W', 'T', 'F', 'S']).map(x => html`<span>${x}</span>`))}</div><div class="hm-grid">${cells}</div></div><div class="hm-foot"><span>${top ? html`Biggest day: <strong class="num">${money0(top[1])}</strong> on ${fmtDay(top[0])}` : 'No spending yet'}</span><span>${free} no-spend day${free === 1 ? '' : 's'}</span></div></section>`;
+  return html`<section class="panel">${panelHead('Daily spending', 'Stronger colour means more spent · tap a day to see it')}<div class="hm"><div class="hm-dow">${htmlList(weekOrder(['S', 'M', 'T', 'W', 'T', 'F', 'S']).map(x => html`<span>${x}</span>`))}</div><div class="hm-grid">${cells}</div></div><div class="hm-foot"><span>${top ? html`Biggest day: <strong class="num">${money0(top[1])}</strong> on ${fmtDay(top[0])}` : 'No spending yet'}</span><span>${free} no-spend day${free === 1 ? '' : 's'}</span></div></section>`;
 }
 
 /* ---------- Money flow (income → spending categories + kept) ---------- */
@@ -319,7 +320,7 @@ function sankeyPanel(sources: ApiData[], income: number, cats: { name: string, a
   if (spend > inc) left.push({ name: 'From savings', v: spend - inc, kind: 'save' });
   if (inc > spend) right.push({ name: 'Kept', v: inc - spend, kind: 'kept' });
   const d: Flow = { left, right, inc, spend };
-  return html`<section class="panel chart sankey" data-sk="${JSON.stringify(d)}"><h2>Money flow</h2><p class="lead">Where ${cur.all ? 'all your' : cur.label + '’s'} income went · ${matchMedia?.('(hover: none)').matches ? 'tap a band to see its transactions' : 'hover a band for details'}</p><div class="sk-box">${skFirst(d)}</div>${skTable(d)}</section>`;
+  return html`<section class="panel chart sankey" data-sk="${JSON.stringify(d)}">${panelHead('Money flow', html`Where ${cur.all ? 'all your' : cur.label + '’s'} income went · ${matchMedia?.('(hover: none)').matches ? 'tap a band to see its transactions' : 'hover a band for details'}`)}<div class="sk-box">${skFirst(d)}</div>${skTable(d)}</section>`;
 }
 // The same figures as a table, for keyboard and screen-reader users (and anyone who prefers numbers): a native <details>
 function skTable(d: Flow) {

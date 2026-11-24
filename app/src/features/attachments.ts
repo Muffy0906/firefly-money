@@ -5,6 +5,7 @@ import { App, S, arr, el, fmtDay, money } from '../core/base';
 import { confirmBox, opt, toast } from '../core/dom';
 import { normGroup } from '../core/feed';
 import { fmtSize, saveBlob } from '../core/helpers';
+import { emptyNote } from '../core/ui';
 
 /* ================= Attachments & links in the transaction drawer ================= */
 async function loadTxExtras(gid: string, jids: string[]) {
@@ -59,7 +60,7 @@ async function findLink() {
   await withAuth(async () => {
     const res = await api('/search/transactions', { params: { query: q, search: q, limit: 8, page: 1 } });
     const gs = arr(res).map(normGroup).filter(g => g.id !== S.extrasCtx!.gid);
-    el('lnkResults').innerHTML = String(gs.length ? html`<div class="list">${htmlList(gs.map(g => html`<div class="row"><span class="name">${g.title || g.splits[0].description} <span class="sub-s">${fmtDay(g.date)} · ${money(g.total)}</span></span><button class="btn small" type="button" data-onclick="App.makeLink('${g.splits[0].jid}')">Link</button></div>`))}</div>` : html`<p class="empty">No matches.</p>`);
+    el('lnkResults').innerHTML = String(gs.length ? html`<div class="list">${htmlList(gs.map(g => html`<div class="row"><span class="name">${g.title || g.splits[0].description} <span class="sub-s">${fmtDay(g.date)} · ${money(g.total)}</span></span><button class="btn small" type="button" data-onclick="App.makeLink('${g.splits[0].jid}')">Link</button></div>`))}</div>` : html`${emptyNote('No matches.')}`);
   });
 }
 async function makeLink(otherJid: string) {

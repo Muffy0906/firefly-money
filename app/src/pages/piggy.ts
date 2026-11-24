@@ -9,6 +9,7 @@ import { VIEWS, route } from '../core/router';
 import { goalPace } from '../features/pace';
 import { SERIES, ring } from '../features/charts';
 import { customizeButton, pageCard, pageOpt } from '../features/pageopts';
+import { emptyNote, panelHead } from '../core/ui';
 
 /* ================= Piggy banks ================= */
 // What a goal needs from here on, and a chip saying whether it keeps up (shared with the Overview's Savings goals card)
@@ -51,7 +52,7 @@ VIEWS.piggy = async (r, paint) => {
       : html`<div class="goal">${ring(pct, 'good', 'saved')}<div><div class="total num" style="margin-bottom:2px">${money0(p.current)}</div><div class="neutral">of ${money0(p.target)}</div><div class="sub-s" style="margin-top:8px">${paceBits(p).line} ${paceBits(p).chip}</div></div></div>`}<div style="display:flex;gap:8px"><button class="btn small" data-onclick="App.piggyMoney('${p.id}',1)">+ Add money</button><button class="btn small" data-onclick="App.piggyMoney('${p.id}',-1)">− Take out</button></div></section>`;
   }));
   paint(html`${head('Piggy banks', piggies.length ? money0(saved) + ' saved toward ' + money0(goal) + ' in goals' : 'Set money aside for goals', html`${customizeButton('piggy')}<button class="btn primary" data-onclick="App.piggyForm()">+ New piggy bank</button>`)}${cards ?
-    html`<div class="flow" data-min="320">${pageCard('piggy', 'chart') ? html`<section class="panel full"><h2>All goals at a glance</h2><p class="lead">${money0(saved)} of ${money0(goal)} saved · ${goal ? Math.round(saved / goal * 100) : 0}% of the way</p><div class="parts goal-parts">${htmlList(shown.map((p, i) => html`<div class="part"><i style="background:${SERIES[i % SERIES.length]}"></i><span class="name">${p.name}<span class="sub-s">${money0(p.current)} of ${money0(p.target)}</span></span><span class="track"><span class="fill" style="width:${pctOf(p).toFixed(1)}%;background:${SERIES[i % SERIES.length]}"></span></span><span class="num">${pctOf(p).toFixed(0)}%</span></div>`))}</div></section>` : ''}${cards}</div>` :
+    html`<div class="flow" data-min="320">${pageCard('piggy', 'chart') ? html`<section class="panel full">${panelHead('All goals at a glance', html`${money0(saved)} of ${money0(goal)} saved · ${goal ? Math.round(saved / goal * 100) : 0}% of the way`)}<div class="parts goal-parts">${htmlList(shown.map((p, i) => html`<div class="part"><i style="background:${SERIES[i % SERIES.length]}"></i><span class="name">${p.name}<span class="sub-s">${money0(p.current)} of ${money0(p.target)}</span></span><span class="track"><span class="fill" style="width:${pctOf(p).toFixed(1)}%;background:${SERIES[i % SERIES.length]}"></span></span><span class="num">${pctOf(p).toFixed(0)}%</span></div>`))}</div></section>` : ''}${cards}</div>` :
     piggies.length ? html`<section class="panel"><div class="center-empty">Every goal is reached. Turn on Goals already reached under Customize to see them.</div></section>` : html`<section class="panel">${emptyState('goals', 'No piggy banks yet', 'Set money aside for a goal, like a trip, tuition or an emergency fund, and track how close you are.', html`<button class="btn primary" data-onclick="App.piggyForm()">+ New piggy bank</button>`)}</section>`}`);
 };
 function piggyForm(id?: string) {
@@ -66,7 +67,7 @@ function piggyForm(id?: string) {
     box.innerHTML = String(html`<h3 style="font-size:14px;margin:8px 0 10px">History</h3>${ev.length ? html`<div class="list">${htmlList(ev.map(e => {
       const a = num(e.attributes.amount);
       return html`<div class="row"><span class="name">${fmtDate(e.attributes.created_at || e.attributes.date)}${e.attributes.transaction_journal_id ? html` <span class="sub-s">· from a transaction</span>` : ''}</span><span class="num ${a < 0 ? 'neg' : 'pos'}">${a > 0 ? '+' : ''}${money(a)}</span></div>`;
-    }))}</div>` : html`<p class="empty">No changes yet.</p>`}`);
+    }))}</div>` : html`${emptyNote('No changes yet.')}`}`);
   }).catch(() => { const box = el('pgHistory'); if (box) box.innerHTML = ''; });
 }
 async function savePiggy() {
