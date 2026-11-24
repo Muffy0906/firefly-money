@@ -10,7 +10,7 @@ import { loadView } from '../core/progress';
    the "can't reach" screen (features/ffstatus.ts) takes over and the bar goes. */
 const SHOW_AFTER = 350, MIN_SHOWN = 600, SAY_EVERY = 1500;
 let bar: HTMLElement | null = null, sr: HTMLElement | null = null;
-let showT: ReturnType<typeof setTimeout> | undefined, hideT: ReturnType<typeof setTimeout> | undefined, shownAt = 0, said = { text: '', step: -1, at: 0 }, raf = 0;
+let showT: ReturnType<typeof setTimeout> | undefined, hideT: ReturnType<typeof setTimeout> | undefined, shownAt = 0, said = { text: '', step: -1, at: 0 }, raf = 0, drawn = '';
 function make() {
   if (bar) return;
   bar = document.createElement('div'); bar.id = 'loadBar'; bar.className = 'ld'; bar.setAttribute('aria-hidden', 'true');
@@ -27,7 +27,7 @@ function draw() {
       clearTimeout(hideT);
       hideT = setTimeout(() => { bar!.classList.remove('show'); }, Math.max(0, MIN_SHOWN - (Date.now() - shownAt)));
     }
-    said = { text: '', step: -1, at: 0 };
+    said = { text: '', step: -1, at: 0 }; drawn = '';
     return;
   }
   make();
@@ -37,12 +37,17 @@ function draw() {
     if (el('app').hidden) return;
     shownAt = Date.now(); bar!.classList.add('show'); draw();
   }, SHOW_AFTER);
-  bar!.dataset.k = v.retrying ? 'retry' : 'ok';
-  bar!.querySelector('.ld-t')!.textContent = v.text;
-  bar!.querySelector('.ld-d')!.textContent = v.detail;
-  bar!.querySelector('.ld-p')!.textContent = v.pct + '%';
-  (bar!.querySelector('.ld-track > i') as HTMLElement).style.transform = 'scaleX(' + v.pct / 100 + ')';
-  bar!.classList.toggle('idle', v.pct === 0);
+  // only what changed: a request finishing often leaves the words as they were, and every write restyles the bar
+  const sig = [v.retrying, v.text, v.detail, v.pct].join('|');
+  if (sig !== drawn) {
+    drawn = sig;
+    bar!.dataset.k = v.retrying ? 'retry' : 'ok';
+    bar!.querySelector('.ld-t')!.textContent = v.text;
+    bar!.querySelector('.ld-d')!.textContent = v.detail;
+    bar!.querySelector('.ld-p')!.textContent = v.pct + '%';
+    (bar!.querySelector('.ld-track > i') as HTMLElement).style.transform = 'scaleX(' + v.pct / 100 + ')';
+    bar!.classList.toggle('idle', v.pct === 0);
+  }
   // what a screen reader hears: only once the bar is up, and not on every request
   const step = Math.floor(v.pct / 25);
   if (bar!.classList.contains('show') && (v.text !== said.text || step !== said.step) && Date.now() - said.at >= SAY_EVERY) {
