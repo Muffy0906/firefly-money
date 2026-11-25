@@ -12,11 +12,13 @@ import './core/sky';
   if (native) { d.classList.add('native'); if (window.MONEY_NATIVE_TABS) d.classList.add('native-tabs');
     var m = document.querySelector<HTMLMetaElement>('meta[name=viewport]'); if (m) m.content += ', maximum-scale=1, user-scalable=no'; }
 })();
-// Spanish is a separate script, added only when it's picked (before app.js runs, so the first screen is already translated).
+// Each translation is a separate script, added only when that language is picked (before app.js runs, so the first screen is already translated).
 // A fixed relative path (the page is always at the site's root, which the online demo has under /firefly-money/); no version
 // stamp, so the browser checks with the server each time (nginx sends no-cache for unversioned assets)
 (function () { try {
-  if (JSON.parse(localStorage.getItem('money.lang') || '""') === 'es') document.write('<script src="assets/js/es.js"></script>');
+  var lang = JSON.parse(localStorage.getItem('money.lang') || '""');
+  if (lang === 'es') document.write('<script src="assets/js/es.js"></script>');
+  else if (lang === 'de') document.write('<script src="assets/js/de.js"></script>');
 } catch (e) {} })();
 // Used Money on this device before? Checked before anything writes, so What's new can tell an update from a new install
 (function () { try { window.MONEY_RETURNING = Object.keys(localStorage).some(function (k) { return k.indexOf('money') === 0; }); } catch (e) {} })();

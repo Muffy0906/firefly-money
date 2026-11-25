@@ -179,7 +179,7 @@ function skySearch(q: string) {
   skyTimer = window.setTimeout(async () => {
     skyRes(skyMsg('Searching…'));
     try {
-      const r = await fetch('/geo?q=' + encodeURIComponent(q) + '&l=' + (LS.get('lang', '') === 'es' ? 'es' : 'en'), { credentials: 'same-origin' });
+      const r = await fetch('/geo?q=' + encodeURIComponent(q) + '&l=' + (['es', 'de'].find(l => l === LS.get('lang', '')) || 'en'), { credentials: 'same-origin' });
       const j = r.ok ? await r.json() as { results?: { name: string, admin1?: string, country?: string, latitude: number, longitude: number }[] } : null;
       if (seq !== skySeq) return;
       if (!j) { skyFound = []; skyRes(skyMsg('Place search isn’t available right now.')); return; }
@@ -472,7 +472,7 @@ const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 
 const localeSample = () => money(1234.56) + ' · ' + fmtDate(todayIso()) + ' · weeks start on ' + DAYS[weekStart()];
 function setLocale(v: string) { LS.set('locale', v); PAGES.clear(); S.pageKey = ''; toast('Amounts and dates now look like ' + money(1234.56) + ' and ' + fmtDate(todayIso())); route({ quiet: true }); }
 // The language is read once at start, so the page reloads to apply it (core/spanish.ts)
-function setLang(v: string) { LS.set('lang', v === 'es' ? 'es' : 'en'); location.reload(); }
+function setLang(v: string) { LS.set('lang', LANGS.some(([code]) => code === v) ? v : 'en'); location.reload(); }
 function setWorkHours(v: string) { LS.set('workHours', Math.min(168, Math.max(1, num(v))) || 40); PAGES.clear(); route({ quiet: true }); }
 function toggleWorkSource(i: number, on: boolean) { const n = workSources()[i]; if (n == null) return; const k = workSkip().filter(x => x !== n); setWorkSkip(on ? k : [...k, n]); PAGES.clear(); route({ quiet: true }); }
 function setWorkRate(v: string) { LS.set('workRate', Math.max(0, Math.round(num(v) * 100) / 100)); PAGES.clear(); route({ quiet: true }); }

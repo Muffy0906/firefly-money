@@ -106,12 +106,12 @@ let locCache: [string, string] | null = null;
 export function locale() {
   let raw: string | null = null;
   try { raw = localStorage.getItem(LOCALE_KEY); } catch (e) { /* storage blocked */ }
-  const es = langPref() === 'es', stamp = (raw ?? '') + '|' + es;
+  const lang = langPref(), stamp = (raw ?? '') + '|' + lang;
   if (locCache && locCache[0] === stamp) return locCache[1];
   let pick = '';
   try { pick = raw ? String(JSON.parse(raw) || '') : ''; } catch (e) { /* not JSON */ }
-  // With Spanish picked and no format chosen, dates and months follow Spanish too (es-US keeps $1,234.50 and month/day order)
-  const want = pick || (es ? (typeof navigator !== 'undefined' && /^es\b/i.test(navigator.language) ? navigator.language : 'es-US') : (typeof navigator !== 'undefined' && navigator.language) || 'en-US');
+  // With Spanish or German picked and no format chosen, dates and months follow that language too (es-US keeps $1,234.50 and month/day order)
+  const want = pick || (lang !== 'en' ? (typeof navigator !== 'undefined' && navigator.language.slice(0, 2).toLowerCase() === lang ? navigator.language : lang === 'es' ? 'es-US' : 'de-DE') : (typeof navigator !== 'undefined' && navigator.language) || 'en-US');
   let ok = 'en-US';
   try { ok = Intl.NumberFormat.supportedLocalesOf([want])[0] || 'en-US'; } catch (e) { /* not a locale tag */ }
   locCache = [stamp, ok];

@@ -182,6 +182,7 @@ server {
         resolver_timeout 5s;
         set $geol en;
         if ($arg_l = es) { set $geol es; }
+        if ($arg_l = de) { set $geol de; }
         set $geou "https://geocoding-api.open-meteo.com/v1/search?name=$arg_q&count=6&language=$geol&format=json";
         proxy_pass $geou;
         proxy_ssl_server_name on;

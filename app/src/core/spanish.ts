@@ -1,5 +1,5 @@
-// The catalog arrives as its own script (locales/es.ts) when Spanish is picked; English never loads it
-const catalog = (): Record<string, string> => (globalThis as { MONEY_ES?: Record<string, string> }).MONEY_ES || {};
+// The catalog arrives as its own script (locales/es.ts, de.ts) when that language is picked; English never loads it
+const catalog = (): Record<string, string> => (globalThis as unknown as Record<string, Record<string, string> | undefined>)['MONEY_' + langPref().toUpperCase()] || {};
 type PhraseTemplate = { re: RegExp, names: string[], translated: string, prefix: string, strong: boolean };
 type PatternIndex<T> = { byPrefix: Map<string, T[]>, withoutPrefix: T[], order: Map<T, number> };
 // A placeholder stands for one piece of text: it never spans a line break or a " · " divider
@@ -11,10 +11,13 @@ const PLACEHOLDER = /\{([a-zA-Z][a-zA-Z0-9_]*)\}/g;
 const literalLength = (s: string) => s.replace(PLACEHOLDER, '').length;   // more fixed text = more specific
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const hasPlaceholder = (s: string) => /\{[a-zA-Z][a-zA-Z0-9_]*\}/.test(s);
-// The lookup tables (thousands of regular expressions) are built the first time Spanish is needed, so English never pays for them
+// The lookup tables (thousands of regular expressions) are built the first time a translation is needed, so English never pays for them
 const lazy = <T>(build: () => T) => { let v: T | undefined; return () => v ??= build(); };
-const exactSet = lazy(() => new Set(Object.values(catalog()).filter(value => !hasPlaceholder(value))));
-const translatedPhrases = lazy(() => [...new Set(Object.values(catalog()))].flatMap(value => {
+// What the catalog already says in the target language. An entry that equals its English text ("Budget {amount}" in German)
+// says nothing about the translation having happened, and would make English text with that shape look translated.
+const translatedValues = () => Object.entries(catalog()).filter(([source, value]) => source !== value).map(([, value]) => value);
+const exactSet = lazy(() => new Set(translatedValues().filter(value => !hasPlaceholder(value))));
+const translatedPhrases = lazy(() => [...new Set(translatedValues())].flatMap(value => {
   const matches = [...value.matchAll(PLACEHOLDER)];
   // A value that is mostly placeholders ("{count} {unit}") would match any text and make it look already translated
   if (!matches.length || value.replace(PLACEHOLDER, '').replace(/[^\p{L}]/gu, '').length < 4) return [];
@@ -109,7 +112,7 @@ const translation = (key: string, piece = false): string | undefined => {
   return undefined;
 };
 export const t = (key: string, values: Record<string, string | number> = {}) =>
-  ((langPref() === 'es' ? translation(key) : undefined) ?? key).replace(PLACEHOLDER, (match, name: string) => String(values[name] ?? match));
+  ((langPref() !== 'en' ? translation(key) : undefined) ?? key).replace(PLACEHOLDER, (match, name: string) => String(values[name] ?? match));
 
 const ATTRS = ['placeholder', 'title', 'aria-label', 'data-tip'];
 function translate(root: ParentNode) {
@@ -138,17 +141,17 @@ function translateText(node: Node) {
   if (translated && translated !== trimmed) node.nodeValue = value.slice(0, value.indexOf(trimmed)) + translated + value.slice(value.indexOf(trimmed) + trimmed.length);
 }
 
-/* The interface is English unless Spanish is picked in Settings → Appearance → Language (stored as money.lang).
-   Spanish is applied by translating the rendered DOM against the es.json catalog, so English stays the source text. */
+/* The interface is English unless another language is picked in Settings → Appearance → Language (stored as money.lang).
+   It is applied by translating the rendered DOM against that language's catalog (es.json, de.json), so English stays the source text. */
 export const LANG_KEY = 'money.lang';
-export const LANGS: [string, string][] = [['en', 'English'], ['es', 'Español']];
+export const LANGS: [string, string][] = [['en', 'English'], ['es', 'Español'], ['de', 'Deutsch']];
 export function langPref(): string {
-  try { const raw = localStorage.getItem(LANG_KEY); return raw && JSON.parse(raw) === 'es' ? 'es' : 'en'; } catch (e) { return 'en'; }
+  try { const raw = localStorage.getItem(LANG_KEY); const v = raw && JSON.parse(raw); return LANGS.some(([code]) => code === v) ? v : 'en'; } catch (e) { return 'en'; }
 }
 let observer: MutationObserver | null = null;
 export function startSpanish() {
-  if (observer || langPref() !== 'es') return;
-  document.documentElement.lang = 'es';
+  if (observer || langPref() === 'en') return;
+  document.documentElement.lang = langPref();
   translate(document);
   observer = new MutationObserver(records => records.forEach(record => {
     if (record.type === 'attributes') {
