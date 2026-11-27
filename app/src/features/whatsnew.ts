@@ -33,6 +33,7 @@ const NOTES: Record<string, Notes> = {
     ['phone', 'Apple Pay logging', 'Better quick-add parsing and tags, and tag drill-down on category charts.'],
     ['sliders', 'Even spacing', 'Every padding, margin and gap sits on one 4px scale, with fixes to the collapsed sidebar and Forecast spacing.'],
     ['bento', 'Faster to load', 'Language catalogs load only when picked, and cards keep their height while charts draw.'],
+    ['split', 'Cross-currency transfers', 'The foreign currency picker now includes your main currency and defaults to the destination account’s currency. Thanks to a1803244gav-blip for the fix.'],
   ] },
   '2.6.0': { lead: 'Spanish, any Net worth range, a cleaner look, and easier navigation and forms.', items: [
     ['globe', 'Spanish translation', 'Pick Spanish in Settings → Appearance → Language. English stays the default. Thanks to GinesRico for the original translation.'],
