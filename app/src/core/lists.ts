@@ -83,7 +83,7 @@ export async function lists(force?: boolean): Promise<Lists> {
     tags: tags.map(t => ({ id: String(t.id), name: t.attributes.tag })).sort((a, b) => a.name.localeCompare(b.name)),
     currencies: cur,
     foreign: enabledCurrencies.some(c => c.code !== S.currency) ? enabledCurrencies : [],
-  };    
+  };
   HIDE.inactive = new Set(acc.filter(a => !a.active).map(a => a.id)); HIDE.active = acc.filter(a => (isAsset(a) || isLiab(a)) && a.active).map(a => a.id);
   S.lists = L; S.listsAt = Date.now();
   return L;
