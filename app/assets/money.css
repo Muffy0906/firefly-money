@@ -2497,39 +2497,40 @@ html[data-theme="polar"] .tabbar { background: rgba(232, 241, 248, .88); border:
 html[data-theme="polar"] .opill { background: var(--accent); }
 @media (max-width: 900px) { html[data-theme="polar"] .tbl.feed tr.dayhead div { background: rgba(245, 248, 251, .97); -webkit-backdrop-filter: none; backdrop-filter: none; } }
 html[data-theme="polar"] :is(.panel, .daycards tbody.day, .daycards > .center-empty, .kpi, .insight, .extra, .split, .dash-bar) { -webkit-backdrop-filter: none; backdrop-filter: none; }
-/* ---------- Theme: True liquid glass (Apple-style: light bends at the rim, a bright specular edge, soft inner light, tint that follows light/dark; all CSS) ----------
-   Cards stay blur-free like the other glass looks (a live blur under every card re-blurs on every scroll frame, and the backdrop is only soft light anyway).
-   The floating glass (tab bar, side bar, sheets, menus) is the real thing: blur + saturation + brightness everywhere, and on Chromium (html[data-lens]) an SVG
-   displacement lens too (see core/lens.ts). Safari and Firefox can't run url() filters in backdrop-filter, so they keep the CSS-only look. */
-html[data-theme="liquid"] { --bg: #e9eefb; --panel: rgba(255, 255, 255, .5); --line: rgba(30, 50, 90, .14); --text: #101c2c; --muted: #3d4e66; --faint: rgba(255, 255, 255, .45);
-  --good: #2f9e6e; --spend: #c0392b; --income: #2f9e6e; --warn: #d9a441; --good-t: #0f6a40; --spend-t: #b3261e; --warn-t: #724a00;
-  --accent: #0850b5; --on-accent: #ffffff; --ag: #0850b5; --shadow: 0 18px 44px rgba(40, 70, 130, .2); --radius: 24px; color-scheme: light;
-  --glow1: #a3c4ff; --glow2: #d3b8ff; --glow3: #ffc4da; --glass-base: #ffffff; --glass-tint: 50%; --glass-blur: 18px;
-  --lg-rim: inset 1.5px 1.5px 0 rgba(255, 255, 255, .95), inset -1px -1px 0 rgba(255, 255, 255, .45), inset 0 0 0 1px rgba(255, 255, 255, .3), inset 0 18px 24px -18px rgba(255, 255, 255, .9), inset 0 -14px 20px -16px rgba(80, 110, 190, .28);
-  --lg-drop: 0 1px 2px rgba(40, 70, 130, .12), 0 16px 36px -10px rgba(40, 70, 130, .26);
-  --lg-filter: blur(var(--glass-blur)) saturate(190%) brightness(1.06);
-  --lg-bar: rgba(255, 255, 255, .56); --lg-ctl: rgba(255, 255, 255, .4); --lg-row: rgba(255, 255, 255, .26); --lg-pill: rgba(255, 255, 255, .8); --lg-solid: #f1f5fd;
+/* ---------- Theme: True liquid glass (Apple-style: nearly clear glass over vivid colour, a bright catch-light on the rim, soft inner glow, tint that follows light/dark; all CSS) ----------
+   Surfaces are mostly clear (8 to 28% tint) with a light blur + saturation + brightness lift. On Chromium (html[data-lens], core/lens.ts) the floating glass (tab bar,
+   side bar, sheets, menus) also bends what is behind it at the rim with an SVG displacement lens. Safari and Firefox ignore url() in backdrop-filter, so they keep the CSS-only look. */
+html[data-theme="liquid"] { --bg: #dbe6fb; --panel: rgba(255, 255, 255, .5); --line: rgba(30, 50, 90, .14); --text: #0a1424; --muted: #2b3b52; --faint: rgba(255, 255, 255, .45);
+  --good: #2f9e6e; --spend: #c0392b; --income: #2f9e6e; --warn: #d9a441; --good-t: #085030; --spend-t: #8f1a12; --warn-t: #5e3c00;
+  --accent: #063f94; --on-accent: #ffffff; --ag: #063f94; --shadow: 0 18px 44px rgba(40, 70, 130, .2); --radius: 24px; color-scheme: light;
+  --glow1: #4f8cff; --glow2: #b46cff; --glow3: #ff7fb1; --glass-base: #ffffff; --glass-tint: 34%; --glass-blur: 10px;
+  --lg-rim: inset 0 0 0 1px rgba(255, 255, 255, .42), inset 2px 2px 3px -1px rgba(255, 255, 255, .95), inset -2px -2px 3px -1px rgba(255, 255, 255, .7), inset 0 0 18px rgba(255, 255, 255, .22), inset 0 -10px 18px -12px rgba(255, 255, 255, .5);
+  --lg-drop: 0 10px 30px -8px rgba(30, 50, 110, .3);
+  --lg-filter: blur(var(--glass-blur)) saturate(200%) brightness(1.1);
+  --lg-card: blur(6px) saturate(190%) brightness(1.08);
+  --lg-bar: rgba(255, 255, 255, .28); --lg-ctl: rgba(255, 255, 255, .34); --lg-row: rgba(255, 255, 255, .16); --lg-pill: rgba(255, 255, 255, .62); --lg-solid: #f1f5fd;
   background: var(--bg); }
 @media (prefers-color-scheme: dark) {
-  html[data-theme="liquid"] { --bg: #090e1d; --panel: rgba(255, 255, 255, .08); --line: rgba(255, 255, 255, .16); --text: #f2f5fb; --muted: #d2dae9; --faint: rgba(255, 255, 255, .08);
+  html[data-theme="liquid"] { --bg: #070b18; --panel: rgba(255, 255, 255, .08); --line: rgba(255, 255, 255, .16); --text: #f2f5fb; --muted: #d2dae9; --faint: rgba(255, 255, 255, .08);
     --good: #74dcaa; --spend: #ffb39b; --income: #74dcaa; --warn: #f3c969; --good-t: #74dcaa; --spend-t: #ffb39b; --warn-t: #f3c969;
-    --accent: #a8d0ff; --on-accent: #04132b; --ag: #a8d0ff; --shadow: 0 20px 56px rgba(0, 0, 8, .5); color-scheme: dark;
-    --glow1: #18378a; --glow2: #3c2688; --glow3: #0a4a50; --glass-base: #b4c3e6; --glass-tint: 13%;
-    --lg-rim: inset 1.5px 1.5px 0 rgba(255, 255, 255, .5), inset -1px -1px 0 rgba(255, 255, 255, .14), inset 0 0 0 1px rgba(255, 255, 255, .1), inset 0 18px 24px -18px rgba(255, 255, 255, .35), inset 0 -14px 20px -16px rgba(0, 0, 0, .35);
-    --lg-drop: 0 1px 2px rgba(0, 0, 8, .4), 0 18px 40px -10px rgba(0, 0, 8, .6);
-    --lg-filter: blur(var(--glass-blur)) saturate(170%) brightness(1.12);
-    --lg-bar: rgba(22, 32, 62, .56); --lg-ctl: rgba(255, 255, 255, .1); --lg-row: rgba(255, 255, 255, .05); --lg-pill: rgba(255, 255, 255, .2); --lg-solid: #161f3a; }
+    --accent: #b4d7ff; --on-accent: #04132b; --ag: #b4d7ff; --shadow: 0 20px 56px rgba(0, 0, 8, .5); color-scheme: dark;
+    --glow1: #1d44b0; --glow2: #5a2fb8; --glow3: #0a565a; --glass-base: #c8d4f5; --glass-tint: 6%;
+    --lg-rim: inset 0 0 0 1px rgba(255, 255, 255, .16), inset 2px 2px 3px -1px rgba(255, 255, 255, .6), inset -2px -2px 3px -1px rgba(255, 255, 255, .32), inset 0 0 18px rgba(255, 255, 255, .07);
+    --lg-drop: 0 12px 34px -8px rgba(0, 0, 8, .65);
+    --lg-filter: blur(var(--glass-blur)) saturate(180%) brightness(1.15);
+    --lg-card: blur(6px) saturate(170%) brightness(1.1);
+    --lg-bar: rgba(20, 28, 56, .3); --lg-ctl: rgba(255, 255, 255, .09); --lg-row: rgba(255, 255, 255, .04); --lg-pill: rgba(255, 255, 255, .18); --lg-solid: #161f3a; }
 }
 html[data-theme="liquid"] body { background: transparent; }
 /* what the glass bends: soft colour orbs on a light (or dark) field, drawn in CSS, nothing downloaded */
 html[data-theme="liquid"] body::after { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background: radial-gradient(34vmax 34vmax at 86% 6%, color-mix(in srgb, var(--glow2) 85%, transparent), transparent 68%),
-    radial-gradient(40vmax 40vmax at 6% 24%, color-mix(in srgb, var(--glow1) 85%, transparent), transparent 70%),
-    radial-gradient(38vmax 38vmax at 70% 98%, color-mix(in srgb, var(--glow3) 80%, transparent), transparent 70%),
-    radial-gradient(26vmax 26vmax at 22% 92%, color-mix(in srgb, var(--glow1) 55%, transparent), transparent 72%), var(--bg); }
+  background: radial-gradient(22vmax 22vmax at 84% 10%, var(--glow2) 0, color-mix(in srgb, var(--glow2) 60%, transparent) 55%, transparent 100%),
+    radial-gradient(30vmax 30vmax at 8% 28%, var(--glow1) 0, color-mix(in srgb, var(--glow1) 60%, transparent) 55%, transparent 100%),
+    radial-gradient(26vmax 26vmax at 72% 92%, var(--glow3) 0, color-mix(in srgb, var(--glow3) 60%, transparent) 55%, transparent 100%),
+    radial-gradient(16vmax 16vmax at 30% 78%, color-mix(in srgb, #ffb347 80%, transparent) 0, transparent 100%), var(--bg); }
 html[data-theme="liquid"] :is(.panel, .daycards tbody.day, .daycards > .center-empty, .kpi, .insight, .extra, .split, .login form, .dash-bar) {
-  background: radial-gradient(120% 80% at 0% 0%, rgba(255, 255, 255, .34), rgba(255, 255, 255, 0) 55%), color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent);
-  border: 0; border-radius: var(--radius); box-shadow: var(--lg-rim), var(--lg-drop); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  background: linear-gradient(135deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 45%), color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent);
+  border: 0; border-radius: var(--radius); box-shadow: var(--lg-rim), var(--lg-drop); -webkit-backdrop-filter: var(--lg-card); backdrop-filter: var(--lg-card); }
 html[data-theme="liquid"] :is(.drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar, .ff-pop) {
   background: radial-gradient(120% 70% at 0% 0%, rgba(255, 255, 255, .3), rgba(255, 255, 255, 0) 55%), var(--lg-bar); border: 0; border-radius: var(--r-xl);
   box-shadow: var(--lg-rim), var(--shadow); -webkit-backdrop-filter: var(--lg-filter); backdrop-filter: var(--lg-filter); }
@@ -2546,9 +2547,9 @@ html[data-theme="liquid"] .tbl tr.click:hover td { background: var(--lg-ctl); }
 html[data-theme="liquid"] .track { background: color-mix(in srgb, var(--text) 12%, transparent); }
 html[data-theme="liquid"] .appbar.scrolled { background: var(--lg-bar); -webkit-backdrop-filter: var(--lg-filter); backdrop-filter: var(--lg-filter); }
 html[data-theme="liquid"] .scrim { background: rgba(10, 20, 40, .32); }
-html[data-theme="liquid"] .side { background: radial-gradient(120% 60% at 0% 0%, rgba(255, 255, 255, .3), rgba(255, 255, 255, 0) 55%), var(--lg-bar); border: 0; border-radius: var(--r-xl);
+html[data-theme="liquid"] .side { background: linear-gradient(135deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 45%), var(--lg-bar); border: 0; border-radius: var(--r-xl);
   box-shadow: var(--lg-rim), var(--lg-drop); -webkit-backdrop-filter: var(--lg-filter); backdrop-filter: var(--lg-filter); }
-html[data-theme="liquid"] .tabbar { background: radial-gradient(120% 140% at 0% 0%, rgba(255, 255, 255, .36), rgba(255, 255, 255, 0) 60%), var(--lg-bar); border: 0;
+html[data-theme="liquid"] .tabbar { background: linear-gradient(135deg, rgba(255, 255, 255, .26), rgba(255, 255, 255, 0) 50%), var(--lg-bar); border: 0;
   box-shadow: var(--lg-rim), var(--lg-drop); -webkit-backdrop-filter: var(--lg-filter); backdrop-filter: var(--lg-filter); }
 html[data-theme="liquid"] .tabbar :is(a, button.more) { color: var(--muted); }
 html[data-theme="liquid"] :is(.tab-pill, .nav a.on) { background: var(--lg-bar); box-shadow: var(--lg-rim), 0 3px 10px rgba(30, 50, 100, .16); }

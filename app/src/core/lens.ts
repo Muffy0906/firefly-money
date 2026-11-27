@@ -17,7 +17,7 @@ export const isChromium = () => {
 function filterSvg() {
   return `<svg id="${ID}" xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true" style="position:absolute;pointer-events:none"><filter id="lg-bend" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
 <feImage href="${MAP('r')}" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="mx"/><feImage href="${MAP('g')}" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="my"/>
-<feComposite in="mx" in2="my" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="map"/><feDisplacementMap in="SourceGraphic" in2="map" scale="26" xChannelSelector="R" yChannelSelector="G"/></filter></svg>`;
+<feComposite in="mx" in2="my" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="map"/><feDisplacementMap in="SourceGraphic" in2="map" scale="44" xChannelSelector="R" yChannelSelector="G"/></filter></svg>`;
 }
 export function syncLens() {
   const d = document.documentElement, on = d.getAttribute('data-theme') === 'liquid' && isChromium();

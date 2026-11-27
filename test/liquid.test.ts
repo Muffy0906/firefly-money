@@ -36,7 +36,7 @@ describe('True liquid glass: legibility', () => {
       const spots = [bg, ...(['--glow1', '--glow2', '--glow3'] as const).map(k => mix(hex(v[k]), bg, .85))];
       const bad: string[] = [];
       for (const s of spots) {
-        const card = mix(base, s, tint), glare = tone === 'light' ? mix([255, 255, 255], card, .34) : card;   // the corner glare is white at up to 34%
+        const card = mix(base, s, tint), glare = tone === 'light' ? mix([255, 255, 255], card, .22) : card;   // the corner glare is white at up to 22%
         for (const surface of [card, glare]) for (const c of ['--text', '--muted', '--accent', '--good-t', '--spend-t', '--warn-t']) {
           const r = ratio(hex(v[c]), surface); if (r < 4.5) bad.push(`${c} ${r.toFixed(2)} on ${tone} ${surface.map(Math.round)}`);
         }
@@ -52,8 +52,8 @@ describe('True liquid glass: how it is built', () => {
     expect(theme).toMatch(/html\[data-theme="liquid"\] body::after \{[^}]*radial-gradient/);
     expect(bare).not.toMatch(/url\((?!#)/);
   });
-  it('keeps cards free of live blur and gives only floating glass the blur, saturation and rim light', () => {
-    expect(theme).toMatch(/\.dash-bar\) \{[^}]*backdrop-filter: none/);
+  it('gives cards a light blur and the floating glass the full blur, saturation and rim light', () => {
+    expect(theme).toMatch(/\.dash-bar\) \{[^}]*backdrop-filter: var\(--lg-card\)/);
     for (const sel of ['.tabbar', '.side']) expect(theme).toMatch(new RegExp('liquid"\\] \\' + sel + ' \\{[^}]*backdrop-filter: var\\(--lg-filter\\)'));
     expect(light['--lg-filter']).toMatch(/blur\(.*saturate\(/);
     expect(light['--lg-rim']).toContain('inset');          // the specular edge and soft inner light
