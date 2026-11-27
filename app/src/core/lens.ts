@@ -5,7 +5,7 @@
    (air 1.0 to glass 1.5) turns its slope into how far each pixel is pulled toward the inside; that is baked, per element
    size, into a displacement map (red = x, green = y, grey = none) plus a rim-light image from the surface normal against a
    fixed light. Nothing is fetched: both images are drawn on a canvas on this device. */
-const SVG_ID = 'lg-lens', SEL = '.panel, .kpi, .extra, .split, .insight, .dash-bar, .tabbar, .side, .drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar, .ff-pop';
+const NS = 'http://www.w3.org/2000/svg', SVG_ID = 'lg-lens', SEL = '.panel, .kpi, .extra, .split, .insight, .dash-bar, .tabbar, .side, .drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar, .ff-pop';
 const N = 127, N1 = 1, N2 = 1.5, THICK = 60, BEZEL = 16, MAXD = 16, LIGHT = [Math.cos(-60 * Math.PI / 180), Math.sin(-60 * Math.PI / 180)];
 const squircle = (x: number) => Math.pow(1 - Math.pow(1 - x, 4), 1 / 4);
 // How far a ray is pulled sideways crossing the glass at each step into the bezel (0 = the outer edge, 1 = where it goes flat), 0..1 of the largest
@@ -53,11 +53,13 @@ export function maps(w: number, h: number, radius: number): { disp: string, spec
   return { disp, spec: c.toDataURL('image/png') };
 }
 const done = new WeakMap<Element, string>();
-let host: SVGSVGElement | null = null;
+let host: SVGElement | null = null;
 function ensureHost() {
   if (host && host.isConnected) return host;
-  document.body.insertAdjacentHTML('beforeend', `<svg id="${SVG_ID}" xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true" style="position:absolute;pointer-events:none"></svg>`);
-  return host = document.getElementById(SVG_ID) as unknown as SVGSVGElement;
+  const s = document.createElementNS(NS, 'svg');
+  s.id = SVG_ID; s.setAttribute('width', '0'); s.setAttribute('height', '0'); s.setAttribute('aria-hidden', 'true'); s.style.cssText = 'position:absolute;pointer-events:none';
+  document.body.append(s);
+  return host = s;
 }
 function lens(el: HTMLElement) {
   const b = el.getBoundingClientRect(), w = Math.round(b.width), h = Math.round(b.height);
@@ -67,9 +69,12 @@ function lens(el: HTMLElement) {
   const id = 'lg-' + key.replace(/\W/g, '_'), s = ensureHost();
   if (!s.querySelector('#' + id)) {                                                // same size, same filter: cards of one size share it
     const m = maps(w, h, rad); if (!m) return;
-    s.insertAdjacentHTML('beforeend', `<filter id="${id}" x="0" y="0" width="${w}" height="${h}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-<feImage href="${m.disp}" x="0" y="0" width="${w}" height="${h}" result="map"/><feDisplacementMap in="SourceGraphic" in2="map" scale="${MAXD * 2}" xChannelSelector="R" yChannelSelector="G" result="bent"/>
-<feImage href="${m.spec}" x="0" y="0" width="${w}" height="${h}" result="rim"/><feBlend in="rim" in2="bent" mode="normal"/></filter>`);
+    const mk = (name: string, attrs: Record<string, string>) => { const e = document.createElementNS(NS, name); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+    const f = mk('filter', { id, x: '0', y: '0', width: String(w), height: String(h), filterUnits: 'userSpaceOnUse', 'color-interpolation-filters': 'sRGB' }), box = { x: '0', y: '0', width: String(w), height: String(h) };
+    f.append(mk('feImage', { ...box, href: m.disp, result: 'map' }),
+      mk('feDisplacementMap', { in: 'SourceGraphic', in2: 'map', scale: String(MAXD * 2), xChannelSelector: 'R', yChannelSelector: 'G', result: 'bent' }),
+      mk('feImage', { ...box, href: m.spec, result: 'rim' }), mk('feBlend', { in: 'rim', in2: 'bent', mode: 'normal' }));
+    s.append(f);
   }
   el.setAttribute('data-lg', id); el.style.setProperty('--lg-url', `url(#${id})`); el.classList.add('lg-lensed'); done.set(el, key);
 }

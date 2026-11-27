@@ -79,7 +79,7 @@ describe('True liquid glass: how it is built', () => {
     expect(src).toContain("'Chromium'");
     expect(src).toContain('feDisplacementMap');
     expect(src).toContain('Snell');
-    expect(src).not.toMatch(/fetch\(|https:/);
+    expect(src).not.toMatch(/fetch\(|https:|innerHTML|insertAdjacentHTML/);
     expect(src).toContain("'liquid'");
   });
   it('the press feel is a calm glide, no bounce', () => {
