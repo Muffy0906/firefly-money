@@ -2503,22 +2503,26 @@ html[data-theme="polar"] :is(.panel, .daycards tbody.day, .daycards > .center-em
 html[data-theme="liquid"] { --bg: #dbe6fb; --panel: rgba(255, 255, 255, .5); --line: rgba(30, 50, 90, .14); --text: #0a1424; --muted: #2b3b52; --faint: rgba(255, 255, 255, .45);
   --good: #2f9e6e; --spend: #c0392b; --income: #2f9e6e; --warn: #d9a441; --good-t: #085030; --spend-t: #8f1a12; --warn-t: #5e3c00;
   --accent: #063f94; --on-accent: #ffffff; --ag: #063f94; --shadow: 0 18px 44px rgba(40, 70, 130, .2); --radius: 24px; color-scheme: light;
-  --glow1: #4f8cff; --glow2: #b46cff; --glow3: #ff7fb1; --glass-base: #ffffff; --glass-tint: 34%; --glass-blur: 10px;
-  --lg-rim: inset 0 0 0 1px rgba(255, 255, 255, .42), inset 2px 2px 3px -1px rgba(255, 255, 255, .95), inset -2px -2px 3px -1px rgba(255, 255, 255, .7), inset 0 0 18px rgba(255, 255, 255, .22), inset 0 -10px 18px -12px rgba(255, 255, 255, .5);
+  --glow1: #86adff; --glow2: #c0a0ff; --glow3: #ff9ec6; --lg-orb: #ffb347; --glass-base: #ffffff; --glass-tint: 5%; --glass-blur: 8px;
+  --lg-rim: inset 0 1px 0 rgba(255, 255, 255, .85), inset 0 -1px 0 rgba(255, 255, 255, .35), inset 0 0 0 1px rgba(255, 255, 255, .4), inset 1px 1px 3px rgba(255, 255, 255, .6), inset -1px -1px 3px rgba(255, 255, 255, .3);
   --lg-drop: 0 10px 30px -8px rgba(30, 50, 110, .3);
-  --lg-filter: blur(var(--glass-blur)) saturate(200%) brightness(1.1);
-  --lg-card: blur(6px) saturate(190%) brightness(1.08);
+  --lg-filter: blur(var(--glass-blur)) saturate(160%) brightness(1.08);
+  --lg-lens: blur(1px) saturate(170%) brightness(1.1);
+  --lg-edge: blur(3px) saturate(180%) brightness(1.14);
+  --lg-sheen: rgba(255, 255, 255, .4);
   --lg-bar: rgba(255, 255, 255, .28); --lg-ctl: rgba(255, 255, 255, .34); --lg-row: rgba(255, 255, 255, .16); --lg-pill: rgba(255, 255, 255, .62); --lg-solid: #f1f5fd;
   background: var(--bg); }
 @media (prefers-color-scheme: dark) {
   html[data-theme="liquid"] { --bg: #070b18; --panel: rgba(255, 255, 255, .08); --line: rgba(255, 255, 255, .16); --text: #f2f5fb; --muted: #d2dae9; --faint: rgba(255, 255, 255, .08);
     --good: #74dcaa; --spend: #ffb39b; --income: #74dcaa; --warn: #f3c969; --good-t: #74dcaa; --spend-t: #ffb39b; --warn-t: #f3c969;
     --accent: #b4d7ff; --on-accent: #04132b; --ag: #b4d7ff; --shadow: 0 20px 56px rgba(0, 0, 8, .5); color-scheme: dark;
-    --glow1: #1d44b0; --glow2: #5a2fb8; --glow3: #0a565a; --glass-base: #c8d4f5; --glass-tint: 6%;
-    --lg-rim: inset 0 0 0 1px rgba(255, 255, 255, .16), inset 2px 2px 3px -1px rgba(255, 255, 255, .6), inset -2px -2px 3px -1px rgba(255, 255, 255, .32), inset 0 0 18px rgba(255, 255, 255, .07);
+    --glow1: #1d44b0; --glow2: #5a2fb8; --glow3: #0a565a; --lg-orb: #8a4a10; --glass-base: #c8d4f5; --glass-tint: 3%;
+    --lg-rim: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 -1px 0 rgba(255, 255, 255, .15), inset 0 0 0 1px rgba(255, 255, 255, .2), inset 1px 1px 3px rgba(255, 255, 255, .25);
     --lg-drop: 0 12px 34px -8px rgba(0, 0, 8, .65);
-    --lg-filter: blur(var(--glass-blur)) saturate(180%) brightness(1.15);
-    --lg-card: blur(6px) saturate(170%) brightness(1.1);
+    --lg-filter: blur(var(--glass-blur)) saturate(160%) brightness(1.15);
+    --lg-lens: blur(1px) saturate(170%) brightness(1.18);
+    --lg-edge: blur(3px) saturate(180%) brightness(1.2);
+    --lg-sheen: rgba(255, 255, 255, .14);
     --lg-bar: rgba(20, 28, 56, .3); --lg-ctl: rgba(255, 255, 255, .09); --lg-row: rgba(255, 255, 255, .04); --lg-pill: rgba(255, 255, 255, .18); --lg-solid: #161f3a; }
 }
 html[data-theme="liquid"] body { background: transparent; }
@@ -2527,10 +2531,16 @@ html[data-theme="liquid"] body::after { content: ''; position: fixed; inset: 0; 
   background: radial-gradient(22vmax 22vmax at 84% 10%, var(--glow2) 0, color-mix(in srgb, var(--glow2) 60%, transparent) 55%, transparent 100%),
     radial-gradient(30vmax 30vmax at 8% 28%, var(--glow1) 0, color-mix(in srgb, var(--glow1) 60%, transparent) 55%, transparent 100%),
     radial-gradient(26vmax 26vmax at 72% 92%, var(--glow3) 0, color-mix(in srgb, var(--glow3) 60%, transparent) 55%, transparent 100%),
-    radial-gradient(16vmax 16vmax at 30% 78%, color-mix(in srgb, #ffb347 80%, transparent) 0, transparent 100%), var(--bg); }
+    radial-gradient(16vmax 16vmax at 30% 78%, color-mix(in srgb, var(--lg-orb) 80%, transparent) 0, transparent 100%), var(--bg); }
 html[data-theme="liquid"] :is(.panel, .daycards tbody.day, .daycards > .center-empty, .kpi, .insight, .extra, .split, .login form, .dash-bar) {
-  background: linear-gradient(135deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 45%), color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent);
-  border: 0; border-radius: var(--radius); box-shadow: var(--lg-rim), var(--lg-drop); -webkit-backdrop-filter: var(--lg-card); backdrop-filter: var(--lg-card); }
+  background: radial-gradient(120% 70% at 25% 0%, var(--lg-sheen), transparent 55%), color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent);
+  border: 0; border-radius: var(--radius); box-shadow: var(--lg-rim), var(--lg-drop); -webkit-backdrop-filter: none; backdrop-filter: none; }
+html[data-theme="liquid"] :is(.panel, .kpi, .extra, .split) { position: relative; }
+/* the glass edge: a band along the border that blurs, brightens and (Chromium) bends what's behind it; the middle stays clear */
+html[data-theme="liquid"] :is(.panel, .kpi, .extra, .split, .insight, .dash-bar, .tabbar, .side, .drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar, .ff-pop)::before { content: ''; position: absolute; inset: 0; box-sizing: border-box; padding: 16px; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(135deg, var(--lg-sheen), rgba(255, 255, 255, .04) 38%, rgba(255, 255, 255, .04) 62%, color-mix(in srgb, var(--lg-sheen) 70%, transparent));
+  -webkit-backdrop-filter: var(--lg-edge); backdrop-filter: var(--lg-edge);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
 html[data-theme="liquid"] :is(.drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar, .ff-pop) {
   background: radial-gradient(120% 70% at 0% 0%, rgba(255, 255, 255, .3), rgba(255, 255, 255, 0) 55%), var(--lg-bar); border: 0; border-radius: var(--r-xl);
   box-shadow: var(--lg-rim), var(--shadow); -webkit-backdrop-filter: var(--lg-filter); backdrop-filter: var(--lg-filter); }
@@ -2555,7 +2565,7 @@ html[data-theme="liquid"] .tabbar :is(a, button.more) { color: var(--muted); }
 html[data-theme="liquid"] :is(.tab-pill, .nav a.on) { background: var(--lg-bar); box-shadow: var(--lg-rim), 0 3px 10px rgba(30, 50, 100, .16); }
 html[data-theme="liquid"] :is(.tabbar :is(a, button.more).on, .nav a.on) { color: var(--accent); }
 html[data-theme="liquid"] .opill { background: var(--accent); }
-html[data-theme="liquid"][data-lens="svg"] .lg-lensed { backdrop-filter: var(--lg-url) var(--lg-filter); }
+html[data-theme="liquid"][data-lens="svg"] .lg-lensed::before { -webkit-backdrop-filter: var(--lg-url) var(--lg-lens); backdrop-filter: var(--lg-url) var(--lg-lens); }
 /* press: the glass swells slightly and settles, no bounce */
 html[data-theme="liquid"] :is(.btn, .round, .tabbar a, .tabbar button, .seg button) { transition: transform .22s var(--ease-glide), background .2s, box-shadow .2s; }
 html[data-theme="liquid"] :is(.btn, .round, .tabbar a, .tabbar button, .seg button):active { transform: scale(.96); }

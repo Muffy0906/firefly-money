@@ -52,8 +52,9 @@ describe('True liquid glass: how it is built', () => {
     expect(theme).toMatch(/html\[data-theme="liquid"\] body::after \{[^}]*radial-gradient/);
     expect(bare).not.toMatch(/url\((?!#)/);
   });
-  it('gives cards a light blur and the floating glass the full blur, saturation and rim light', () => {
-    expect(theme).toMatch(/\.dash-bar\) \{[^}]*backdrop-filter: var\(--lg-card\)/);
+  it('keeps card middles clear and puts the glass in an edge band; floating glass also blurs', () => {
+    expect(theme).toMatch(/\.dash-bar\) \{[^}]*backdrop-filter: none/);
+    expect(theme).toMatch(/\)::before \{[^}]*backdrop-filter: var\(--lg-edge\)[^}]*mask-composite: xor/);   // only a band along the edge is glass
     for (const sel of ['.tabbar', '.side']) expect(theme).toMatch(new RegExp('liquid"\\] \\' + sel + ' \\{[^}]*backdrop-filter: var\\(--lg-filter\\)'));
     expect(light['--lg-filter']).toMatch(/blur\(.*saturate\(/);
     expect(light['--lg-rim']).toContain('inset');          // the specular edge and soft inner light
@@ -68,7 +69,7 @@ describe('True liquid glass: how it is built', () => {
     expect(dark['--bg']).not.toBe(light['--bg']);
   });
   it('bends light with the SVG lens only when the attribute says the browser can, and stays solid otherwise', () => {
-    expect(theme).toMatch(/\[data-lens="svg"\] \.lg-lensed \{[^}]*backdrop-filter: var\(--lg-url\) var\(--lg-filter\)/);
+    expect(theme).toMatch(/\[data-lens="svg"\] \.lg-lensed::before \{[^}]*backdrop-filter: var\(--lg-url\) var\(--lg-lens\)/);
     expect(theme).not.toMatch(/html\[data-theme="liquid"\] :is\([^{]*\{[^}]*--lg-url/);   // never without the opt-in attribute
     expect(theme).toContain('@media (prefers-reduced-transparency: reduce)');
     expect(theme).toContain('@supports not');
