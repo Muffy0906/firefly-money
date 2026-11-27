@@ -26,6 +26,14 @@ const ICONS: Record<string, Html> = {
 };
 type Notes = { lead: string, items: [string, string, string][] };
 const NOTES: Record<string, Notes> = {
+  '2.7.0': { lead: 'German, a Money scorecard and Habits, Activity in 3D, and a lot of polish.', items: [
+    ['globe', 'German translation', 'Pick Deutsch in Settings → Appearance → Language. English stays the default. Thanks to Psykosoldier for the translation.'],
+    ['pulse', 'Money scorecard and Habits', 'A personality card and six rating cards for how you handle money, plus Habits. Add them from Customize.'],
+    ['calendar', 'Activity in 3D', 'Tap the activity grid to open it in 3D in a slide-in drawer.'],
+    ['phone', 'Apple Pay logging', 'Better quick-add parsing and tags, and tag drill-down on category charts.'],
+    ['sliders', 'Even spacing', 'Every padding, margin and gap sits on one 4px scale, with fixes to the collapsed sidebar and Forecast spacing.'],
+    ['bento', 'Faster to load', 'Language catalogs load only when picked, and cards keep their height while charts draw.'],
+  ] },
   '2.6.0': { lead: 'Spanish, any Net worth range, a cleaner look, and easier navigation and forms.', items: [
     ['globe', 'Spanish translation', 'Pick Spanish in Settings → Appearance → Language. English stays the default. Thanks to GinesRico for the original translation.'],
     ['sliders', 'Modes and accents', 'Themes are now a mode (Auto, Light, Dark or a glass look) plus an accent. The pastel and bold themes became accents under Light and Dark, and your saved theme carries over.'],

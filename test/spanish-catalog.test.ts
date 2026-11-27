@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import es from '../app/src/locales/es.json';
+import de from '../app/src/locales/de.json';
 
 const CATALOG = es as Record<string, string>;
 const names = (s: string) => [...new Set(s.match(/\{[a-zA-Z][a-zA-Z0-9_]*\}/g) || [])].sort();
@@ -46,6 +47,32 @@ describe('Spanish catalog', () => {
     expect(base.fmtDate('2026-11-01')).toMatch(/nov/i);
     expect(base.fmtDate('2026-11-01')).not.toBe('Nov 1, 2026');
     expect(base.money(1234.5)).toBe('$1,234.50');
+    localStorage.removeItem('money.lang');
+    expect(base.fmtDate('2026-11-01')).toBe('Nov 1, 2026');
+  });
+});
+
+describe('German catalog', () => {
+  const DE = de as Record<string, string>;
+  afterEach(async () => { (await load()).stopSpanish(); localStorage.removeItem('money.lang'); });
+  it('keeps every placeholder of the English text, none added', () => {
+    const mismatched = Object.entries(DE).filter(([k, v]) => names(v).join() !== names(k).join()).map(([k, v]) => k + ' → ' + v);
+    expect(mismatched).toEqual([]);
+  });
+  it('picks the most specific phrase and translates the pieces plugged into it', async () => {
+    localStorage.setItem('money.lang', JSON.stringify('de'));
+    const m = await load();
+    expect(m.t('Everyday Checking → Fuel Stop')).toBe('Everyday Checking → Fuel Stop');
+    expect(m.hasSpanish('Budget for Food')).toBe(true);
+    expect(m.t('Budget for Food')).not.toBe('Budget for Food');
+    expect(m.t('Budget for Food')).toContain('Food');
+  });
+  it('formats dates the German way once German is picked, and not in English', async () => {
+    localStorage.setItem('money.lang', JSON.stringify('de'));
+    const base = await import('../app/src/core/base');
+    expect(base.fmtDate('2026-11-01')).toMatch(/nov/i);
+    expect(base.fmtDate('2026-11-01')).not.toBe('Nov 1, 2026');
+    expect(base.money(1234.5)).toMatch(/1\.234,50/);
     localStorage.removeItem('money.lang');
     expect(base.fmtDate('2026-11-01')).toBe('Nov 1, 2026');
   });
