@@ -35,8 +35,8 @@ describe('card spacing scale', () => {
 
 describe('insight scroller shadow room', () => {
   it('leaves side and bottom room so card shadows are not clipped into a dark band', () => {
-    expect(css).toMatch(/\.insights \{[^}]*margin: -16px -40px -32px;[^}]*scroll-padding-inline: 40px;[^}]*padding: 8px 40px 56px/);
-    expect(css).toMatch(/max-width: 520px\) \{ \.cards \.w\[data-w="insights"\] \.insights \{ margin: -8px -40px -56px; padding: 8px 40px 56px; scroll-padding-inline: 40px;/);
+    expect(css).toMatch(/\.insights \{[^}]*margin: -16px -48px -48px;[^}]*scroll-padding-inline: 48px;[^}]*padding: 8px 48px 72px/);
+    expect(css).toMatch(/max-width: 520px\) \{ \.cards \.w\[data-w="insights"\] \.insights \{ margin: -8px -48px -72px; padding: 8px 48px 72px; scroll-padding-inline: 48px;/);
     expect(css).toMatch(/\.insights > \.insight \{ pointer-events: auto; \}/);
   });
 });

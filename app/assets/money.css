@@ -750,8 +750,8 @@
   .dh-txt { min-width: 0; }
   /* ---------- Insight cards ---------- */
   main#view { min-width: 0; }
-  .insights { min-width: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 1fr); gap: 16px; margin: -16px -40px -32px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 40px;
-    scrollbar-width: none; padding: 8px 40px 56px; pointer-events: none; }       /* side and bottom room so card shadows aren't cut into a dark band at the scroller edge; the margins cancel it out */
+  .insights { min-width: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 1fr); gap: 16px; margin: -16px -48px -48px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 48px;
+    scrollbar-width: none; padding: 8px 48px 72px; pointer-events: none; }       /* side and bottom room so card shadows aren't cut into a dark band at the scroller edge; the margins cancel it out */
   .insights > .insight { pointer-events: auto; }
   .insights::-webkit-scrollbar { display: none; }
   .insight { --tone: var(--muted); position: relative; scroll-snap-align: start; display: flex; gap: 12px; align-items: flex-start; text-decoration: none;
@@ -1832,7 +1832,7 @@
   /* the insights, one at a time and swiped through on a phone, stacked in a wide tile */
   .cards .w[data-w="insights"] .insights { margin: 0; padding: 0; grid-auto-columns: 100%; gap: 12px; }
   .cards .w[data-w="insights"] .insight { height: 100%; }
-  @container (max-width: 520px) { .cards .w[data-w="insights"] .insights { margin: -8px -40px -56px; padding: 8px 40px 56px; scroll-padding-inline: 40px; grid-auto-columns: 88%; } .cards .w[data-w="insights"] .insights:has(> :only-child) { grid-auto-columns: 100%; } }
+  @container (max-width: 520px) { .cards .w[data-w="insights"] .insights { margin: -8px -48px -72px; padding: 8px 48px 72px; scroll-padding-inline: 48px; grid-auto-columns: 88%; } .cards .w[data-w="insights"] .insights:has(> :only-child) { grid-auto-columns: 100%; } }
   @container (min-width: 521px) { .cards .w[data-w="insights"] .insights { grid-auto-flow: row; overflow: visible; } }
   @container (min-width: 760px) { .cards .w[data-w="insights"] .insights { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--gap, 20px); } }
   /* ring charts beside their list, once the tile has room for both */
