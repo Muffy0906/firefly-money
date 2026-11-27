@@ -216,7 +216,7 @@ function customizer() {
     ${row('Accent', 'Buttons, switches and highlights', html`<input type="color" aria-label="Accent color" value="${shown('--accent')}" data-oninput="App.themeVar('accent', this.value)">`)}
     ${t === 'interstellar' ? skyRows() : ''}
     ${t === 'frosted' ? row('Scene', 'What’s behind the glass', scenePicker(c)) : ''}
-    ${t === 'glass' || t === 'frosted' || t === 'spatial' || t === 'matte' || t === 'polar' ? html`
+    ${t === 'glass' || t === 'frosted' || t === 'spatial' || t === 'matte' || t === 'polar' || t === 'liquid' ? html`
     ${row(t === 'glass' ? 'Light' : 'Room', t === 'glass' ? 'The three colors glowing behind the glass' : 'The three colors of the room behind the glass', html`<input type="color" aria-label="First light color" value="${shown('--glow1')}" data-oninput="App.themeVar('glow1', this.value)"><input type="color" aria-label="Second light color" value="${shown('--glow2')}" data-oninput="App.themeVar('glow2', this.value)"><input type="color" aria-label="Third light color" value="${shown('--glow3')}" data-oninput="App.themeVar('glow3', this.value)">`)}
     ${row('Glass tint', 'The color of the cards', html`<input type="color" aria-label="Glass tint" value="${shown('--glass-base')}" data-oninput="App.themeVar('tint', this.value)">`)}
     ${row('Frost', 'Clear to solid', html`<input type="range" min="0" max="90" step="1" aria-label="Frost" value="${frost}" data-oninput="App.themeRange('frost', this)"><output>${frost}%</output>`)}

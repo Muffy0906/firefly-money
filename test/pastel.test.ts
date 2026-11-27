@@ -14,8 +14,8 @@ const block = (k: string) => { const at = css.indexOf('html[data-theme="' + k + 
 const v = (b: string, name: string) => new RegExp('--' + name + ': (#[0-9a-f]{6})', 'i').exec(b)![1].toLowerCase();
 
 describe('Pastel themes', () => {
-  it('has 22 themes plus Auto, each reachable as a mode or an accent once', () => {
-    expect(THEMES).toHaveLength(23);
+  it('has 23 themes plus Auto, each reachable as a mode or an accent once', () => {
+    expect(THEMES).toHaveLength(24);
     const reach = [...MODES.map(m => m[0]), ...Object.values(ACCENTS).flat().map(a => a[0])];
     expect(new Set(reach)).toEqual(new Set(THEMES.map(t => t[0])));
     expect(MODES.map(m => m[0]).filter(k => ['light', 'dark'].includes(k))).toHaveLength(2);

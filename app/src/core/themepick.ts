@@ -12,6 +12,7 @@ export const THEMES = [
   ['spatial', 'Spatial glass', 'radial-gradient(circle at 30% 30%,#ffffff99 0 12%,transparent 13%),linear-gradient(135deg,#5a6678,#343c48 60%,#9ac6ff)'],
   ['matte', 'Matte glass', 'radial-gradient(circle at 30% 30%,#ffffff40 0 12%,transparent 13%),linear-gradient(135deg,#3a3f47 0 45%,#14151a 45% 72%,#ff5f00 72%)'],
   ['polar', 'Polar glass', 'radial-gradient(circle at 30% 30%,#ffffffcc 0 12%,transparent 13%),linear-gradient(135deg,#f5f8fb 0 45%,#b3d3e8 45% 72%,#e4002b 72%)'],
+  ['liquid', 'True liquid glass', 'radial-gradient(circle at 28% 26%,#ffffffe6 0 13%,transparent 14%),linear-gradient(135deg,#bcd7ff,#d8c6ff 52%,#ffd3e6)'],
   ['interstellar', 'Interstellar', 'radial-gradient(circle at 68% 34%,#0a0805 0 9%,#c98a3c 10% 13%,transparent 14%),linear-gradient(160deg,#04060a,#1a2b40 62%,#5a3a22)'],
   ['ocean', 'Ocean', 'linear-gradient(135deg,#14b8a6,#3b9eff)'], ['sunrise', 'Sunrise', 'linear-gradient(135deg,#e8452c,#f59e0b)'],
   ['forest', 'Forest', 'linear-gradient(135deg,#15211b 45%,#6fcf97 45%,#f2c94c)'], ['nord', 'Nord', 'linear-gradient(135deg,#2e3440 45%,#88c0d0 45%,#b48ead)'],
@@ -26,7 +27,7 @@ export const THEMES = [
 ];
 // The picker: a mode row (Auto, Light, Dark and the glass looks), then an accent row for Light or Dark.
 // Accents are the old pastel and bold themes; they are still stored as the theme key, so saved choices keep working.
-export const MODES: [string, string][] = [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark'], ['glass', 'Liquid glass'], ['frosted', 'Frosted glass'], ['spatial', 'Spatial glass'], ['matte', 'Matte glass'], ['polar', 'Polar glass'], ['interstellar', 'Interstellar']];
+export const MODES: [string, string][] = [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark'], ['glass', 'Liquid glass'], ['frosted', 'Frosted glass'], ['spatial', 'Spatial glass'], ['matte', 'Matte glass'], ['polar', 'Polar glass'], ['liquid', 'True liquid glass'], ['interstellar', 'Interstellar']];
 export const ACCENTS: Record<string, [string, string][]> = {
   light: [['light', 'Calm'], ['sakura', 'Sakura Milk'], ['mint', 'Mint Cream'], ['lavender', 'Lavender Haze'], ['peach', 'Peach Fizz'], ['sky', 'Sky Powder'], ['butter', 'Butter & Sage'], ['sunrise', 'Sunrise'], ['rose', 'Rosé']],
   dark: [['dark', 'Calm'], ['carbon', 'Carbon neon'], ['midnight', 'Midnight'], ['neon', 'Neon'], ['ocean', 'Ocean'], ['forest', 'Forest'], ['nord', 'Nord']],
