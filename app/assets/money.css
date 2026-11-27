@@ -2555,7 +2555,7 @@ html[data-theme="liquid"] .tabbar :is(a, button.more) { color: var(--muted); }
 html[data-theme="liquid"] :is(.tab-pill, .nav a.on) { background: var(--lg-bar); box-shadow: var(--lg-rim), 0 3px 10px rgba(30, 50, 100, .16); }
 html[data-theme="liquid"] :is(.tabbar :is(a, button.more).on, .nav a.on) { color: var(--accent); }
 html[data-theme="liquid"] .opill { background: var(--accent); }
-html[data-theme="liquid"][data-lens="svg"] :is(.tabbar, .side, .drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar, .ff-pop) { -webkit-backdrop-filter: url(#lg-bend) var(--lg-filter); backdrop-filter: url(#lg-bend) var(--lg-filter); }
+html[data-theme="liquid"][data-lens="svg"] .lg-lensed { backdrop-filter: var(--lg-url) var(--lg-filter); }
 /* press: the glass swells slightly and settles, no bounce */
 html[data-theme="liquid"] :is(.btn, .round, .tabbar a, .tabbar button, .seg button) { transition: transform .22s var(--ease-glide), background .2s, box-shadow .2s; }
 html[data-theme="liquid"] :is(.btn, .round, .tabbar a, .tabbar button, .seg button):active { transform: scale(.96); }

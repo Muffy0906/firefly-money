@@ -68,8 +68,8 @@ describe('True liquid glass: how it is built', () => {
     expect(dark['--bg']).not.toBe(light['--bg']);
   });
   it('bends light with the SVG lens only when the attribute says the browser can, and stays solid otherwise', () => {
-    expect(theme).toMatch(/\[data-lens="svg"\] :is\(\.tabbar[^{]*\{[^}]*backdrop-filter: url\(#lg-bend\) var\(--lg-filter\)/);
-    expect(theme).not.toMatch(/html\[data-theme="liquid"\] :is\([^{]*\{[^}]*url\(#lg-bend\)/);   // never without the opt-in attribute
+    expect(theme).toMatch(/\[data-lens="svg"\] \.lg-lensed \{[^}]*backdrop-filter: var\(--lg-url\) var\(--lg-filter\)/);
+    expect(theme).not.toMatch(/html\[data-theme="liquid"\] :is\([^{]*\{[^}]*--lg-url/);   // never without the opt-in attribute
     expect(theme).toContain('@media (prefers-reduced-transparency: reduce)');
     expect(theme).toContain('@supports not');
     expect(theme).toMatch(/--lg-solid: #[0-9a-f]{6}/i);
@@ -77,11 +77,24 @@ describe('True liquid glass: how it is built', () => {
   it('the lens is Chromium-only and needs no network', () => {
     expect(src).toContain("'Chromium'");
     expect(src).toContain('feDisplacementMap');
+    expect(src).toContain('Snell');
     expect(src).not.toMatch(/fetch\(|https:/);
     expect(src).toContain("'liquid'");
   });
   it('the press feel is a calm glide, no bounce', () => {
     expect(theme).toContain('var(--ease-glide)');
     expect(theme).not.toMatch(/cubic-bezier\([^)]*-?\d\.\d+,\s*1\.\d/);
+  });
+});
+
+describe('True liquid glass: lens profile', () => {
+  it('pulls hardest at the outer edge and eases to nothing where the bezel goes flat', async () => {
+    const { profile } = await import('../app/src/core/lens');
+    const p = profile();
+    expect(p).toHaveLength(127);
+    expect(Math.max(...p)).toBeCloseTo(1, 5);
+    expect(p[0]).toBeGreaterThan(p[60]);
+    expect(p[126]).toBeLessThan(.2);
+    expect(p.every(v => v >= 0 && v <= 1)).toBe(true);
   });
 });
