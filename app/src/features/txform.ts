@@ -292,7 +292,10 @@ async function saveTxInner(formEl: HTMLFormElement) {
     if (!f.src || !f.dst) return formError('Choose both accounts for the transfer.');
     if (f.src === f.dst) return formError('A transfer needs two different accounts.');
   } else if (!f.main) return formError('Choose the account.');
+  const srcCur = f.type === 'transfer' ? S.lists?.byId[f.src]?.currency : '';
+  const dstCur = f.type === 'transfer' ? S.lists?.byId[f.dst]?.currency : '';
   for (const s of f.splits) {
+    if (f.type === 'transfer' && s.fa && num(s.fa) > 0 && !s.fc && srcCur && dstCur && srcCur !== dstCur) s.fc = dstCur;
     if (s.fa && num(s.fa) > 0 && !s.fc) return formError('Pick the currency for the foreign amount.');
     if (s.location.trim() && !parseLocation(s.location)) return formError('Enter a location as latitude, longitude or an Apple Maps link.');
     if (!s.description.trim()) return formError('Every part needs a description.');

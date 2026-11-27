@@ -70,6 +70,7 @@ export async function lists(force?: boolean): Promise<Lists> {
   fxSetup(S.currency, Object.fromEntries(currencies.filter(c => c.attributes.decimal_places != null).map(c => [String(c.attributes.code).toUpperCase(), +c.attributes.decimal_places])));
   await fxEnsure(mine.map(a => String(a.attributes.currency_code || '')));
   const acc = accounts.map(normAccount);
+  const enabledCurrencies = cur.filter(c => c.enabled);
   const L: Lists = {
     accounts: acc,
     byId: Object.fromEntries(acc.map(a => [a.id, a])),
@@ -81,9 +82,8 @@ export async function lists(force?: boolean): Promise<Lists> {
     bills: bills.map(b => ({ id: String(b.id), name: b.attributes.name, active: b.attributes.active !== false })),
     tags: tags.map(t => ({ id: String(t.id), name: t.attributes.tag })).sort((a, b) => a.name.localeCompare(b.name)),
     currencies: cur,
-    foreign: cur.filter(c => c.enabled && c.code !== S.currency),
+    foreign: enabledCurrencies.some(c => c.code !== S.currency) ? enabledCurrencies : [],
   };
-  L.foreign = L.currencies.filter(c => c.enabled && c.code !== S.currency);
   HIDE.inactive = new Set(acc.filter(a => !a.active).map(a => a.id)); HIDE.active = acc.filter(a => (isAsset(a) || isLiab(a)) && a.active).map(a => a.id);
   S.lists = L; S.listsAt = Date.now();
   return L;

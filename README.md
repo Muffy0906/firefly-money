@@ -18,7 +18,7 @@ curl -o .env https://raw.githubusercontent.com/muffy0906/firefly-money/main/.env
 docker compose up -d   # then open http://<your-server>:8090
 ```
 
-**Highlights:** 12 themes · installable on iPhone and Android · [Apple Pay auto-logging](docs/apple-pay.md) · plain-words quick add · forecast and what-ifs · monthly recap and Year in Money · no database, no AI, no cloud. It doesn't change or replace Firefly; stop using it any time.
+**Highlights:** many themes, including a live-sky one · English, Spanish and German · installable on iPhone and Android · [Apple Pay auto-logging](docs/apple-pay.md) · plain-words quick add · forecast and what-ifs · monthly recap and Year in Money · no database, no AI, no cloud. It doesn't change or replace Firefly; stop using it any time.
 
 It's a small static web app (TypeScript bundled into one script) served by an nginx container, with no server code of its own.
 
@@ -39,7 +39,7 @@ It's a small static web app (TypeScript bundled into one script) served by an ng
 
 ### One page in each theme
 
-12 built-in themes, and you can tweak each one's colors in Settings → Appearance. Calm can also follow your system's light or dark mode.
+Pick a mode (Auto, Light, Dark or a glass look) plus an accent in Settings → Appearance, and tweak each theme's colors. Auto follows your system's light or dark mode. **Interstellar** is a live sky behind dark glass cards: sun, moon, stars, and optionally your local weather. The pages below show a few of them.
 
 | | | |
 |:-:|:-:|:-:|
@@ -62,6 +62,9 @@ Firefly III is a great engine for your finances. Money is a faster, friendlier w
 
 **Everyday use**
 - **Overview:** net worth, spending by category against last month, budgets, balances with 30-day sparklines, loans, upcoming bills, top payees, income sources, savings goals, cash flow, a daily-spending calendar and a money-flow chart.
+- **Money scorecard and Habits:** a personality card and six rating cards for how you handle money, plus a Habits page. Add them from Customize; the scorecard can be shared as an image.
+- **Activity in 3D:** tap the activity grid to open it in 3D in a slide-in drawer.
+- **Languages:** English by default, plus Spanish and German, picked in Settings → Appearance → Language. Catalogs load only when chosen. Translations are community-contributed (see Contributing).
 - **Insight cards:** short notes like "Dining is 46% above usual", "Groceries budget may run out around the 24th" or "Card payment due in 4 days". They compare this month with the same point in each of the last three months.
 - **Customizable dashboard:** place cards anywhere as freeform tiles that snap to a fine grid (24 columns) and resize them by the corner, make them full width, or hide them. Start from 1 to 4 columns (or Auto), turn the net-worth summary and insight strip on or off. A new Overview starts with six cards (Safe to spend, Needs attention, Where it went, Budgets, Coming up, Cash flow); the rest wait under Customize → Add cards: Net worth, balances, loans, Daily spending, Money flow, Top payees, Income sources, Savings goals, Recent transactions, and the charts **Spending pace** (this month's running total against last month, day by day, and where it's heading), **Savings rate** (the share of each month's income you kept) and **Category trends** (your biggest categories month by month, against their usual). Cards that are off aren't fetched, so a calmer Overview also loads faster. Each card has its own settings (⚙): how many recent transactions, categories or payees to show, whether to list closed accounts, paid-off loans or reached goals, how far ahead to look for bills, and how many months the cash-flow chart covers. The layout and settings are saved in Firefly, so it follows you to every device (see **Sync between devices** below).
 - **Payees and income sources:** the Accounts tabs show how much went to each payee, or came from each income source, in the month picked at the top (or all time), busiest first. Each payee's page sums up its last twelve months: total, per month, typical charge, how often, a bar per month, its categories and the bill it pays.
@@ -101,7 +104,7 @@ Firefly III is a great engine for your finances. Money is a faster, friendlier w
   - `C` and `B` change the category or budget, and `X` selects.
   - `N` adds a transaction, `/` searches, `⌘/Ctrl-K` opens the command palette, and `P` hides amounts.
   - `?` lists all the shortcuts.
-- Twelve themes (Calm light, dark and auto; Frosted glass; Liquid glass neon; Matte glass; Polar glass; Carbon neon; Midnight; Neon; Ocean; Sunrise; Forest; Nord; Rosé), a **hide amounts** privacy mode and a **compact** density option.
+- Themes: Auto, Light and Dark with pastel and bold accents (Butter, Lavender, Mint, Peach, Sakura, Sky, Carbon, Midnight, Neon, Ocean, Sunrise, Forest, Nord, Rosé), glass looks (Frosted, Liquid, Matte, Polar, Spatial) and Interstellar, a **hide amounts** privacy mode and a **hide amounts** privacy mode and a **compact** density option.
 - Installable as an app (PWA). It keeps no copy of your Firefly data on the device: when Firefly III (or the network) can't be reached, it says so instead of showing old numbers, and comes back by itself. A pill in the sidebar (and the phone's More menu) shows whether Firefly is connected.
 
 ## How it works
@@ -247,6 +250,7 @@ The online demo is the same data ported to TypeScript (`app/src/demo/mockapi.ts`
     - `core/`: `base` (state and formatting helpers), `helpers`, `api` (requests, caching, the on-device copy), `feed` (transaction rows), `lists` (accounts, categories, budgets…), `dom` (drawer, toasts, view transitions), `auth` (sign-in/out), `router`, `login` (sign-in screen, themes, startup) and `events` (attaches the markup's `data-on*` handlers).
     - `pages/`: one module per page (overview, transactions, accounts, budgets, rules, forecast, inbox, …).
     - `features/`: things used across pages (transaction form, bulk edit, dashboard, charts, quick add, palette, gestures, the iPhone app shell, …).
+    - `locales/`: Spanish and German translation catalogs, loaded on demand.
     - `demo/`: the online demo only (`npm run build:demo`), not part of the app itself.
   - A module only imports from modules listed above it in `main.ts`, so modules run in a fixed order. Code that needs something from further down calls it through `App` instead.
   - Markup is built with the `html` template tag from `core/html.ts`: ``html`<b>${name}</b>` `` escapes `name`, while nested `html` results (and arrays of them, or `htmlList(…)`) go in as markup. Don't join `html` results with `+`, which turns them back into plain text that gets escaped; put them side by side in a template instead. The smoke test turns on a check that reports both mistakes.
@@ -288,4 +292,4 @@ Have a question, an idea, or want to show off your setup? Start a thread in [Dis
 
 [MIT](LICENSE): you may use, change, share and sell Money freely, as long as the copyright notice stays with it. It comes with no warranty.
 
-Contributions are welcome. Please open an issue or start a [discussion](https://github.com/Muffy0906/firefly-money/discussions) first for anything big.
+Contributions are welcome, including new translations (see `app/src/locales/`). Please open an issue or start a [discussion](https://github.com/Muffy0906/firefly-money/discussions) first for anything big.
