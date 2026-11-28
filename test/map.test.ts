@@ -45,8 +45,8 @@ describe('places tab (store suggestions under To do)', () => {
     expect(b.hidden).toBe(false); expect(b.textContent).not.toContain('No places to pin'); expect(b.textContent).toContain('Re-analyze all purchases');
   });
   it('is the third To do tab and highlights To do', () => {
-    expect(String(todoTabs('places'))).toMatch(/<a href="#\/places" class="on">Places<\/a>/);
-    expect(String(todoTabs('review'))).toMatch(/href="#\/places" class="">/);
+    expect(String(todoTabs('places'))).toMatch(/<a href="#\/places" role="tab" class="on" aria-selected="true">Places<\/a>/);
+    expect(String(todoTabs('review'))).toMatch(/href="#\/places" role="tab" class="" aria-selected="false">/);
   });
 });
 

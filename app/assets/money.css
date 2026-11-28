@@ -1741,10 +1741,12 @@
   .story.paused .st-prog i.run b { animation-play-state: paused; }
   @keyframes stFill { to { width: 100%; } }
   /* An icon, not the × character: a font's × sits on its baseline, so it lands low and differs by system font */
-  .st-x { position: absolute; z-index: 4; top: calc(22px + env(safe-area-inset-top) + var(--edge)); right: var(--st-pad); width: 40px; height: 40px; min-width: 0; min-height: 0; padding: 0; margin: 0;
+  .st-x { position: absolute; z-index: 4; top: calc(22px + env(safe-area-inset-top) + var(--edge)); right: var(--st-pad); width: 44px; height: 44px; min-width: 0; min-height: 0; padding: 0; margin: 0;
     display: grid; place-items: center; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--text) 9%, transparent); color: var(--text); line-height: 0; cursor: pointer; }
   .st-x svg { display: block; width: 16px; height: 16px; }
-  .st-pp { right: calc(var(--st-pad) + 50px); }
+  .st-pp { right: calc(var(--st-pad) + 54px); }
+  .st-prev, .st-next { top: auto; bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .st-prev { right: auto; left: var(--st-pad); }
   .st-deck { position: absolute; inset: 0; }
   .st-card { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 8px;
     padding: calc(80px + env(safe-area-inset-top) + var(--edge)) var(--st-pad) calc(60px + env(safe-area-inset-bottom));
@@ -2901,3 +2903,13 @@ html[data-theme="dark"] { --e1: var(--rim), var(--lift); --e2: 0 1px 0 rgba(0,0,
   html.head-slim #view > .head .head-text { height: 34px; }
 }
 @media (max-width: 600px) and (prefers-reduced-motion: reduce) { #view > .head, #view > .head * { transition: none !important; } }
+
+/* Navigation, one pattern everywhere: back button above the title, tab strips and close buttons at least 44px on a phone */
+.back-row { margin: 0 0 8px; }
+.back { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; margin-left: -4px; padding: 0 12px 0 4px; color: var(--accent); font-weight: 600; text-decoration: none; border-radius: var(--r-pill); }
+.back svg { width: 14px; height: 14px; flex: none; }
+.back:hover { text-decoration: underline; }
+@media (max-width: 600px) {
+  .drawer header .round { width: 44px; height: 44px; }
+  .tabs a { min-height: 44px; display: inline-flex; align-items: center; }
+}

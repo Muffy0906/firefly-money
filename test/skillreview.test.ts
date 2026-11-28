@@ -18,7 +18,7 @@ describe('Skill review: touch, keyboard and announcements', () => {
     expect(css).toContain('@media (hover: none) { .chip.ghost { display: none; } .kbd-hint { display: none; } }');
     const inbox = src('pages/inbox.ts');
     expect(inbox).toContain('<span class="neutral kbd-hint">S</span>');
-    expect(inbox).toContain('skip. </span>On a phone, swipe');
+    expect(inbox).toContain('skip. </span>On a phone you can also swipe');
   });
   it('announces a failure at once and lets a caller say it is one', () => {
     const dom = src('core/dom.ts');
@@ -69,7 +69,7 @@ describe('Skill review: honest numbers and order', () => {
   });
   it('explains a minus sign in the amount, and Clean up has a way back', () => {
     expect(src('features/txform.ts')).toContain('Enter the amount without a minus sign.');
-    expect(src('pages/cleanup.ts')).toContain('href="#/settings?s=data">← Data</a>');
+    expect(src('pages/cleanup.ts')).toContain("backLink('#/settings?s=data', 'Data')");
   });
 });
 
