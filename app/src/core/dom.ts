@@ -36,22 +36,37 @@ export const NAV = [['', 'Overview', 'overview'], ['forecast', 'Forecast', 'fore
   ['accounts', 'Accounts', 'accounts'], ['loans', 'Loan planner', 'loans'],
   ['budgets', 'Budgets', 'budgets'], ['categories', 'Categories & tags', 'categories'], ['bills', 'Bills', 'bills'], ['recurring', 'Recurring', 'recurring'],
   ['piggy', 'Piggy banks', 'piggy'], ['rules', 'Rules', 'rules'], ['recap', 'Monthly recap', 'recap'], ['year', 'Year in Money', 'year'], ['scorecard', 'Money scorecard', 'scorecard'], ['timeline', 'Timeline', 'timeline'], ['ask', 'Ask a question', 'spark'], ['unusual', 'Unusual charges', 'eye'], ['map', 'Spending map', 'map'], ['reports', 'Reports', 'reports'], ['settings', 'Settings', 'settings']];
+// Pages that share a top-level menu item. The first page of each hub is its menu item; the others are tabs on every page of the hub
+// (every address still works, and the search finds each page by name)
+export const HUBS: Record<string, [string, string][]> = {
+  budgets: [['budgets', 'Budgets'], ['piggy', 'Piggy banks']],
+  bills: [['bills', 'Bills'], ['recurring', 'Recurring']],
+  forecast: [['forecast', 'Forecast'], ['loans', 'Loan planner']],
+  reports: [['reports', 'Reports'], ['recap', 'Monthly recap'], ['year', 'Year in Money'], ['timeline', 'Timeline'], ['scorecard', 'Money scorecard']],
+  unusual: [['unusual', 'Unusual charges'], ['ask', 'Ask a question'], ['map', 'Spending map']],
+  categories: [['categories', 'Categories & tags'], ['rules', 'Rules']],
+};
+// The menu label of a hub, where it is not its first page's name
+const HUB_LABEL: Record<string, string> = { unusual: 'Insights', categories: 'Categories & rules', bills: 'Bills & recurring' };
+export const hubOf = (r: string) => Object.keys(HUBS).find(h => HUBS[h].some(([p]) => p === r)) || (r === 'inbox' || r === 'places' ? 'review' : r === 'account' || r === 'reconcile' ? 'accounts' : r);
 // How the sidebar and the phone's More menu group the pages (Settings sits at the bottom of the sidebar)
 export const NAV_GROUPS: [string, string[]][] = [['', ['', 'transactions', 'review']],
-  ['Plan', ['budgets', 'bills', 'recurring', 'piggy', 'forecast', 'loans']], ['Insights', ['reports', 'timeline', 'recap', 'year', 'scorecard', 'unusual', 'ask', 'map']],
-  ['Manage', ['accounts', 'categories', 'rules']]];
+  ['Plan', ['budgets', 'bills', 'forecast']], ['Insights', ['reports', 'unusual']],
+  ['Manage', ['accounts', 'categories']]];
 // The scorecard page can be switched off in Settings; it then leaves the menus (the address still works)
 export const navGroups = (): [string, string[]][] => { let off = false; try { off = localStorage.getItem('money.scorecardPage') === 'false'; } catch (e) { /* storage blocked */ } return NAV_GROUPS.map(([t, rs]) => [t, rs.filter(r => !(off && r === 'scorecard'))]); };
-export const navItem = (r: string) => NAV.find(n => n[0] === r)!;
+export const navItem = (r: string): string[] => { const n = NAV.find(x => x[0] === r)!; return HUB_LABEL[r] ? [n[0], HUB_LABEL[r], n[2]] : n; };
+// The tabs across the top of a hub's pages (nothing on a page that stands alone)
+export const hubTabs = (on: string) => { const t = HUBS[hubOf(on)]; return t ? html`<div class="tabs" role="tablist" aria-label="${HUB_LABEL[hubOf(on)] || t[0][1]}">${htmlList(t.map(([r, label]) => html`<a href="#/${r}" role="tab" class="${r === on ? 'on' : ''}" aria-selected="${r === on}">${label}</a>`))}</div>` : ''; };
 // To do: Review (new transactions to look over) and Categorize (ones without a category), as two tabs of one page
 export const todoTabs = (on: string) => html`<div class="tabs"><a href="#/review" class="${on === 'review' ? 'on' : ''}">Review new</a><a href="#/inbox" class="${on === 'inbox' ? 'on' : ''}">Categorize</a><a href="#/places" class="${on === 'places' ? 'on' : ''}">Places</a></div>`;
 export function drawNav(active: string) {
-  const cur = NAV.find(n => n[0] === active);
+  const on = hubOf(active), cur = NAV.find(n => n[0] === active) || NAV.find(n => n[0] === on);
   document.title = cur && cur[0] ? cur[1] + ' · Money' : 'Money';      // one title per page, for the tab, history and bookmarks
-  const a = (r: string) => { const [, label, ic] = navItem(r); return html`<a href="#/${r}" class="${r === active ? 'on' : ''}" title="${label}" data-onmouseenter="App.prefetch('${r}')">${icon(ic)}<span>${label}</span></a>`; };
+  const a = (r: string) => { const [, label, ic] = navItem(r); return html`<a href="#/${r}" class="${r === on ? 'on' : ''}" title="${label}" data-onmouseenter="App.prefetch('${r}')">${icon(ic)}<span>${label}</span></a>`; };
   el('nav').innerHTML = String(htmlList(navGroups().map(([title, rs]) => html`${title ? html`<div class="nav-h">${title}</div>` : ''}${htmlList(rs.map(a))}`)));
   el('navFoot').innerHTML = String(a('settings'));
-  if (window.App && App.drawTabbar) App.drawTabbar(active);
+  if (window.App && App.drawTabbar) App.drawTabbar(on);
 }
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 // A message about something that failed stays until it is dismissed (button, tap or Esc); a status message fades by itself
@@ -182,8 +197,9 @@ export function monthNav() {
   return html`<div class="month"><button class="round" data-onclick="App.shiftMonth(-1)" aria-label="Previous month">${ICON_PREV}</button><span title="${fmtDate(r.start)} – ${fmtDate(r.end)}"><i class="ml">${r.label}</i><i class="ms">${r.short} ${r.y}</i>${r.start.endsWith('-01') ? '' : html`<small class="cycle">${fmtDay(r.start)} – ${fmtDay(r.end)}</small>`}</span><button class="round" data-onclick="App.shiftMonth(1)" aria-label="Next month"${isNow ? ' disabled' : ''}>${ICON_NEXT}</button>${ahead !== 0 ? html`<button class="btn small" style="margin-left:8px" data-onclick="App.thisMonth()">Today</button>` : html`<button class="btn small today-gap" style="margin-left:8px" aria-hidden="true" tabindex="-1" disabled>Today</button>`}<button class="btn small" style="margin-left:8px" data-onclick="App.allTime()">All time</button></div>`;
 }
 export function head(title: string | Html, sub: string | Html = '', actions?: string | Html) {
+  const tabs = hubTabs(location.hash.replace(/^#\/?/, '').split(/[/?]/)[0]);
   // Under the title, when an account is in another currency: the rate the page's totals use (features/fxnote.ts)
-  return html`<div class="head"><div><h1>${title}</h1>${sub ? html`<p class="sub">${sub}</p>` : ''}${App.fxNote ? App.fxNote() : ''}</div><div class="actions">${actions || ''}</div></div>`;
+  return html`<div class="head"><div><h1>${title}</h1>${sub ? html`<p class="sub">${sub}</p>` : ''}${App.fxNote ? App.fxNote() : ''}</div><div class="actions">${actions || ''}</div></div>${tabs}`;
 }
 /* ---------- Empty states: a drawn icon, what the page is for, and the one thing to do next ---------- */
 const EMPTY_ICONS: Record<string, string> = {
