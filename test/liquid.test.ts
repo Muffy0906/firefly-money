@@ -56,7 +56,7 @@ describe('True liquid glass: how it is built', () => {
     expect(theme).toMatch(/\.dash-bar\) \{\s*background: var\(--panel\);[^}]*backdrop-filter: none/);
     for (const sel of ['.btn', '.round', '.seg']) expect(bare).toMatch(new RegExp('liquid"\\] :is\\([^)]*\\' + sel + '[^)]*\\) \\{[^}]*backdrop-filter: var\\(--lg-ctl-filter\\)'));
     expect(bare).toMatch(/:is\(\.tabbar, \.side, \.drawer, dialog[^)]*\.toast\) \{[^}]*backdrop-filter: var\(--lg-sheet-filter\)/);
-    expect(light['--lg-rim']).toMatch(/inset 0 1px 0 rgba\(255, 255, 255, \.9/);        // a bright catch-light on the top edge
+    expect(light['--lg-rim']).toMatch(/inset 0 1px 0 rgba\(255, 255, 255, \.6/);        // a bright catch-light on the top edge
     expect(light['--lg-rim']).toMatch(/inset 0 -1px 1px rgba\(0, 0, 0/);                  // a faint dark bevel on the bottom edge
     expect(light['--lg-drop']).toContain(',');                                           // layered shadow
   });
@@ -111,10 +111,10 @@ describe('True liquid glass: GlassiFy wobble and bevel', () => {
   it('bevels every glass edge with a 3px inner light and dark, like GlassiFy', () => {
     expect(light['--lg-rim']).toContain('inset 3px 3px 3px -1px');
     expect(light['--lg-rim']).toContain('inset -3px -3px 3px -1px');
-    expect(light['--lg-drop']).toContain('-8px -10px 46px');
+    expect(light['--lg-drop']).toContain('0 4px 24px');
   });
   it('on Chromium, warps the backdrop with turbulence noise across the whole glass', () => {
-    expect(theme).toMatch(/\[data-lens="svg"\] :is\(\.tabbar[^)]*\.round\) \{[^}]*backdrop-filter: brightness\(1\.1\) blur\(5px\) url\(#lg-wave\)/);
+    expect(theme).toMatch(/\[data-lens="svg"\] :is\(\.tabbar[^)]*\.round\) \{[^}]*backdrop-filter: brightness\(1\.04\) blur\(5px\) url\(#lg-wave\)/);
     expect(src).toContain('feTurbulence');
     expect(src).toContain("baseFrequency: '0.01'");
   });
@@ -132,33 +132,3 @@ describe('True liquid glass: lens profile', () => {
   });
 });
 
-describe('True liquid glass: WebGL refraction on the tab bar and + circle', () => {
-  const gl = readFileSync('app/src/core/glassgl.ts', 'utf8'), boot = readFileSync('app/src/boot.ts', 'utf8'), settings = readFileSync('app/src/pages/settings.ts', 'utf8');
-  it('is loaded, and only for the liquid theme with a Settings switch', () => {
-    expect(boot).toContain("import './core/glassgl'");
-    expect(gl).toContain("getAttribute('data-theme') === 'liquid'");
-    expect(gl).toContain('readCustom().liquid?.gl !== false');
-    expect(settings).toContain("App.themeVar('gl', this.checked)");
-  });
-  it('refracts a bezel band with Snell’s law and colour fringes, and respects less transparency', () => {
-    expect(gl).toMatch(/asin\(/);
-    expect(gl).toMatch(/1\.5/);
-    expect(gl).toContain('prefers-reduced-transparency');
-  });
-  it('falls back to the CSS glass when WebGL or the capture fails or comes back blank', () => {
-    expect(gl).toMatch(/if \(!gl\) return null/);
-    expect(gl).toMatch(/if \(blank\(s\.cv\)\) \{ turnOff\(\); return; \}/);
-    expect(gl).toMatch(/catch \(e\) \{ turnOff\(\); \}/);
-    expect(gl).not.toMatch(/fetch\(|XMLHttpRequest/);
-  });
-  it('captures only what overlaps the glass, with no remote images or fonts', () => {
-    expect(gl).toContain('skipFonts: true');
-    expect(gl).toContain('imagePlaceholder: PLACEHOLDER');
-    expect(gl).toContain('r.right > x && r.left < x + w');
-    expect(gl).toContain('MAXPIECES');
-  });
-  it('keeps the canvas under the content and hides the CSS rim only while it draws', () => {
-    expect(bare).toMatch(/canvas\.lgl \{[^}]*pointer-events: none; z-index: 0; opacity: 0/);
-    expect(bare).toMatch(/\[data-gl\] :is\(\.tabbar, \.fab\)::before \{ display: none; \}/);
-  });
-});

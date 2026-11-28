@@ -1,7 +1,6 @@
 import { applyCustom } from './core/themevars';
 import './core/sky';
 import './core/lens';
-import './core/glassgl';
 
 /* Runs in <head>, before the stylesheet applies, so the first paint already has the right shell and theme. */
 // Inside the iPhone app (or installed to the Home Screen): use the app-style shell.
