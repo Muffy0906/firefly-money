@@ -59,6 +59,7 @@ import './pages/settings';
 import './pages/cleanup';
 import './features/palette';
 import './features/polish';
+import './features/mostused';
 import './features/refine';
 import './features/dock';
 import './features/datepicker';

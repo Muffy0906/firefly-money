@@ -12,6 +12,10 @@ describe('Collapsed sidebar rail', () => {
     expect(css).toMatch(/html\.side-mini \.side \.nav \{ grid-template-columns: minmax\(0, 1fr\); gap: 0; \}/);
     expect(css).toMatch(/html\.side-mini \.side \.nav a \{ padding-left: 9\.5px; padding-right: 0; width: 36px; min-height: 36px; margin-inline: auto; border-radius: 50%; \}/);
   });
+  it('centres the panel toggle in the 40px column: margin-right = 20px minus half its (height-clamped) width', () => {
+    expect(css).toContain('html.side-mini .side-tg { --tg-w: min(30px, var(--row, 30px)); margin-right: calc(20px - var(--tg-w) / 2); }');
+    expect(css).not.toMatch(/html\.side-mini \.side-tg \{ margin-right: 4px/);
+  });
   it('zooms only the hovered icon: no proximity dock', () => {
     expect(css).toContain('.side .nav a:hover svg, .side-search:hover svg, .side-tg:hover svg { scale: 1.2; }');
     expect(css).not.toContain('--dock');

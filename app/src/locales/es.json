@@ -3740,5 +3740,14 @@
   "Needs a few more purchases.": "Necesita unas compras más.",
   "Nothing owed, so nothing to rate.": "No debes nada, así que no hay nada que calificar.",
   "Bills & recurring": "Facturas y recurrentes",
-  "Categories & rules": "Categorías y reglas"
+  "Categories & rules": "Categorías y reglas",
+  "Load my most-used pages ahead": "Cargar antes mis páginas más usadas",
+  "Money remembers which pages you open most, on this server, and fetches them in the background after it opens. Only page names and counts are kept.": "Money recuerda en este servidor las páginas que más abres y las carga en segundo plano al iniciar. Solo se guardan nombres de página y recuentos.",
+  "Most-used history": "Historial de páginas más usadas",
+  "Forget which pages you use most, on every device": "Olvidar las páginas que más usas, en todos los dispositivos",
+  "Most-used pages load ahead": "Las páginas más usadas se cargan antes",
+  "Pages load only when you open them": "Las páginas se cargan solo al abrirlas",
+  "Most-used history cleared": "Historial de páginas más usadas borrado",
+  "Couldn’t clear it. Try again.": "No se pudo borrar. Inténtalo de nuevo.",
+  "Couldn’t reach the server": "No se pudo conectar con el servidor"
 }

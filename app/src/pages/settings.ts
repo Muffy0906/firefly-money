@@ -85,6 +85,8 @@ VIEWS.settings = async (r, paint) => {
     : syncAt ? 'Last synced ' + fmtDate(isoDate(new Date(syncAt))) + ' at ' + fmtD(new Date(syncAt), { hour: 'numeric', minute: '2-digit' }) + '.' : 'Nothing synced yet.';
   const sync = group('sync', 'Sync', html`
     ${row('Sync between devices', syncStatus, html`<input ${SWITCH} aria-label="Sync this device’s settings"${syncOff ? '' : ' checked'} data-onchange="App.toggleSync(this.checked)">`)}
+    ${row('Load my most-used pages ahead', 'Money remembers which pages you open most, on this server, and fetches them in the background after it opens. Only page names and counts are kept.', html`<input ${SWITCH} aria-label="Load my most-used pages ahead"${LS.get('mostUsed', true) !== false ? ' checked' : ''} data-onchange="App.toggleMostUsed(this.checked)">`)}
+    ${row('Most-used history', 'Forget which pages you use most, on every device', html`<button class="btn small" type="button" data-onclick="App.clearMostUsed()">Clear</button>`)}
     ${syncOff ? '' : row('Update other devices', 'Send this device’s settings and fetch the others’ now', html`<button class="btn small" type="button" data-onclick="App.syncNow()">Sync now</button>`)}`,
     'Your Overview layout, month start, drafts, saved reports, dismissed insights, forecast, loan plan and subscription choices and theme colors are kept in Firefly III, so they follow you to every device.');
 

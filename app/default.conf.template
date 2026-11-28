@@ -6,6 +6,9 @@ js_set $money_session session.check;
 js_set $money_renew session.renew;
 # Apple Pay auto-logging (app/ingest.js)
 js_import ingest from ingest.js;
+# Most-used pages (app/pages.js): counts shared by the workers, saved to MONEY_DATA (default /data)
+js_import pages from pages.js;
+js_shared_dict_zone zone=money_pages:64k type=number;
 
 # Rate limits, per client address. Sign-in attempts: 6 a minute. API calls:
 # 50 a second with room for bursts of 500, far more than the app sends, so it only stops floods. Behind a
@@ -16,6 +19,8 @@ limit_req_zone $binary_remote_addr zone=api:2m rate=50r/s;
 limit_req_zone $binary_remote_addr zone=relay:2m rate=15r/s;
 # Payments from the Apple Pay shortcut: 20 a minute is plenty for real taps and stops anyone guessing the key.
 limit_req_zone $binary_remote_addr zone=ingest:1m rate=20r/m;
+# Page visits (a few a minute in real use)
+limit_req_zone $binary_remote_addr zone=pages:1m rate=60r/m;
 limit_req_status 429;
 
 # The page links the stylesheet and scripts with ?v=<build version>, and each build gets a new
@@ -316,6 +321,16 @@ server {
         client_max_body_size 4k;
         client_body_buffer_size 4k;
         js_content ingest.endpoint;
+    }
+    # Which pages you use most, so the app can load them ahead on any device (GET the top ones, POST a visit, DELETE to
+    # forget). Page names and counts only. See app/pages.js.
+    location = /api/money-pages {
+        if ($money_session = "") { add_header X-Dash-Auth required always; return 401; }
+        if ($http_x_money = "")  { return 403; }
+        limit_req zone=pages burst=30 nodelay;
+        client_max_body_size 1k;
+        client_body_buffer_size 1k;
+        js_content pages.endpoint;
     }
     # Where ingest.js reaches Firefly: only nginx itself can use this (internal), never a browser.
     location ~ ^/__firefly(?<ffpath>/api/v1/.*)$ {

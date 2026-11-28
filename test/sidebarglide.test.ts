@@ -6,8 +6,8 @@ const prefs = readFileSync('app/src/features/prefs.ts', 'utf8');
 
 describe('Sidebar fold: the page resizes with the rail', () => {
   it('animates the grid column and the rail on one duration and easing', () => {
-    expect(css).toContain('.app { transition: grid-template-columns .34s var(--ease-glide); }');
-    expect(css).toContain('.side { transition: padding .34s var(--ease-glide); }');
+    expect(css).toContain('.app { transition: grid-template-columns var(--dur-slow) var(--ease-glide); }');
+    expect(css).toContain('.side { transition: padding var(--dur-slow) var(--ease-glide); }');
   });
   it('does not freeze the page at a fixed width during the fold', () => {
     expect(css).not.toContain('--glide-w');

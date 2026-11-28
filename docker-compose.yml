@@ -18,6 +18,9 @@ services:
       FIREFLY_TOKEN: ${FIREFLY_TOKEN}
       # The password you type on the Money sign-in screen.
       DASH_PASSWORD: ${DASH_PASSWORD}
+    # Keeps which pages you use most, so they load ahead on every device (a few bytes). Optional.
+    volumes:
+      - money-data:/data
 
     # Prefer running your local copy of the files instead of the published image?
     # Build the scripts first (npm install && npm run build, which needs Node.js),
@@ -31,11 +34,15 @@ services:
     #   - ./app/nginx.conf:/etc/nginx/nginx.conf:ro
     #   - ./app/session.js:/etc/nginx/money/session.js:ro
     #   - ./app/ingest.js:/etc/nginx/money/ingest.js:ro
+    #   - ./app/pages.js:/etc/nginx/money/pages.js:ro
     #   - ./app/default.conf.template:/etc/nginx/templates/default.conf.template:ro
     #   - ./app/index.html:/etc/nginx/templates/index.html.template:ro
     #   - ./app/404.html:/etc/nginx/templates/404.html.template:ro
     #   - ./app/privacy.html:/etc/nginx/templates/privacy.html.template:ro
     #   - ./app/assets:/usr/share/nginx/html/assets:ro
+
+volumes:
+  money-data:
 
 # TrueNAS: adds the "Web UI" button on the app's page. Other Docker hosts ignore this.
 x-portals:
