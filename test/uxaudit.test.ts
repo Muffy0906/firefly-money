@@ -93,9 +93,10 @@ describe('Money flow table alternative', () => {
 });
 
 describe('calm motion for a money app', () => {
-  it('never overshoots: no cubic-bezier above 1 and no linear() spring above 1', () => {
-    for (const m of css.matchAll(/cubic-bezier\(([^)]*)\)/g)) { const v = m[1].split(',').map(Number); expect(v[1] <= 1 && v[3] <= 1, m[0]).toBe(true); }
-    for (const m of css.matchAll(/--ease-[a-z]+: linear\(([^)]*)\)/g)) for (const n of m[1].split(',').map(x => parseFloat(x))) expect(n <= 1, m[0]).toBe(true);
+  it('never overshoots: no cubic-bezier above 1 and no linear() spring above 1 (True liquid glass springs on purpose, as iOS 26 does)', () => {
+    const calm = css.replace(/\/\* -+ Theme: True liquid glass[\s\S]*?(?=html\[data-theme="sakura"\] \.panel,html)/, '');
+    for (const m of calm.matchAll(/cubic-bezier\(([^)]*)\)/g)) { const v = m[1].split(',').map(Number); expect(v[1] <= 1 && v[3] <= 1, m[0]).toBe(true); }
+    for (const m of calm.matchAll(/--ease-[a-z]+: linear\(([^)]*)\)/g)) for (const n of m[1].split(',').map(x => parseFloat(x))) expect(n <= 1, m[0]).toBe(true);
   });
   it('keeps the sheet, dialog, tab bar and toast motion fast (<= 300ms)', () => {
     expect(css).not.toMatch(/\.drawer \{ transition-duration: \.5s/);

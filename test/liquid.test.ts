@@ -31,15 +31,15 @@ describe('True liquid glass: registration', () => {
 
 describe('True liquid glass: legibility', () => {
   for (const [tone, v] of [['light', light], ['dark', dark]] as const) {
-    it(tone + ': text, muted text, accent text and amounts read over the brightest light behind a card', () => {
-      const bg = hex(v['--bg']), base = hex(v['--glass-base']), tint = parseFloat(v['--glass-tint']) / 100;
-      const spots = [bg, ...(['--glow1', '--glow2', '--glow3'] as const).map(k => mix(hex(v[k]), bg, .85))];
+    it(tone + ': text, muted text, accent text and amounts read on the page, the flat cards and the glass', () => {
+      const bg = hex(v['--bg']), panel = hex(v['--panel']), base = hex(v['--glass-base']), tint = parseFloat(v['--glass-tint']) / 100;
+      // the glass over the page, over the page wash at its strongest, and the sheet fill (74%) over the page
+      const wash = (['--glow1', '--glow2', '--glow3'] as const).map(k => mix(hex(v[k]), bg, .38));
+      const sheet = tone === 'light' ? [255, 255, 255] as RGB : [44, 44, 48] as RGB;
+      const surfaces = [bg, panel, ...wash, mix(base, bg, tint), ...wash.map(w => mix(base, w, tint)), mix(sheet, bg, .74), ...wash.map(w => mix(sheet, w, .74))];
       const bad: string[] = [];
-      for (const s of spots) {
-        const card = mix(base, s, tint), glare = tone === 'light' ? mix([255, 255, 255], card, .22) : card;   // the corner glare is white at up to 22%
-        for (const surface of [card, glare]) for (const c of ['--text', '--muted', '--accent', '--good-t', '--spend-t', '--warn-t']) {
-          const r = ratio(hex(v[c]), surface); if (r < 4.5) bad.push(`${c} ${r.toFixed(2)} on ${tone} ${surface.map(Math.round)}`);
-        }
+      for (const s of surfaces) for (const c of ['--text', '--muted', '--accent', '--good-t', '--spend-t', '--warn-t']) {
+        const r = ratio(hex(v[c]), s); if (r < 4.5) bad.push(`${c} ${r.toFixed(2)} on ${tone} ${s.map(Math.round)}`);
       }
       expect(bad).toEqual([]);
       expect(ratio(hex(v['--on-accent']), hex(v['--accent']))).toBeGreaterThanOrEqual(4.5);
@@ -48,20 +48,26 @@ describe('True liquid glass: legibility', () => {
 });
 
 describe('True liquid glass: how it is built', () => {
-  it('draws the backdrop in CSS and loads no image', () => {
+  it('draws only a faint wash behind the page in CSS and loads no image', () => {
     expect(theme).toMatch(/html\[data-theme="liquid"\] body::after \{[^}]*radial-gradient/);
     expect(bare).not.toMatch(/url\((?!#)/);
   });
-  it('keeps card middles clear and puts the glass in an edge band; floating glass also blurs', () => {
-    expect(theme).toMatch(/\.dash-bar\) \{[^}]*backdrop-filter: none/);
-    expect(theme).toMatch(/\)::before \{[^}]*backdrop-filter: var\(--lg-edge\)[^}]*mask-composite: xor/);   // only a band along the edge is glass
-    for (const sel of ['.tabbar', '.side']) expect(theme).toMatch(new RegExp('liquid"\\] \\' + sel + ' \\{[^}]*backdrop-filter: var\\(--lg-filter\\)'));
-    expect(light['--lg-filter']).toMatch(/blur\(.*saturate\(/);
-    expect(light['--lg-rim']).toContain('inset');          // the specular edge and soft inner light
+  it('keeps cards flat and solid, and makes controls, the tab bar and sheets the glass', () => {
+    expect(theme).toMatch(/\.dash-bar\) \{\s*background: var\(--panel\);[^}]*backdrop-filter: none/);
+    for (const sel of ['.btn', '.round', '.seg']) expect(bare).toMatch(new RegExp('liquid"\\] :is\\([^)]*\\' + sel + '[^)]*\\) \\{[^}]*backdrop-filter: var\\(--lg-filter\\)'));
+    expect(bare).toMatch(/:is\(\.tabbar, \.side, \.drawer, dialog[^)]*\.toast\) \{[^}]*backdrop-filter: var\(--lg-sheet-filter\)/);
+    expect(light['--lg-rim']).toMatch(/inset 1px 1px 0 rgba\(255, 255, 255, \.9/);     // brightest at the top-left
+    expect(light['--lg-rim']).toMatch(/inset -1px -1px 0/);                              // faint opposite rim
+    expect(light['--lg-drop']).toContain(',');                                           // layered shadow
   });
-  it('uses the shared radius tokens and the card padding it inherits', () => {
-    expect(theme).toContain('border-radius: var(--radius)');
+  it('fakes the edge refraction with a brighter, more saturated band inside the rim, in WebKit-safe CSS', () => {
+    expect(bare).toMatch(/\)::before \{[^}]*-webkit-backdrop-filter: var\(--lg-edge\)[^}]*-webkit-mask-composite: xor/);
+    expect(light['--lg-edge']).toMatch(/saturate\(2\d\d%\) brightness\(1\.\d+\)/);
+  });
+  it('reuses the shared tokens and keeps the shapes round', () => {
+    for (const t of ['--glass-blur', '--glass-tint', '--radius']) expect(light[t]).toBeDefined();
     expect(theme).toContain('border-radius: var(--r-xl)');
+    expect(theme).toContain('var(--radius)');
     expect(theme).not.toMatch(/border-radius: *\d/);
   });
   it('follows the system light or dark tone', () => {
@@ -75,16 +81,17 @@ describe('True liquid glass: how it is built', () => {
     expect(theme).toContain('@supports not');
     expect(theme).toMatch(/--lg-solid: #[0-9a-f]{6}/i);
   });
-  it('the lens is Chromium-only and needs no network', () => {
+  it('the lens is Chromium-only, needs no network and builds its filter with DOM calls', () => {
     expect(src).toContain("'Chromium'");
     expect(src).toContain('feDisplacementMap');
     expect(src).toContain('Snell');
     expect(src).not.toMatch(/fetch\(|https:|innerHTML|insertAdjacentHTML/);
     expect(src).toContain("'liquid'");
   });
-  it('the press feel is a calm glide, no bounce', () => {
-    expect(theme).toContain('var(--ease-glide)');
-    expect(theme).not.toMatch(/cubic-bezier\([^)]*-?\d\.\d+,\s*1\.\d/);
+  it('springs on press and on the tab pill, and stops when motion is reduced', () => {
+    expect(theme).toMatch(/--ease-spring: cubic-bezier\(/);
+    expect(theme).toMatch(/\.tab-pill \{ transition: transform \.5s var\(--ease-spring\)/);
+    expect(theme).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*:active \{ transform: none/);
   });
 });
 
