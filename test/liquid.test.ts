@@ -114,7 +114,7 @@ describe('True liquid glass: GlassiFy wobble and bevel', () => {
     expect(light['--lg-drop']).toContain('0 4px 24px');
   });
   it('on Chromium, warps the backdrop with turbulence noise across the whole glass', () => {
-    expect(theme).toMatch(/\[data-lens="svg"\] :is\(\.tabbar[^)]*\.round\) \{[^}]*backdrop-filter: brightness\(1\.04\) blur\(5px\) url\(#lg-wave\)/);
+    expect(theme).toMatch(/\[data-lens="svg"\] :is\(\.tabbar[^{]*\.toast\) \{[^}]*backdrop-filter: brightness\(1\.04\) blur\(5px\) url\(#lg-wave\)/);
     expect(src).toContain('feTurbulence');
     expect(src).toContain("baseFrequency: '0.01'");
   });
