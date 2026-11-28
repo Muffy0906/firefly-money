@@ -20,7 +20,7 @@ describe('fixed title row, scrolling content', () => {
     const pg = css.match(/#view > \.pg \{[^}]*\}/)![0];
     expect(pg).toMatch(/overflow-y: auto/);
     expect(pg).toMatch(/mask-image: linear-gradient\(to bottom, transparent, #000 16px\)/);
-    expect(css).toMatch(/--head-gap: 28px/);        // content starts below the fade
+    expect(css).toMatch(/--head-gap: 16px/);        // content starts below the fade
     expect(css).not.toMatch(/backdrop-filter[^;]*;[^}]*#view > \.head/);
   });
   it('the sticky day headings stop just under the fade', () => {

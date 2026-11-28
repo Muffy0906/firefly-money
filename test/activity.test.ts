@@ -63,9 +63,9 @@ describe('Reports layout', () => {
     expect(reports).toContain('class="report-gap"');
   });
   it('every range has the same fixed-height grid, so changing the range in settings shifts nothing', () => {
-    expect(css).toMatch(/\.ag-scroll \{ height: 143px; margin: -6px;/);
+    expect(css).toMatch(/\.ag-scroll \{ height: 150px; margin: -6px;/);
     expect(css).toMatch(/\.ag-scroll \{[^}]*padding: 6px/);
-    expect(css).toMatch(/\.ag-none \{ height: 131px/);
+    expect(css).toMatch(/\.ag-none \{ height: 138px/);
     expect(css).toMatch(/\.panel\.ag-card \{ padding: 10px 12px/);
     for (const r of ['1m', 'year', 'all']) expect(String(activityPanel(buys, '2019-01-01', '2026-11-07', { range: r }))).toContain('--agm:14px');
   });
