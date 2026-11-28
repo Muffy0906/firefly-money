@@ -42,17 +42,37 @@ addEventListener('resize', movePill);
 /* Scrolling down the page folds the tab bar away into the + button at the bottom right (#fab) and slides the title bar
    and search button up out of sight (html.scroll-down, phones only in CSS); scrolling back up, or reaching the top, brings them back */
 (function foldOnScroll() {
-  let last = scrollY, folded = false;
+  let last = scrollY, folded = false, lockUntil = 0;
+  const phone = matchMedia('(max-width: 600px)');
+  /* The page title shrinks to a slim bar on a phone (html.head-slim, money.css). Its height is the one thing that changes, once per fold
+     and not per scroll frame: it is measured here and eased, so the page below glides up instead of jumping. */
+  const slim = (on: boolean) => {
+    const h = document.querySelector<HTMLElement>('#view > .head'), root = document.documentElement;
+    if (!h || !phone.matches) { root.classList.remove('head-slim'); if (h) h.style.height = ''; return; }
+    const from = h.offsetHeight;
+    h.style.height = ''; root.classList.toggle('head-slim', on);
+    const to = h.offsetHeight;
+    if (from === to || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    h.style.overflow = 'hidden'; h.style.height = from + 'px'; void h.offsetHeight; h.style.height = to + 'px';
+    h.addEventListener('transitionend', () => { h.style.height = ''; h.style.overflow = ''; }, { once: true });
+  };
   const fold = (on: boolean) => {
     if (on === folded) return;
     folded = on; document.documentElement.classList.toggle('scroll-down', on);
     const tb = el('tabbar'), mini = on && !tb.hidden && !!tb.offsetWidth;     // not on desktop, or with the native app's own tabs
     tb.classList.toggle('mini', mini); el('fab').classList.toggle('on', mini);
+    slim(on);
+    lockUntil = performance.now() + 400;     // the page's height changes under the finger: its scroll events for the next moment are not the user's
   };
   addEventListener('scroll', () => {
     const y = scrollY, dy = y - last;
+    if (performance.now() < lockUntil) { last = y; return; }
     if (y < 60) fold(false);
-    else if (dy > 6) fold(true);
+    else if (dy > 6) {
+      // only fold when the page stays scrollable afterwards, or it would unfold at once and flicker
+      const pg = document.querySelector<HTMLElement>('#view > .pg'), room = pg ? pg.scrollHeight - pg.clientHeight : 1e9;
+      if (!phone.matches || room > y + 160) fold(true); else return;
+    }
     else if (dy < -6) fold(false);
     else return;     // small jitters (rubber banding, momentum ends) keep the last position as the reference
     last = y;

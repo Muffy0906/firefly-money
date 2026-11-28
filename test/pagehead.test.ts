@@ -40,4 +40,15 @@ describe('one page head', () => {
     expect(css).toContain('.drawer .menu-h { margin: 16px 0 0; }');
     expect(css).toMatch(/\.drawer \.toggles\.sheet \{ margin: 24px 0 0; \}/);
   });
+  it('on a phone the title shrinks to a slim bar while scrolling down and returns on the way up', () => {
+    const phone = readFileSync('app/src/features/phone.ts', 'utf8');
+    expect(phone).toContain("matchMedia('(max-width: 600px)')");
+    expect(phone).toContain("root.classList.toggle('head-slim', on)");
+    expect(phone).toMatch(/passive: true/);
+    expect(phone).toContain('room > y + 160');      // never folds a page that would then be too short to scroll (flicker)
+    expect(css).toMatch(/html\.head-slim #view > \.head \{ height: 40px;/);
+    expect(css).toMatch(/html\.head-slim #view > \.head \.head-text h1 \{ transform: scale\(\.72\); \}/);
+    expect(css).toMatch(/html\.head-slim #view > \.head :is\(\.sub-slot, \.actions\) \{ opacity: 0; visibility: hidden;/);
+    expect(css).toMatch(/@media \(max-width: 600px\) and \(prefers-reduced-motion: reduce\) \{ #view > \.head, #view > \.head \* \{ transition: none !important; \} \}/);
+  });
 });

@@ -2888,3 +2888,16 @@ html[data-theme="dark"] { --e1: var(--rim), var(--lift); --e2: 0 1px 0 rgba(0,0,
 .drawer .menu-h { margin: 16px 0 0; }
 .drawer .toggles.sheet { margin: 24px 0 0; }
 .drawer header :is(h2, .dname, [tabindex="-1"]):focus, .drawer header:focus { outline: none; }     /* the title takes focus so a screen reader lands in the sheet; it is not a control */
+
+/* Phones: scrolling down shrinks the page title to a slim bar (html.head-slim, phone.ts); scrolling up or the top brings it back.
+   Only the title row's height changes, once per fold; the title itself moves by transform and the rest fades. */
+@media (max-width: 600px) {
+  #view > .head { transition: height .28s var(--ease-out); }
+  #view > .head .head-text h1 { transform-origin: left center; transition: transform .28s var(--ease-out); }
+  #view > .head :is(.sub-slot, .actions) { transition: opacity .18s ease, visibility 0s; }
+  html.head-slim #view > .head { height: 40px; align-items: center; overflow: hidden; }
+  html.head-slim #view > .head .head-text h1 { transform: scale(.72); }
+  html.head-slim #view > .head :is(.sub-slot, .actions) { opacity: 0; visibility: hidden; transition: opacity .15s ease, visibility 0s .15s; }
+  html.head-slim #view > .head .head-text { height: 34px; }
+}
+@media (max-width: 600px) and (prefers-reduced-motion: reduce) { #view > .head, #view > .head * { transition: none !important; } }
