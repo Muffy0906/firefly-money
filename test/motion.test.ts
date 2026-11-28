@@ -23,3 +23,12 @@ describe('motion tokens', () => {
     expect(css).toMatch(/prefers-reduced-motion: reduce\) \{ \*, \*::before, \*::after \{ animation: none !important; transition: none !important; \} \}/);
   });
 });
+
+describe('heavy themes on a phone', () => {
+  it('caps the glass blur, drops birds and shooting stars, and layers the sky', () => {
+    expect(css).toMatch(/max-width: 600px\) \{\s+html:is\(\[data-theme="glass"\][^{]*\{ --glass-blur: 12px; \}/);
+    expect(css).toMatch(/\.sk-bird, \.sk-shoot\) \{ display: none; \}/);
+    expect(css).toMatch(/#sky \{ contain: paint; \}/);
+    expect(css).toMatch(/will-change: transform/);
+  });
+});

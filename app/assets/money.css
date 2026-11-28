@@ -2937,3 +2937,12 @@ html[data-theme="dark"] { --e1: var(--rim), var(--lift); --e2: 0 1px 0 rgba(0,0,
 .panel > .list > .row:last-child { padding-bottom: 0; }     /* the card's own padding is the bottom edge, not 12px more */
 @container (max-width: 240px) { .w[data-w="bills"] .panel-head { margin-bottom: 16px; } }     /* the lead is hidden in a narrow tile: keep the gap it left */
 html:has(#story) .search-btn { display: none; }     /* the full-screen story has its own pause and close at the top right; the search button sat over its progress bar */
+
+/* ---------- Heavy themes on a phone: lighter blur, a calmer sky, sky layers kept on their own compositor layers ---------- */
+html[data-theme="interstellar"] #sky { contain: paint; }
+html[data-theme="interstellar"] #sky > :is(.sk-cloud, .sk-sun, .sk-moon, .sk-stars) { will-change: transform; }
+@media (max-width: 600px) {
+  html:is([data-theme="glass"], [data-theme="frosted"], [data-theme="spatial"], [data-theme="matte"]) { --glass-blur: 12px; }
+  html[data-theme="interstellar"] :is(.sk-bird, .sk-shoot) { display: none; }
+  html[data-theme="interstellar"] .sk-stars { animation: none; }
+}
