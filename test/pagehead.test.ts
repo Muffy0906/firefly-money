@@ -29,4 +29,15 @@ describe('one page head', () => {
     }
     expect(bare).toEqual([]);
   });
+  it('on a phone the rate note drops its lead so the subtitle beside it is not cut short', () => {
+    expect(css).toMatch(/@media \(max-width: 600px\) \{ \.head \.sub-slot \.fx-lead \{ display: none; \} \}/);
+    expect(readFileSync('app/src/features/fxnote.ts', 'utf8')).toContain('class="fx-lead"');
+  });
+  it('the More sheet keeps all its buttons in one wrapping row', () => {
+    const phone = readFileSync('app/src/features/phone.ts', 'utf8');
+    expect(phone.match(/class="toggles sheet"/g)).toHaveLength(1);
+    expect(phone).not.toContain('style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap"');
+    expect(css).toContain('.drawer .menu-h { margin: 16px 0 0; }');
+    expect(css).toMatch(/\.drawer \.toggles\.sheet \{ margin: 24px 0 0; \}/);
+  });
 });

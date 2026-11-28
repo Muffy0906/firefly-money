@@ -2879,3 +2879,12 @@ html[data-theme="dark"] { --e1: var(--rim), var(--lift); --e2: 0 1px 0 rgba(0,0,
 .head .sub-slot .fx-note { margin: 0 0 0 -8px; min-height: 0; flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; display: block; }
 .head .sub-slot .sub + .fx-note { margin-left: 0; }
 @media (min-width: 901px) { #view > .head > .actions { align-self: flex-start; min-height: 34px; } }
+
+/* Phones: the rate note drops "Totals in USD ·" so the subtitle beside it keeps its room */
+@media (max-width: 600px) { .head .sub-slot .fx-lead { display: none; } }
+
+/* More sheet: one rhythm. 16px under the search box, 24px above each group heading, and every button in one wrapping row at 12px */
+.sheet-search { margin-bottom: 16px; }
+.drawer .menu-h { margin: 16px 0 0; }
+.drawer .toggles.sheet { margin: 24px 0 0; }
+.drawer header :is(h2, .dname, [tabindex="-1"]):focus, .drawer header:focus { outline: none; }     /* the title takes focus so a screen reader lands in the sheet; it is not a control */
