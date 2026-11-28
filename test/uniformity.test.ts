@@ -47,3 +47,9 @@ describe('small controls', () => {
     expect(css).toContain('.w[data-w="bills"] .panel-head { margin-bottom: 16px; }');
   });
 });
+
+describe('full-screen story', () => {
+  it('hides the search button so it cannot sit over the progress bar', () => {
+    expect(css).toContain('html:has(#story) .search-btn { display: none; }');
+  });
+});

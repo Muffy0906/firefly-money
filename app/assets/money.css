@@ -2933,3 +2933,4 @@ html[data-theme="dark"] { --e1: var(--rim), var(--lift); --e2: 0 1px 0 rgba(0,0,
 @container (max-width: 260px) { .bill-end { flex-wrap: wrap; justify-content: flex-start; row-gap: 8px; } }
 .panel > .list > .row:last-child { padding-bottom: 0; }     /* the card's own padding is the bottom edge, not 12px more */
 @container (max-width: 240px) { .w[data-w="bills"] .panel-head { margin-bottom: 16px; } }     /* the lead is hidden in a narrow tile: keep the gap it left */
+html:has(#story) .search-btn { display: none; }     /* the full-screen story has its own pause and close at the top right; the search button sat over its progress bar */
