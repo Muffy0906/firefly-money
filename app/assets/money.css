@@ -2235,7 +2235,7 @@
     ::-webkit-scrollbar-thumb { background: var(--sb-thumb); background-clip: padding-box; border: 2px solid transparent; border-radius: var(--r-pill); min-height: 40px; }
     ::-webkit-scrollbar-thumb:hover { background-color: var(--sb-thumb-hover); }
     ::-webkit-scrollbar-button { display: none; }
-    /* Chrome and Safari: the sidebar always keeps its slot (6px padding + 10px slot = the 16px on the left), so a long nav never
+    /* Chrome and Safari: the sidebar always keeps its slot (8px padding + 10px slot), so a long nav never
        pushes the rows sideways; its pill is softer and stays clear of the rounded corners */
     @supports not (-moz-appearance: none) {
       @media (min-width: 901px) {
@@ -2648,6 +2648,31 @@ html[data-theme="glass"] .ag-c.l3, html[data-theme="glass"] .ag-c.l4 { box-shado
   .side .nav-h { height: var(--hh); padding-top: calc(var(--hh) * .42); padding-bottom: calc(var(--hh) * .13); box-sizing: border-box; }
   html.side-mini .side .nav-h { height: var(--hm); padding-top: 0; padding-bottom: 0; }
   .side .foot a, .side .foot button { padding-block: 0; min-height: max(22px, calc(var(--row) - 4px)); line-height: 1.2; }
+}
+/* ---------- Expanded sidebar geometry: one system ----------
+   Horizontal: the shapes (nav pills, search box, Firefly pill) all span the same content edges; icons, the title, the Firefly dot, the
+   search shortcut and the collapse icon sit 12px inside them, so every icon shares one left line and the right-hand ones one right line.
+   Vertical: row heights and gaps are whole 4px steps at every window height (rounded, never fractional), and the brand row is a fixed
+   24px centred on the title band's middle. */
+@media (min-width: 901px) {
+  .side { --sg: 12px; gap: 0; }
+  @supports (width: round(down, 1px, 1px)) {
+    .side { --row: round(down, clamp(24px, calc((100vh - 375px) / 22), 36px), 4px); --hh: round(down, clamp(12px, 2.6vh, 30px), 4px); --hm: round(down, clamp(8px, 1.6vh, 21px), 4px); --sg: round(down, clamp(4px, 1.6vh, 16px), 4px); padding-bottom: round(down, clamp(8px, 2.2vh, 24px), 4px); }
+    .side .foot .nav a { margin-bottom: round(down, clamp(0px, .6vh, 8px), 4px); }
+  }
+  .side .foot a, .side .foot button { min-height: max(24px, calc(var(--row) - 4px)); }
+  html .side { padding-top: calc(var(--band) / 2 - 29px); }      /* brand centre = title band centre: 12px (half the 24px brand row) + 17px (margin + border) */
+  .side .brand { height: 24px; padding-bottom: 0; margin-bottom: var(--sg); box-sizing: border-box; }
+  .side .brand > span { line-height: 24px; }
+  .side > .ff-pill { margin-top: calc(4px - var(--sg)); margin-bottom: var(--sg); }
+  html:not(.side-mini) .side > .ff-pill { margin-left: 0; padding-left: calc(12px - 1px); }
+  .side .side-search { margin-bottom: var(--sg); }
+  html:not(.side-mini) .side-search { padding-inline: calc(12px - 1px); }
+  html:not(.side-mini) .side-search svg { width: 17px; height: 17px; }
+  html:not(.side-mini) .side-tg { width: 30px; }                    /* its icon always ends on the search shortcut's right line, whatever the row height */
+  html:not(.side-mini) .side .nav { grid-template-columns: minmax(0, 1fr); }     /* every link is exactly as wide as the search box, however long a label */
+  html:not(.side-mini) .side .nav a { padding-right: 8px; }          /* (a 12px right inset would clip "Categories & tags") */
+  .side .nav a > span { text-overflow: ellipsis; }
 }
 @media (min-width: 901px) and (pointer: coarse) {
   .side { --row: 40px; --hh: 30px; --hm: 16px; }
