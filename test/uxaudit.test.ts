@@ -23,9 +23,9 @@ describe('UI UX Pro Max audit fixes', () => {
 describe('Motion fluidity', () => {
   it('uses shared decelerating easing for page, card, drawer and press motion', () => {
     expect(css).toContain('--ease-out: cubic-bezier(.2, .8, .2, 1)');
-    expect(css).toContain('#view.enter > * { animation: fadeUp .26s var(--ease-out) both; }');
-    expect(css).toContain('transform .3s var(--ease-glide)');
-    expect(css).toMatch(/\.btn, \.round[^}]*transform \.18s var\(--ease-out\)/);
+    expect(css).toContain('#view.enter > * { animation: fadeUp var(--dur-base) var(--ease-out) both; }');
+    expect(css).toContain('transform var(--dur-slow) var(--ease-glide)');
+    expect(css).toMatch(/\.btn, \.round[^}]*transform var\(--dur-fast\) var\(--ease-out\)/);
     expect(css).not.toMatch(/\.drawer \{[^}]*transition: transform \.2\d?s ease;/);
   });
   it('keeps the global reduced-motion kill switch', () => {
@@ -40,7 +40,7 @@ describe('Motion polish', () => {
     expect(css).not.toMatch(/\.sk \{[^}]*animation: shimmer /);
   });
   it('gives dialogs a spring only when linear() easing and motion are allowed', () => {
-    expect(css).toMatch(/@supports \(animation-timing-function: linear\(0, 1\)\) \{ @media \(prefers-reduced-motion: no-preference\) \{ dialog:not\(\.whatsnew\)\[open\] \{ animation: wn-in \.26s var\(--ease-spring\)/);
+    expect(css).toMatch(/@supports \(animation-timing-function: linear\(0, 1\)\) \{ @media \(prefers-reduced-motion: no-preference\) \{ dialog:not\(\.whatsnew\)\[open\] \{ animation: wn-in var\(--dur-base\) var\(--ease-spring\)/);
   });
   it('shares one hover duration token and gives donut segments press feedback', () => {
     expect(css).toContain('--t-hover: .14s');
@@ -100,6 +100,6 @@ describe('calm motion for a money app', () => {
   it('keeps the sheet, dialog, tab bar and toast motion fast (<= 300ms)', () => {
     expect(css).not.toMatch(/\.drawer \{ transition-duration: \.5s/);
     expect(css).not.toMatch(/transform \.42s cubic-bezier\(\.3, 1/);
-    expect(css).toMatch(/dialog\.whatsnew\[open\] \{ display: flex; animation: wn-in \.26s/);
+    expect(css).toMatch(/dialog\.whatsnew\[open\] \{ display: flex; animation: wn-in var\(--dur-base\)/);
   });
 });
