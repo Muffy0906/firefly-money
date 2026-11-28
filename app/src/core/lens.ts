@@ -61,6 +61,15 @@ function ensureHost() {
   document.body.append(s);
   return host = s;
 }
+// GlassiFy-style "liquid" wobble: turbulence noise pushes the blurred backdrop around across the whole glass
+function wave(s: SVGElement) {
+  if (s.querySelector('#lg-wave')) return;
+  const mk = (name: string, attrs: Record<string, string>) => { const e = document.createElementNS(NS, name); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+  const f = mk('filter', { id: 'lg-wave', x: '0', y: '0', width: '100%', height: '100%', 'color-interpolation-filters': 'sRGB' });
+  f.append(mk('feTurbulence', { type: 'turbulence', baseFrequency: '0.01', numOctaves: '3', result: 'noise' }),
+    mk('feDisplacementMap', { in: 'SourceGraphic', in2: 'noise', scale: '40', xChannelSelector: 'R', yChannelSelector: 'G' }));
+  s.append(f);
+}
 function lens(el: HTMLElement) {
   const b = el.getBoundingClientRect(), w = Math.round(b.width), h = Math.round(b.height);
   if (w < 24 || h < 24 || w * h > 1.4e6) return;
@@ -90,7 +99,7 @@ export function syncLens() {
   const d = document.documentElement, on = d.getAttribute('data-theme') === 'liquid' && isChromium() && !!document.body;
   if (!on) { d.removeAttribute('data-lens'); return; }
   if (!ro && typeof ResizeObserver !== 'undefined') ro = new ResizeObserver(later);
-  d.setAttribute('data-lens', 'svg'); later();
+  wave(ensureHost()); d.setAttribute('data-lens', 'svg'); later();
 }
 if (typeof MutationObserver !== 'undefined') {
   new MutationObserver(syncLens).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });

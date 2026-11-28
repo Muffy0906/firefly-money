@@ -107,6 +107,19 @@ describe('True liquid glass: folding tab bar', () => {
   });
 });
 
+describe('True liquid glass: GlassiFy wobble and bevel', () => {
+  it('bevels every glass edge with a 3px inner light and dark, like GlassiFy', () => {
+    expect(light['--lg-rim']).toContain('inset 3px 3px 3px -1px');
+    expect(light['--lg-rim']).toContain('inset -3px -3px 3px -1px');
+    expect(light['--lg-drop']).toContain('-8px -10px 46px');
+  });
+  it('on Chromium, warps the backdrop with turbulence noise across the whole glass', () => {
+    expect(theme).toMatch(/\[data-lens="svg"\] :is\(\.tabbar[^)]*\.round\) \{[^}]*backdrop-filter: brightness\(1\.1\) blur\(5px\) url\(#lg-wave\)/);
+    expect(src).toContain('feTurbulence');
+    expect(src).toContain("baseFrequency: '0.01'");
+  });
+});
+
 describe('True liquid glass: lens profile', () => {
   it('pulls hardest at the outer edge and eases to nothing where the bezel goes flat', async () => {
     const { profile } = await import('../app/src/core/lens');

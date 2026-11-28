@@ -2509,8 +2509,8 @@ html[data-theme="liquid"] { --bg: #f2f2f7; --panel: #ffffff; --line: rgba(60, 60
   --lg-fill: color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent); --lg-sheet: rgba(255, 255, 255, .74); --lg-solid: #f7f7fb;
   --lg-filter: blur(var(--glass-blur)) saturate(150%); --lg-ctl-filter: blur(12px) saturate(150%); --lg-sheet-filter: blur(24px) saturate(150%); --lg-edge: blur(2px) saturate(230%) brightness(1.12); --lg-lens: blur(1px) saturate(200%) brightness(1.1);
   --lg-sheen: rgba(255, 255, 255, .6); --lg-band: rgba(255, 255, 255, .16); --lg-pillfill: rgba(0, 0, 0, .07); --lg-pillline: rgba(0, 0, 0, .05);
-  --lg-rim: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 0 0 1px rgba(255, 255, 255, .55), inset 0 -1px 1px rgba(0, 0, 0, .1), inset 0 0 8px rgba(0, 0, 0, .06), 0 0 0 1px rgba(0, 0, 0, .07);
-  --lg-drop: 0 4px 24px rgba(0, 0, 0, .1), 0 1px 2px rgba(0, 0, 0, .06);
+  --lg-rim: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 0 0 1px rgba(255, 255, 255, .55), inset 0 -1px 1px rgba(0, 0, 0, .1), inset 0 0 8px rgba(0, 0, 0, .06), inset 3px 3px 3px -1px rgba(255, 255, 255, .8), inset -3px -3px 3px -1px rgba(68, 68, 68, .3), 0 0 0 1px rgba(209, 209, 209, .44);
+  --lg-drop: -8px -10px 46px rgba(209, 209, 209, .32), 0 4px 24px rgba(0, 0, 0, .1), 0 1px 2px rgba(0, 0, 0, .06);
   --ease-spring: cubic-bezier(.34, 1.45, .64, 1); background: var(--bg); }
 @media (prefers-color-scheme: dark) {
   html[data-theme="liquid"] { --bg: #000000; --panel: #1c1c1e; --line: rgba(255, 255, 255, .14); --text: #f5f5f7; --muted: #b4b4bb; --faint: #2c2c2e;
@@ -2519,8 +2519,8 @@ html[data-theme="liquid"] { --bg: #f2f2f7; --panel: #ffffff; --line: rgba(60, 60
     --glow1: #173a96; --glow2: #46268f; --glow3: #084448; --glass-base: #1a1a1e; --glass-tint: 52%;
     --lg-sheet: rgba(44, 44, 48, .74); --lg-solid: #232326; --lg-edge: blur(2px) saturate(230%) brightness(1.1); --lg-lens: blur(1px) saturate(200%) brightness(1.1);
     --lg-sheen: rgba(255, 255, 255, .1); --lg-band: rgba(255, 255, 255, .03); --lg-pillfill: rgba(0, 0, 0, .34); --lg-pillline: rgba(255, 255, 255, .06);
-    --lg-rim: inset 0 1px 0 rgba(255, 255, 255, .3), inset 0 0 0 1px rgba(255, 255, 255, .12), inset 0 -1px 1px rgba(0, 0, 0, .3), inset 0 0 8px rgba(0, 0, 0, .28), 0 0 0 1px rgba(0, 0, 0, .55);
-    --lg-drop: 0 4px 24px rgba(0, 0, 0, .5), 0 1px 2px rgba(0, 0, 0, .5); }
+    --lg-rim: inset 0 1px 0 rgba(255, 255, 255, .3), inset 0 0 0 1px rgba(255, 255, 255, .12), inset 0 -1px 1px rgba(0, 0, 0, .3), inset 0 0 8px rgba(0, 0, 0, .28), inset 3px 3px 3px -1px rgba(255, 255, 255, .31), inset -3px -3px 3px -1px rgba(68, 68, 68, .41), 0 0 0 1px rgba(209, 209, 209, .2);
+    --lg-drop: -8px -10px 46px rgba(209, 209, 209, .1), 0 4px 24px rgba(0, 0, 0, .5), 0 1px 2px rgba(0, 0, 0, .5); }
 }
 html[data-theme="liquid"] body { background: transparent; }
 /* a faint wash from the three light colours (Customize), so the glass has something to pick up */
@@ -2558,6 +2558,7 @@ html[data-theme="liquid"] :is(.tabbar, .side, .drawer, dialog, .calpop, .pickpop
   background: linear-gradient(135deg, var(--lg-sheen), var(--lg-band) 40%, var(--lg-band) 60%, color-mix(in srgb, var(--lg-sheen) 50%, transparent));
   -webkit-backdrop-filter: var(--lg-edge); backdrop-filter: var(--lg-edge);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
+html[data-theme="liquid"][data-lens="svg"] :is(.tabbar, .side, .drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar, .ff-pop, .fab, .seg, .round) { -webkit-backdrop-filter: brightness(1.1) blur(5px) url(#lg-wave); backdrop-filter: brightness(1.1) blur(5px) url(#lg-wave); }
 html[data-theme="liquid"][data-lens="svg"] .lg-lensed::before { -webkit-backdrop-filter: var(--lg-url) var(--lg-lens); backdrop-filter: var(--lg-url) var(--lg-lens); }
 html[data-theme="liquid"] :is(.tabbar a, .tabbar button.more) { color: var(--muted); }
 html[data-theme="liquid"] :is(.tab-pill, .nav a.on) { background: var(--lg-pillfill); box-shadow: inset 0 0 0 1px var(--lg-pillline), inset 0 1px 2px rgba(0, 0, 0, .15); }
