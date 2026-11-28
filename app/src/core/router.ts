@@ -129,7 +129,7 @@ export async function route(opts: { nav?: boolean, quiet?: boolean, instant?: bo
   S.pageDepth = depth;
   const instant = opts.instant || (traversal && !!window.MONEY_NATIVE);
   if (instant) S.vtDir = '';
-  drawNav(r.name === 'account' || r.name === 'reconcile' ? 'accounts' : r.name === 'inbox' || r.name === 'places' ? 'review' : r.name);
+  drawNav(r.name);
   clearTimeout(S.skelT);
   // A tab you've already opened: put it back instantly, no network, same scroll position.
   const saved = opts.nav && cacheable && key !== S.pageKey && PAGES.get(key);

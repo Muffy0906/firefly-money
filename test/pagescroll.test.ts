@@ -40,3 +40,17 @@ describe('iPhone Home Screen edges', () => {
     expect(css).toMatch(/html\.ios-web body::after[^{]*\{ bottom: calc\(-1 \* env\(safe-area-inset-bottom, 0px\)\); \}/);
   });
 });
+
+describe('day headings in a flush card', () => {
+  const css2 = readFileSync('app/assets/money.css', 'utf8');
+  it('the band spans the card; the card padding sits inside it, not on the cell', () => {
+    expect(css2).toMatch(/\.panel\.flush \.tbl\.feed tr\.dayhead td \{ padding-left: 0; padding-right: 0; \}/);
+    expect(css2).toMatch(/\.panel\.flush \.tbl\.feed tr\.dayhead div \{ padding-left: var\(--card-pad\); padding-right: var\(--card-pad\); \}/);
+  });
+});
+
+describe('day heading text on narrow phones', () => {
+  it('uses the same 8px side padding as the rows', () => {
+    expect(readFileSync('app/assets/money.css', 'utf8')).toMatch(/max-width: 400px\) \{[\s\S]*?\.tbl\.feed tr\.dayhead div \{ padding-left: 8px; padding-right: 8px; \}/);
+  });
+});
