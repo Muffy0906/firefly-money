@@ -35,6 +35,6 @@ describe('pill sits behind the active choice', () => {
     expect(pill).toMatch(/data-theme/);
     expect(pill).toMatch(/ResizeObserver/);
     expect(css).not.toMatch(/\.tabs > \.opill \{[^}]*height/);
-    expect(css).toMatch(/\.opill \{[^}]*border-radius: 999px/);
+    expect(css).toMatch(/\.opill \{[^}]*border-radius: var\(--r-pill\)/);
   });
 });
