@@ -2509,7 +2509,7 @@ html[data-theme="liquid"] { --bg: #f2f2f7; --panel: #ffffff; --line: rgba(60, 60
   --lg-fill: color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent); --lg-sheet: rgba(255, 255, 255, .74); --lg-solid: #f7f7fb;
   --lg-filter: blur(var(--glass-blur)) saturate(150%); --lg-ctl-filter: blur(12px) saturate(150%); --lg-sheet-filter: blur(24px) saturate(150%); --lg-edge: blur(2px) saturate(230%) brightness(1.12); --lg-lens: blur(1px) saturate(200%) brightness(1.1);
   --lg-sheen: rgba(255, 255, 255, .3); --lg-band: rgba(255, 255, 255, .16); --lg-pillfill: rgba(0, 0, 0, .07); --lg-pillline: rgba(0, 0, 0, .05);
-  --lg-rim: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 0 0 1px rgba(255, 255, 255, .22), inset 0 -1px 1px rgba(0, 0, 0, .1), inset 0 0 8px rgba(0, 0, 0, .06), inset 3px 3px 3px -1px rgba(255, 255, 255, .45), inset -3px -3px 3px -1px rgba(68, 68, 68, .3), 0 0 0 1px rgba(60, 60, 67, .12);
+  --lg-rim: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 0 0 1px rgba(255, 255, 255, .22), inset 0 -1px 1px rgba(0, 0, 0, .1), inset 0 0 8px rgba(0, 0, 0, .06), inset 1px 1px 1px 0 rgba(255, 255, 255, .45), inset -1px -1px 1px 0 rgba(68, 68, 68, .3), 0 0 0 1px rgba(60, 60, 67, .12);
   --lg-drop: 0 4px 24px rgba(0, 0, 0, .1), 0 1px 2px rgba(0, 0, 0, .06);
   --ease-spring: cubic-bezier(.34, 1.45, .64, 1); background: var(--bg); }
 @media (prefers-color-scheme: dark) {
@@ -2519,7 +2519,7 @@ html[data-theme="liquid"] { --bg: #f2f2f7; --panel: #ffffff; --line: rgba(60, 60
     --glow1: #173a96; --glow2: #46268f; --glow3: #084448; --glass-base: #1a1a1e; --glass-tint: 30%;
     --lg-sheet: rgba(44, 44, 48, .74); --lg-solid: #232326; --lg-edge: blur(2px) saturate(230%) brightness(1); --lg-lens: blur(1px) saturate(200%) brightness(1);
     --lg-sheen: rgba(255, 255, 255, .06); --lg-band: rgba(255, 255, 255, .03); --lg-pillfill: rgba(0, 0, 0, .34); --lg-pillline: rgba(255, 255, 255, .06);
-    --lg-rim: inset 0 1px 0 rgba(255, 255, 255, .3), inset 0 0 0 1px rgba(255, 255, 255, .12), inset 0 -1px 1px rgba(0, 0, 0, .3), inset 0 0 8px rgba(0, 0, 0, .28), inset 3px 3px 3px -1px rgba(255, 255, 255, .31), inset -3px -3px 3px -1px rgba(68, 68, 68, .41), 0 0 0 1px rgba(255, 255, 255, .06);
+    --lg-rim: inset 0 1px 0 rgba(255, 255, 255, .3), inset 0 0 0 1px rgba(255, 255, 255, .12), inset 0 -1px 1px rgba(0, 0, 0, .3), inset 0 0 8px rgba(0, 0, 0, .28), inset 1px 1px 1px 0 rgba(255, 255, 255, .31), inset -1px -1px 1px 0 rgba(68, 68, 68, .41), 0 0 0 1px rgba(255, 255, 255, .06);
     --lg-drop: -8px -10px 46px rgba(209, 209, 209, .1), 0 4px 24px rgba(0, 0, 0, .5), 0 1px 2px rgba(0, 0, 0, .5); }
 }
 html[data-theme="liquid"] body { background: transparent; }
@@ -2555,7 +2555,7 @@ html[data-theme="liquid"] :is(.drawer, dialog, .calpop, .pickpop, .palette-box, 
 html[data-theme="liquid"] .side { border-radius: var(--r-xl); }
 html[data-theme="liquid"] .drawer footer { background: transparent; border-top-color: var(--line); }
 /* the band just inside the rim: brighter and more saturated, which is how the thick glass edge reads on WebKit */
-html[data-theme="liquid"] :is(.tabbar, .side, .drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar, .ff-pop, .fab, .seg, .round, .btn:not(.primary), .undo, .toast, .panel, .kpi, .insight)::before { content: ''; position: absolute; inset: 0; box-sizing: border-box; padding: 4px; border-radius: inherit; pointer-events: none;
+html[data-theme="liquid"] :is(.tabbar, .side, .drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar, .ff-pop, .fab, .seg, .round, .btn:not(.primary), .undo, .toast, .panel, .kpi, .insight)::before { content: ''; position: absolute; inset: 0; box-sizing: border-box; padding: 2px; border-radius: inherit; pointer-events: none;
   background: linear-gradient(135deg, var(--lg-sheen), var(--lg-band) 40%, var(--lg-band) 60%, color-mix(in srgb, var(--lg-sheen) 50%, transparent));
   -webkit-backdrop-filter: var(--lg-edge); backdrop-filter: var(--lg-edge);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }

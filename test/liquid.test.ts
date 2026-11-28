@@ -108,9 +108,9 @@ describe('True liquid glass: folding tab bar', () => {
 });
 
 describe('True liquid glass: GlassiFy wobble and bevel', () => {
-  it('bevels every glass edge with a 3px inner light and dark, like GlassiFy', () => {
-    expect(light['--lg-rim']).toContain('inset 3px 3px 3px -1px');
-    expect(light['--lg-rim']).toContain('inset -3px -3px 3px -1px');
+  it('bevels every glass edge with a 1px inner light and dark, like GlassiFy', () => {
+    expect(light['--lg-rim']).toContain('inset 1px 1px 1px 0');
+    expect(light['--lg-rim']).toContain('inset -1px -1px 1px 0');
     expect(light['--lg-drop']).toContain('0 4px 24px');
   });
   it('on Chromium, warps the backdrop with turbulence noise across the whole glass', () => {
