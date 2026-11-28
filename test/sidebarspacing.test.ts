@@ -20,6 +20,15 @@ describe('Expanded sidebar geometry', () => {
     expect(css).toMatch(/--sg: round\(down, clamp\(4px, 1\.6vh, 16px\), 4px\)/);
     expect(css).toContain('.side .brand { height: 24px; padding-bottom: 0; margin-bottom: var(--sg); box-sizing: border-box; }');
     expect(css).toContain('html .side { padding-top: calc(var(--band) / 2 - 29px); }');
-    expect(css).toContain('.side > .ff-pill { margin-top: calc(4px - var(--sg)); margin-bottom: var(--sg); }');
+    expect(css).toContain('.side > .ff-pill { margin-top: 0; margin-bottom: var(--sg); }');
+  });
+  it('shares one icon column, one text column and one gap: the Firefly dot, the footer toggle and the section labels line up too', () => {
+    // Measured (Light/Dark/Frosted/Glass, 720..1200px tall, 1280 and 1920 wide): shapes x 17..199, icon centres 37.5, text 58, brand/labels/Sign out 29,
+    // brand, Firefly pill, search and first row separated by --sg (8/12/16px), the label's text --sg below the row above it and 4px above its own rows.
+    expect(css).toContain('html:not(.side-mini) .side > .ff-pill > i { margin-inline: 5px; }');
+    expect(css).toContain('html:not(.side-mini) .side > .ff-pill { gap: 12px; padding-right: 12px; }');
+    expect(css).toContain('html:not(.side-mini) .side .foot .toggles button svg { width: 17px; height: 17px; }');
+    expect(css).toContain('--hh: calc(var(--sg) + 16px - 2 * var(--ng))');
+    expect(css).toContain('padding: calc(var(--sg) - var(--ng)) 12px calc(4px - var(--ng)); line-height: 12px;');
   });
 });

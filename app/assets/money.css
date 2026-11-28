@@ -2668,7 +2668,7 @@ html[data-theme="glass"] .ag-c.l3, html[data-theme="glass"] .ag-c.l4 { box-shado
   html .side { padding-top: calc(var(--band) / 2 - 29px); }      /* brand centre = title band centre: 12px (half the 24px brand row) + 17px (margin + border) */
   .side .brand { height: 24px; padding-bottom: 0; margin-bottom: var(--sg); box-sizing: border-box; }
   .side .brand > span { line-height: 24px; }
-  .side > .ff-pill { margin-top: calc(4px - var(--sg)); margin-bottom: var(--sg); }
+  .side > .ff-pill { margin-top: 0; margin-bottom: var(--sg); }
   html:not(.side-mini) .side > .ff-pill { margin-left: 0; padding-left: calc(12px - 1px); }
   .side .side-search { margin-bottom: var(--sg); }
   html:not(.side-mini) .side-search { padding-inline: calc(12px - 1px); }
@@ -2677,6 +2677,12 @@ html[data-theme="glass"] .ag-c.l3, html[data-theme="glass"] .ag-c.l4 { box-shado
   html:not(.side-mini) .side .nav { grid-template-columns: minmax(0, 1fr); }     /* every link is exactly as wide as the search box, however long a label */
   html:not(.side-mini) .side .nav a { padding-right: 8px; }          /* (a 12px right inset would clip "Categories & tags") */
   .side .nav a > span { text-overflow: ellipsis; }
+  /* One icon column (17px wide, starting 12px inside the shapes), one text column (12px after it), one gap (--sg) between every stacked block */
+  html:not(.side-mini) .side > .ff-pill { gap: 12px; padding-right: 12px; }
+  html:not(.side-mini) .side > .ff-pill > i { margin-inline: 5px; }          /* the 7px dot centred in the 17px icon column */
+  html:not(.side-mini) .side .foot .toggles button { gap: 12px; }
+  html:not(.side-mini) .side .foot .toggles button svg { width: 17px; height: 17px; }
+  html:not(.side-mini) .side .nav-h { --ng: clamp(0px, calc(var(--row, 40px) - 24px), 4px); --hh: calc(var(--sg) + 16px - 2 * var(--ng)); height: var(--hh); padding: calc(var(--sg) - var(--ng)) 12px calc(4px - var(--ng)); line-height: 12px; }     /* --sg between the row above and the label's text, 4px between the text and the row below (--ng: the nav's own row gap) */
 }
 @media (min-width: 901px) and (pointer: coarse) {
   .side { --row: 40px; --hh: 30px; --hm: 16px; }
