@@ -5,7 +5,7 @@
    (air 1.0 to glass 1.5) turns its slope into how far each pixel is pulled toward the inside; that is baked, per element
    size, into a displacement map (red = x, green = y, grey = none) plus a rim-light image from the surface normal against a
    fixed light. Nothing is fetched: both images are drawn on a canvas on this device. */
-const NS = 'http://www.w3.org/2000/svg', SVG_ID = 'lg-lens', SEL = '.tabbar, .side, .drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar, .ff-pop, .fab, .seg, .round, .btn:not(.primary), .undo, .toast';
+const NS = 'http://www.w3.org/2000/svg', SVG_ID = 'lg-lens', SEL = '.tabbar, .side, .drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar, .ff-pop, .fab, .seg, .round, .btn:not(.primary), .undo, .toast, .panel, .kpi, .insight';
 const N = 127, N1 = 1, N2 = 1.5, THICK = 60, BEZEL = 8, MAXD = 10, LIGHT = [Math.cos(-60 * Math.PI / 180), Math.sin(-60 * Math.PI / 180)];
 const squircle = (x: number) => Math.pow(1 - Math.pow(1 - x, 4), 1 / 4);
 // How far a ray is pulled sideways crossing the glass at each step into the bezel (0 = the outer edge, 1 = where it goes flat), 0..1 of the largest

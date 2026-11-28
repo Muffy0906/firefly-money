@@ -53,7 +53,7 @@ describe('True liquid glass: how it is built', () => {
     expect(bare).not.toMatch(/url\((?!#)/);
   });
   it('keeps cards flat and solid, and makes controls, the tab bar and sheets the glass', () => {
-    expect(theme).toMatch(/\.dash-bar\) \{\s*background: var\(--panel\);[^}]*backdrop-filter: none/);
+    expect(theme).toMatch(/\.dash-bar\) \{\s*background: linear-gradient\(135deg, var\(--lg-sheen\), transparent 45%\), color-mix\(in srgb, var\(--panel\) 68%, transparent\)/);
     for (const sel of ['.btn', '.round', '.seg']) expect(bare).toMatch(new RegExp('liquid"\\] :is\\([^)]*\\' + sel + '[^)]*\\) \\{[^}]*backdrop-filter: var\\(--lg-ctl-filter\\)'));
     expect(bare).toMatch(/:is\(\.tabbar, \.side, \.drawer, dialog[^)]*\.toast\) \{[^}]*backdrop-filter: var\(--lg-sheet-filter\)/);
     expect(light['--lg-rim']).toMatch(/inset 0 1px 0 rgba\(255, 255, 255, \.6/);        // a bright catch-light on the top edge
@@ -114,7 +114,7 @@ describe('True liquid glass: GlassiFy wobble and bevel', () => {
     expect(light['--lg-drop']).toContain('0 4px 24px');
   });
   it('on Chromium, warps the backdrop with turbulence noise across the whole glass', () => {
-    expect(theme).toMatch(/\[data-lens="svg"\] :is\(\.tabbar[^{]*\.toast\) \{[^}]*backdrop-filter: brightness\(1\.04\) blur\(5px\) url\(#lg-wave\)/);
+    expect(theme).toMatch(/\[data-lens="svg"\] :is\(\.tabbar[^{]*\.insight\) \{[^}]*backdrop-filter: brightness\(1\.04\) blur\(5px\) url\(#lg-wave\)/);
     expect(src).toContain('feTurbulence');
     expect(src).toContain("baseFrequency: '0.01'");
   });
