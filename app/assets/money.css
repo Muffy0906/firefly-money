@@ -331,6 +331,9 @@
   @media (min-width: 901px) {   /* table edges line up with the card heading above */
     .panel.flush .tbl :is(th, td):first-child { padding-left: var(--card-pad); }
     .panel.flush .tbl :is(th, td):last-child { padding-right: var(--card-pad); }
+    /* the day heading band runs edge to edge like the rows; its text takes the card padding instead of the cell */
+    .panel.flush .tbl.feed tr.dayhead td { padding-left: 0; padding-right: 0; }
+    .panel.flush .tbl.feed tr.dayhead div { padding-left: var(--card-pad); padding-right: var(--card-pad); }
   }
   .tbl tr:last-child td { border-bottom: none; }
   .tbl tr.click { cursor: pointer; }
@@ -1525,6 +1528,7 @@
   }
   @media (max-width: 400px) {
     .tbl td, .tbl th { padding-left: 8px; padding-right: 8px; }
+    .tbl.feed tr.dayhead div { padding-left: 8px; padding-right: 8px; }     /* text lines up with the rows below */
   }
 
   /* ---------- Universal search on phones: a search button up top, and a full-screen search ---------- */
