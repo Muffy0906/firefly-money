@@ -152,7 +152,7 @@ VIEWS[''] = async (r, paint) => {
       ['trends', wait('trends') ?? trendsPanel(months.map(mo => mo.short), monthCats || [], months)],
     ];
     W.forEach(w => { if (w[1] && !tileOn(w[0])) w[1] = 'off'; });     // off: not drawn, only offered under Add cards
-    return html`${head('Overview', '', html`${monthNav()}${App.dashButton()}`)}${gettingStarted()}${App.dashboard(W)}`;
+    return html`${head('Overview', 'Your money at a glance', html`${monthNav()}${App.dashButton()}`)}${gettingStarted()}${App.dashboard(W)}`;
   };
   // Saved data (or a fast server): everything is here already, draw once. Another month waits longer, so its cards
   // glide from last month's in one go rather than dropping to placeholders and popping in (last month stays up, dimmed).

@@ -22,7 +22,7 @@ function skeleton() {
   const card = (n: number) => html`<section class="panel">${bar('40%', 14)}<div style="height:18px"></div>${htmlList(Array.from({ length: n }, () => html`${bar('100%', 12)}<div style="height:16px"></div>`))}</section>`;
   const chart = html`<section class="panel">${bar('34%', 14)}<div style="height:16px"></div>${bar('100%', 180, ';border-radius:14px')}</section>`;
   const kind = SKELETONS[parseHash().name] || 'cards';
-  const head = html`<div class="head"><div>${bar('200px', 26)}<div style="height:8px"></div>${bar('280px', 12)}</div></div>`;
+  const head = html`<div class="head"><div class="head-text">${bar('200px', 26)}<div class="sub-slot">${bar('280px', 12)}</div></div><div class="actions"></div></div>`;
   if (kind === 'dash') return html`${head}${kpis(4)}<div class="cards">${chart}${card(4)}</div>`;
   if (kind === 'feed') return html`${head}${kpis(3)}<section class="panel flush sk-list">${rows(7)}</section>`;
   if (kind === 'table') return html`${head}${kpis(3)}<section class="panel flush sk-list">${rows(6)}</section>`;

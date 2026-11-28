@@ -198,8 +198,9 @@ export function monthNav() {
 }
 export function head(title: string | Html, sub: string | Html = '', actions?: string | Html) {
   const tabs = hubTabs(location.hash.replace(/^#\/?/, '').split(/[/?]/)[0]);
-  // Under the title, when an account is in another currency: the rate the page's totals use (features/fxnote.ts)
-  return html`<div class="head"><div><h1>${title}</h1>${sub ? html`<p class="sub">${sub}</p>` : ''}${App.fxNote ? App.fxNote() : ''}</div><div class="actions">${actions || ''}</div></div>${tabs}`;
+  // The slot under the title is always there (same height with or without a subtitle), so every page's content starts at the same y.
+  // The rate note (features/fxnote.ts, when an account is in another currency) shares the slot
+  return html`<div class="head"><div class="head-text"><h1>${title}</h1><div class="sub-slot">${sub ? html`<p class="sub">${sub}</p>` : ''}${App.fxNote ? App.fxNote() : ''}</div></div><div class="actions">${actions || ''}</div></div>${tabs}`;
 }
 /* ---------- Empty states: a drawn icon, what the page is for, and the one thing to do next ---------- */
 const EMPTY_ICONS: Record<string, string> = {

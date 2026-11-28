@@ -35,7 +35,7 @@ export function usedBy(groups: ApiData[]): Used {
 }
 let found: Record<Kind, Item[]> = { payees: [], sources: [], categories: [], tags: [], budgets: [] };
 // The page while it looks: reading every transaction takes a while with years of history, so say what it's doing
-const looking = (what: string, pct: number) => html`<div class="head"><div><h1>Clean up</h1><p class="sub">Looking for unused items…</p></div></div><section class="panel" id="cleanLoading" aria-live="polite"><div class="center-empty"><p id="cleanWhat" style="margin:0 0 16px">${what}</p><div class="track" style="max-width:320px;margin:0 auto"><div class="fill good" id="cleanBar" style="width:${pct}%"></div></div><p class="sub-s" style="margin:16px 0 0">Nothing is deleted until you choose it.</p></div></section>`;
+const looking = (what: string, pct: number) => html`<div class="head"><div class="head-text"><h1>Clean up</h1><div class="sub-slot"><p class="sub">Looking for unused items…</p></div></div><div class="actions"></div></div><section class="panel" id="cleanLoading" aria-live="polite"><div class="center-empty"><p id="cleanWhat" style="margin:0 0 16px">${what}</p><div class="track" style="max-width:320px;margin:0 auto"><div class="fill good" id="cleanBar" style="width:${pct}%"></div></div><p class="sub-s" style="margin:16px 0 0">Nothing is deleted until you choose it.</p></div></section>`;
 function progress(what: string, pct: number) {
   const t = document.getElementById('cleanWhat'), b = document.getElementById('cleanBar');
   if (t && b) { t.textContent = what; b.style.width = pct + '%'; }
