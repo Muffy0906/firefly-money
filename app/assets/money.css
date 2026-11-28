@@ -1894,7 +1894,7 @@
     html.side-mini .app { grid-template-columns: 74px 1fr; }     /* 16px margin + 1px border + 8px padding each side leaves a 40px column for the icons */
     html.side-mini .side { padding-left: 8px; padding-right: 8px; overflow-x: hidden; }
     html.side-mini .brand { gap: 0; padding-left: 0; padding-right: 0; }
-    html.side-mini .side-tg { margin-right: 4px; }
+    html.side-mini .side-tg { margin-right: calc(20px - min(30px, var(--row, 30px)) / 2); }     /* the button centred in the 40px column, whatever its height-clamped width */
     html.side-mini .side-tg svg { transform: scaleX(-1); }
     html.side-mini .side-search { padding-left: 11px; padding-right: 0; }
     html.side-mini .side .nav { grid-template-columns: minmax(0, 1fr); gap: 0; }     /* a clipped label can't widen the links past the rail */
