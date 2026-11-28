@@ -2576,7 +2576,7 @@ html[data-theme="liquid"] .fab { background: linear-gradient(135deg, var(--lg-sh
 /* WebGL refraction (core/glassgl.ts): a canvas inside the tab bar and + circle bends a snapshot of the page at the rim; it hides itself while scrolling */
 html[data-theme="liquid"] canvas.lgl { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; pointer-events: none; z-index: 0; opacity: 0; transition: opacity .15s linear; }
 html[data-theme="liquid"][data-gl] :is(.tabbar, .fab)::before { display: none; }
-html[data-theme="liquid"][data-gl][data-lens="svg"] :is(.tabbar, .fab) { -webkit-backdrop-filter: var(--lg-filter); backdrop-filter: var(--lg-filter); }
+html[data-theme="liquid"][data-gl] :is(.tabbar, .fab) { background: transparent; -webkit-backdrop-filter: blur(3px) saturate(160%); backdrop-filter: blur(3px) saturate(160%); }
 html[data-theme="liquid"] .fab > :not(canvas) { position: relative; z-index: 1; }
 /* spring: presses dip and settle, the tab pill glides and overshoots a touch */
 html[data-theme="liquid"] :is(.btn, .round, .tabbar a, .tabbar button, .seg button, .fab) { transition: transform .5s var(--ease-spring), background .2s, box-shadow .2s; }

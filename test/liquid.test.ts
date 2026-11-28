@@ -155,6 +155,7 @@ describe('True liquid glass: WebGL refraction on the tab bar and + circle', () =
     expect(gl).toContain('skipFonts: true');
     expect(gl).toContain('imagePlaceholder: PLACEHOLDER');
     expect(gl).toContain('r.right > x && r.left < x + w');
+    expect(gl).toContain('MAXPIECES');
   });
   it('keeps the canvas under the content and hides the CSS rim only while it draws', () => {
     expect(bare).toMatch(/canvas\.lgl \{[^}]*pointer-events: none; z-index: 0; opacity: 0/);

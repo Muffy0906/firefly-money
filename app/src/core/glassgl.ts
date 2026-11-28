@@ -10,12 +10,13 @@
 import { toCanvas } from 'html-to-image';
 import { readCustom } from './themevars';
 
-const PAD = 32, BEZEL = 20, MAXD = 30;
+const MAXPIECES = 40;
+const PAD = 32, BEZEL = 24, MAXD = 46;
 const VS = 'attribute vec2 p; void main() { gl_Position = vec4(p, 0.0, 1.0); }';
 const FS = `precision highp float;
 uniform sampler2D tex; uniform vec2 size, texSize, texOrigin; uniform float radius, dpr, bezel, maxd; uniform vec4 tint; uniform float dark;
 float rr(vec2 p, vec2 b, float r) { vec2 q = abs(p) - b + vec2(r); return min(max(q.x, q.y), 0.0) + length(max(q, vec2(0.0))) - r; }
-vec3 snap(vec2 px) { return texture2D(tex, vec2(px.x, texSize.y - px.y) / texSize).rgb; }
+vec3 snap(vec2 px) { return texture2D(tex, px / texSize).rgb; }
 void main() {
   vec2 frag = vec2(gl_FragCoord.x, size.y * dpr - gl_FragCoord.y) / dpr, c = frag - size * 0.5, h = size * 0.5;
   float r = min(radius, min(h.x, h.y)), sd = rr(c, h, r);
@@ -25,7 +26,7 @@ void main() {
   vec2 n = normalize(vec2(rr(c + e.xy, h, r) - rr(c - e.xy, h, r), rr(c + e.yx, h, r) - rr(c - e.yx, h, r)) + 1e-5);   // outward
   float slope = pow(1.0 - t, 3.0) * pow(max(1.0 - pow(1.0 - t, 4.0), 1e-4), -0.75);    // convex squircle height profile
   float a1 = atan(slope), a2 = asin(sin(a1) / 1.5);                                       // Snell's law
-  float d = min(tan(a1 - a2) * 6.0, 1.0) * maxd * (1.0 - smoothstep(0.55, 1.0, t));
+  float d = min(tan(a1 - a2) * 6.0, 1.0) * maxd * (1.0 - smoothstep(0.8, 1.0, t));
   vec2 px = frag + texOrigin, dir = -n;
   vec3 col = vec3(snap(px + dir * d * 1.06).r, snap(px + dir * d).g, snap(px + dir * d * 0.94).b);
   col += (snap(px + dir * d + vec2(2.0, 0.0)) + snap(px + dir * d - vec2(2.0, 0.0)) + snap(px + dir * d + vec2(0.0, 2.0)) + snap(px + dir * d - vec2(0.0, 2.0))) * 0.25;
@@ -36,7 +37,7 @@ void main() {
   vec2 Lt = normalize(vec2(-0.55, -0.83));
   float edge = exp(-inside / 2.4), facing = max(dot(n, Lt), 0.0) * 0.75 + max(dot(n, -Lt), 0.0) * 0.25;
   col += vec3(edge * (0.18 + 0.6 * facing) * (dark > 0.5 ? 0.8 : 1.0));                   // specular rim, brightest top-left
-  float alpha = (1.0 - smoothstep(0.35, 1.0, t)) * (1.0 - smoothstep(-0.5, 0.5, sd)) * 0.95;
+  float alpha = (1.0 - smoothstep(0.65, 1.0, t)) * (1.0 - smoothstep(-0.5, 0.5, sd));
   gl_FragColor = vec4(col * alpha, alpha);
 }`;
 
@@ -74,21 +75,31 @@ async function snapshot(it: Item) {
   const b = it.el.getBoundingClientRect(), x = Math.max(0, b.left - PAD), y = Math.max(0, b.top - PAD);
   const w = Math.min(innerWidth, b.right + PAD) - x, h = Math.min(innerHeight, b.bottom + PAD) - y;
   if (w < 8 || h < 8) return null;
-  const root = document.body, scale = Math.min(1, 1.5 / 1) * Math.min(devicePixelRatio || 1, 2);
-  const hide = (n: HTMLElement) => n === it.el || n.classList?.contains('lgl') || n.id === 'tabbar' || n.id === 'fab' || n.id === 'lg-lens' || n.tagName === 'SCRIPT';
-  const cv = await toCanvas(root, {
-    width: w, height: h, canvasWidth: Math.round(w * scale), canvasHeight: Math.round(h * scale), pixelRatio: 1, cacheBust: false, skipFonts: true, imagePlaceholder: PLACEHOLDER,
-    backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#fff',
-    style: { transform: `translate(${-x}px, ${-(y + scrollY)}px) scale(${scale})`, transformOrigin: '0 0', margin: '0', width: root.scrollWidth + 'px', height: 'auto' },
-    filter: n => {
-      if (!(n instanceof HTMLElement)) return true;
-      if (hide(n)) return false;
-      if (n === root) return true;
-      const r = n.getBoundingClientRect();       // only what overlaps the region: cloning the whole page costs seconds
-      return !r.width && !r.height || (r.right > x && r.left < x + w && r.bottom > y && r.top < y + h);
-    },
-  });
-  return { cv, x, y, w, h, b };
+  const scale = Math.min(devicePixelRatio || 1, 2);
+  const out = document.createElement('canvas'); out.width = Math.round(w * scale); out.height = Math.round(h * scale);
+  const g = out.getContext('2d'); if (!g) return null;
+  g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#fff'; g.fillRect(0, 0, out.width, out.height);
+  // Cloning the whole page costs seconds, and dropping nodes from the clone shifts the layout, so the page is cut into pieces instead:
+  // every element over the glass that is small enough is drawn on its own (a card, a row), bigger ones draw just their own box and hand over to their children.
+  const skip = (n: HTMLElement) => n === it.el || n.classList.contains('lgl') || n.id === 'tabbar' || n.id === 'fab' || n.id === 'lg-lens' || n.tagName === 'SCRIPT' || n.tagName === 'STYLE';
+  const pieces: [HTMLElement, boolean][] = [];
+  const walk = (n: HTMLElement) => {
+    if (skip(n) || pieces.length > MAXPIECES) return;
+    const r = n.getBoundingClientRect(), cs = getComputedStyle(n);
+    if (!(r.right > x && r.left < x + w && r.bottom > y && r.top < y + h) || cs.visibility === 'hidden' || cs.display === 'none') return;
+    if (n.querySelectorAll('*').length <= 90 || !n.children.length) { pieces.push([n, false]); return; }
+    if (cs.backgroundColor !== 'rgba(0, 0, 0, 0)' || cs.backgroundImage !== 'none' || cs.boxShadow !== 'none' || parseFloat(cs.borderTopWidth) > 0) pieces.push([n, true]);
+    for (const c of Array.from(n.children)) if (c instanceof HTMLElement) walk(c);
+  };
+  walk(document.body);
+  if (pieces.length > MAXPIECES) throw new Error('page too busy');
+  for (const [n, own] of pieces) {
+    const r = n.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue;
+    const c = await toCanvas(n, { width: Math.ceil(r.width), height: Math.ceil(r.height), pixelRatio: scale, cacheBust: false, skipFonts: true, imagePlaceholder: PLACEHOLDER,
+      style: { margin: '0', transform: 'none', opacity: '1' }, filter: f => !own || f === n });
+    g.drawImage(c, (r.left - x) * scale, (r.top - y) * scale);
+  }
+  return { cv: out, x, y, w, h, b };
 }
 function blank(cv: HTMLCanvasElement) {
   const c = cv.getContext('2d'); if (!c) return false;
@@ -108,7 +119,7 @@ function draw(it: Item, s: NonNullable<Awaited<ReturnType<typeof snapshot>>>) {
   gl.uniform1i(u('tex'), 0); gl.uniform2f(u('size'), r.width, r.height); gl.uniform2f(u('texSize'), s.w, s.h);
   gl.uniform2f(u('texOrigin'), s.x - r.left, s.y - r.top);
   gl.uniform1f(u('radius'), parseFloat(getComputedStyle(el).borderTopLeftRadius) || r.height / 2); gl.uniform1f(u('dpr'), dpr);
-  gl.uniform1f(u('bezel'), BEZEL); gl.uniform1f(u('maxd'), MAXD); gl.uniform4f(u('tint'), rgb[0], rgb[1], rgb[2], dark ? .5 : .45); gl.uniform1f(u('dark'), dark ? 1 : 0);
+  gl.uniform1f(u('bezel'), BEZEL); gl.uniform1f(u('maxd'), MAXD); gl.uniform4f(u('tint'), rgb[0], rgb[1], rgb[2], 0.0); gl.uniform1f(u('dark'), dark ? 1 : 0);
   gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   it.ready = true;
 }
@@ -148,7 +159,7 @@ if (typeof window !== 'undefined' && typeof MutationObserver !== 'undefined') {
   new MutationObserver(() => { if (wanted()) later(260); else if (items.size) { stale(); document.documentElement.removeAttribute('data-gl'); } })
     .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'style'] });
   document.addEventListener('DOMContentLoaded', () => {
-    new MutationObserver(m => { if (wanted() && m.some(r => !(r.target as Element).closest?.('.lgl, #toast, .toast, .undo'))) { stale(); later(450); } })
+    new MutationObserver(m => { if (wanted() && m.some(r => !(r.target as Element).closest?.('.lgl, #toast, .toast, .undo'))) later(450); })
       .observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class', 'hidden'] });
     if (wanted()) later(900);
   });
