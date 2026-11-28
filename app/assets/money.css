@@ -2505,22 +2505,22 @@ html[data-theme="polar"] :is(.panel, .daycards tbody.day, .daycards > .center-em
 html[data-theme="liquid"] { --bg: #f2f2f7; --panel: #ffffff; --line: rgba(60, 60, 67, .16); --text: #0b0b0f; --muted: #5f5f66; --faint: #e8e8ee;
   --good: #2f9e6e; --spend: #c0392b; --income: #2f9e6e; --warn: #d9a441; --good-t: #0f6a40; --spend-t: #b3261e; --warn-t: #724a00;
   --accent: #0852b8; --on-accent: #ffffff; --ag: #0852b8; --shadow: 0 18px 44px rgba(0, 0, 0, .16); --radius: 20px; color-scheme: light;
-  --glow1: #9cc2ff; --glow2: #c9b3ff; --glow3: #ffb3d1; --glass-base: #ffffff; --glass-tint: 52%; --glass-blur: 16px;
+  --glow1: #9cc2ff; --glow2: #c9b3ff; --glow3: #ffb3d1; --glass-base: #fafafa; --glass-tint: 52%; --glass-blur: 20px;
   --lg-fill: color-mix(in srgb, var(--glass-base) var(--glass-tint), transparent); --lg-sheet: rgba(255, 255, 255, .74); --lg-solid: #f7f7fb;
-  --lg-filter: blur(var(--glass-blur)) saturate(180%); --lg-sheet-filter: blur(24px) saturate(180%); --lg-edge: blur(2px) saturate(230%) brightness(1.12); --lg-lens: blur(1px) saturate(200%) brightness(1.1);
-  --lg-sheen: rgba(255, 255, 255, .6); --lg-band: rgba(255, 255, 255, .16);
-  --lg-rim: inset 1px 1px 0 rgba(255, 255, 255, .95), inset -1px -1px 0 rgba(255, 255, 255, .4), inset 0 0 0 1px rgba(255, 255, 255, .5), inset 0 0 12px rgba(255, 255, 255, .3), 0 0 0 1px rgba(0, 0, 0, .06);
-  --lg-drop: 0 1px 2px rgba(0, 0, 0, .06), 0 10px 26px -6px rgba(0, 0, 0, .2);
+  --lg-filter: blur(var(--glass-blur)) saturate(150%); --lg-ctl-filter: blur(12px) saturate(150%); --lg-sheet-filter: blur(24px) saturate(150%); --lg-edge: blur(2px) saturate(230%) brightness(1.12); --lg-lens: blur(1px) saturate(200%) brightness(1.1);
+  --lg-sheen: rgba(255, 255, 255, .6); --lg-band: rgba(255, 255, 255, .16); --lg-pillfill: rgba(0, 0, 0, .07); --lg-pillline: rgba(0, 0, 0, .05);
+  --lg-rim: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 0 0 1px rgba(255, 255, 255, .55), inset 0 -1px 1px rgba(0, 0, 0, .1), inset 0 0 8px rgba(0, 0, 0, .06), 0 0 0 1px rgba(0, 0, 0, .07);
+  --lg-drop: 0 4px 24px rgba(0, 0, 0, .1), 0 1px 2px rgba(0, 0, 0, .06);
   --ease-spring: cubic-bezier(.34, 1.45, .64, 1); background: var(--bg); }
 @media (prefers-color-scheme: dark) {
   html[data-theme="liquid"] { --bg: #000000; --panel: #1c1c1e; --line: rgba(255, 255, 255, .14); --text: #f5f5f7; --muted: #b4b4bb; --faint: #2c2c2e;
     --good: #74dcaa; --spend: #ffb39b; --income: #74dcaa; --warn: #f3c969; --good-t: #74dcaa; --spend-t: #ffb39b; --warn-t: #f3c969;
     --accent: #4da3ff; --on-accent: #04132b; --ag: #4da3ff; --shadow: 0 20px 56px rgba(0, 0, 0, .6); color-scheme: dark;
-    --glow1: #173a96; --glow2: #46268f; --glow3: #084448; --glass-base: #8a90a6; --glass-tint: 20%;
-    --lg-sheet: rgba(44, 44, 48, .74); --lg-solid: #232326; --lg-edge: blur(2px) saturate(230%) brightness(1.25); --lg-lens: blur(1px) saturate(200%) brightness(1.2);
-    --lg-sheen: rgba(255, 255, 255, .2); --lg-band: rgba(255, 255, 255, .12);
-    --lg-rim: inset 1px 1px 0 rgba(255, 255, 255, .5), inset -1px -1px 0 rgba(255, 255, 255, .14), inset 0 0 0 1px rgba(255, 255, 255, .16), inset 0 0 12px rgba(255, 255, 255, .06), 0 0 0 1px rgba(0, 0, 0, .5);
-    --lg-drop: 0 1px 2px rgba(0, 0, 0, .5), 0 12px 28px -6px rgba(0, 0, 0, .7); }
+    --glow1: #173a96; --glow2: #46268f; --glow3: #084448; --glass-base: #1a1a1e; --glass-tint: 52%;
+    --lg-sheet: rgba(44, 44, 48, .74); --lg-solid: #232326; --lg-edge: blur(2px) saturate(230%) brightness(1.1); --lg-lens: blur(1px) saturate(200%) brightness(1.1);
+    --lg-sheen: rgba(255, 255, 255, .1); --lg-band: rgba(255, 255, 255, .03); --lg-pillfill: rgba(0, 0, 0, .34); --lg-pillline: rgba(255, 255, 255, .06);
+    --lg-rim: inset 0 1px 0 rgba(255, 255, 255, .3), inset 0 0 0 1px rgba(255, 255, 255, .12), inset 0 -1px 1px rgba(0, 0, 0, .3), inset 0 0 8px rgba(0, 0, 0, .28), 0 0 0 1px rgba(0, 0, 0, .55);
+    --lg-drop: 0 4px 24px rgba(0, 0, 0, .5), 0 1px 2px rgba(0, 0, 0, .5); }
 }
 html[data-theme="liquid"] body { background: transparent; }
 /* a faint wash from the three light colours (Customize), so the glass has something to pick up */
@@ -2540,11 +2540,11 @@ html[data-theme="liquid"] select option { background: var(--panel); color: var(-
 html[data-theme="liquid"] .appbar.scrolled { background: var(--lg-sheet); -webkit-backdrop-filter: var(--lg-filter); backdrop-filter: var(--lg-filter); }
 /* controls: glass */
 html[data-theme="liquid"] :is(.btn, .round, .wctl button, .seg, .tabs) { background: linear-gradient(135deg, var(--lg-sheen), transparent 45%), var(--lg-fill); border: 0; box-shadow: var(--lg-rim), 0 4px 12px -4px rgba(0, 0, 0, .18);
-  -webkit-backdrop-filter: var(--lg-filter); backdrop-filter: var(--lg-filter); }
+  -webkit-backdrop-filter: var(--lg-ctl-filter); backdrop-filter: var(--lg-ctl-filter); }
 html[data-theme="liquid"] .seg { border-radius: var(--r-pill); }
 html[data-theme="liquid"] :is(input[type=text], input[type=number], input[type=date], input[type=password], input[type=search], select, textarea) { background: var(--lg-fill); border-color: var(--line); box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .35); }
 html[data-theme="liquid"] :is(input, select, textarea):focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent); }
-html[data-theme="liquid"] :is(.btn.primary, .seg button.on, .tabs a.on, .tabbar .plus, .fab) { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 80%, #fff), var(--accent)); color: var(--on-accent);
+html[data-theme="liquid"] :is(.btn.primary, .seg button.on, .tabs a.on, .tabbar .plus) { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 80%, #fff), var(--accent)); color: var(--on-accent);
   border: 0; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 0 0 1px rgba(255, 255, 255, .18), 0 8px 20px -4px color-mix(in srgb, var(--accent) 50%, transparent); -webkit-backdrop-filter: none; backdrop-filter: none; }
 /* floating glass: tab bar, side bar, sheets, menus, toasts */
 html[data-theme="liquid"] :is(.tabbar, .side, .drawer, dialog, .calpop, .pickpop, .palette-box, .bulkbar, .ff-pop, .undo, .toast) { background: linear-gradient(135deg, var(--lg-sheen), transparent 45%), var(--lg-sheet); border: 0; box-shadow: var(--lg-rim), var(--lg-drop); color: var(--text);
@@ -2560,9 +2560,18 @@ html[data-theme="liquid"] :is(.tabbar, .side, .drawer, dialog, .calpop, .pickpop
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
 html[data-theme="liquid"][data-lens="svg"] .lg-lensed::before { -webkit-backdrop-filter: var(--lg-url) var(--lg-lens); backdrop-filter: var(--lg-url) var(--lg-lens); }
 html[data-theme="liquid"] :is(.tabbar a, .tabbar button.more) { color: var(--muted); }
-html[data-theme="liquid"] :is(.tab-pill, .nav a.on) { background: color-mix(in srgb, var(--accent) 14%, transparent); box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .55), inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent); }
+html[data-theme="liquid"] :is(.tab-pill, .nav a.on) { background: var(--lg-pillfill); box-shadow: inset 0 0 0 1px var(--lg-pillline), inset 0 1px 2px rgba(0, 0, 0, .15); }
 html[data-theme="liquid"] :is(.tabbar :is(a, button.more).on, .nav a.on) { color: var(--accent); }
 html[data-theme="liquid"] .opill { background: var(--accent); }
+/* folding on scroll (phone.ts adds .mini): like Apple Music, the bar shrinks to a circle holding the current tab, and + (the glass circle on the right) stays */
+html[data-theme="liquid"] .tabbar { transition: right .5s var(--ease-spring), padding .3s var(--ease-glide), transform .28s var(--ease-glide), opacity .22s ease, visibility 0s; }
+html[data-theme="liquid"] .tabbar.mini { transform: none; opacity: 1; visibility: visible; pointer-events: auto; right: calc(100vw - 70px); padding: 0;
+  transition: right .5s var(--ease-spring), padding .3s var(--ease-glide), transform .28s var(--ease-glide), opacity .22s ease, visibility 0s; }
+html[data-theme="liquid"] .tabbar.mini > :not(.on) { position: absolute; opacity: 0; pointer-events: none; transition: opacity var(--t-hover); }
+html[data-theme="liquid"] .tabbar.mini > :is(a, button).on { display: grid; place-items: center; width: 56px; height: 56px; margin: 0; padding: 0; font-size: 0; color: var(--text) !important; }
+html[data-theme="liquid"] .tabbar.mini .tab-pill { opacity: 0; }
+html[data-theme="liquid"] .fab { background: linear-gradient(135deg, var(--lg-sheen), transparent 45%), var(--lg-fill); color: var(--accent); box-shadow: var(--lg-rim), var(--lg-drop);
+  -webkit-backdrop-filter: var(--lg-filter); backdrop-filter: var(--lg-filter); }
 /* spring: presses dip and settle, the tab pill glides and overshoots a touch */
 html[data-theme="liquid"] :is(.btn, .round, .tabbar a, .tabbar button, .seg button, .fab) { transition: transform .5s var(--ease-spring), background .2s, box-shadow .2s; }
 html[data-theme="liquid"] :is(.btn, .round, .tabbar a, .tabbar button, .seg button, .fab):active { transform: scale(.94); }

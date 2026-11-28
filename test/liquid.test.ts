@@ -54,10 +54,10 @@ describe('True liquid glass: how it is built', () => {
   });
   it('keeps cards flat and solid, and makes controls, the tab bar and sheets the glass', () => {
     expect(theme).toMatch(/\.dash-bar\) \{\s*background: var\(--panel\);[^}]*backdrop-filter: none/);
-    for (const sel of ['.btn', '.round', '.seg']) expect(bare).toMatch(new RegExp('liquid"\\] :is\\([^)]*\\' + sel + '[^)]*\\) \\{[^}]*backdrop-filter: var\\(--lg-filter\\)'));
+    for (const sel of ['.btn', '.round', '.seg']) expect(bare).toMatch(new RegExp('liquid"\\] :is\\([^)]*\\' + sel + '[^)]*\\) \\{[^}]*backdrop-filter: var\\(--lg-ctl-filter\\)'));
     expect(bare).toMatch(/:is\(\.tabbar, \.side, \.drawer, dialog[^)]*\.toast\) \{[^}]*backdrop-filter: var\(--lg-sheet-filter\)/);
-    expect(light['--lg-rim']).toMatch(/inset 1px 1px 0 rgba\(255, 255, 255, \.9/);     // brightest at the top-left
-    expect(light['--lg-rim']).toMatch(/inset -1px -1px 0/);                              // faint opposite rim
+    expect(light['--lg-rim']).toMatch(/inset 0 1px 0 rgba\(255, 255, 255, \.9/);        // a bright catch-light on the top edge
+    expect(light['--lg-rim']).toMatch(/inset 0 -1px 1px rgba\(0, 0, 0/);                  // a faint dark bevel on the bottom edge
     expect(light['--lg-drop']).toContain(',');                                           // layered shadow
   });
   it('fakes the edge refraction with a brighter, more saturated band inside the rim, in WebKit-safe CSS', () => {
@@ -92,6 +92,18 @@ describe('True liquid glass: how it is built', () => {
     expect(theme).toMatch(/--ease-spring: cubic-bezier\(/);
     expect(theme).toMatch(/\.tab-pill \{ transition: transform \.5s var\(--ease-spring\)/);
     expect(theme).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*:active \{ transform: none/);
+  });
+});
+
+describe('True liquid glass: folding tab bar', () => {
+  it('shrinks to a circle holding the current tab, like Apple Music, and the + stays as a glass circle', () => {
+    expect(theme).toMatch(/\.tabbar\.mini \{[^}]*opacity: 1; visibility: visible[^}]*right: calc\(100vw - 70px\)/);
+    expect(theme).toMatch(/\.tabbar\.mini > :is\(a, button\)\.on \{[^}]*width: 56px; height: 56px/);
+    expect(theme).toMatch(/\.tabbar\.mini > :not\(\.on\) \{[^}]*opacity: 0/);
+    expect(theme).toMatch(/liquid"\] \.fab \{[^}]*backdrop-filter: var\(--lg-filter\)/);
+  });
+  it('the selected tab is a darker capsule inside the bar', () => {
+    expect(dark['--lg-pillfill']).toMatch(/rgba\(0, 0, 0, \.3/);
   });
 });
 
