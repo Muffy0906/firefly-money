@@ -125,8 +125,9 @@ VIEWS.settings = async (r, paint) => {
   const nav = htmlList(cats.map(([id, t]) => html`<a href="#/settings?s=${id}" class="${at && at[0] === id ? 'on' : ''}"${at && at[0] === id ? raw(' aria-current="page"') : ''}>${t}</a>`));
   const menu = html`<div class="panel set-panel set-menu">${htmlList(cats.map(([id, t, hint]) => html`<a class="set-row" href="#/settings?s=${id}"><span class="set-label"><span>${t}</span><span class="sub-s">${hint}</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>`))}</div>`;
   const back = html`<a class="set-back" href="#/settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Settings</a>`;
-  const title = at && !wide ? html`${back}${head(at[1], String(at[2] || ''), '')}` : head('Settings', 'Preferences, data and your Firefly link', '');
-  paint(html`<div class="set-layout"><div class="set-side">${title}<nav class="set-nav" id="setNav" aria-label="Settings categories">${nav}</nav></div><div class="settings">${at ? groups[at[0]] : menu}</div></div>`);
+  // The title is the page's top-level head like every other page; the back link (phones) and the category list sit under it
+  const title = at && !wide ? html`${head(at[1], String(at[2] || ''), '')}${back}` : head('Settings', 'Preferences, data and your Firefly link', '');
+  paint(html`${title}<div class="set-layout"><div class="set-side"><nav class="set-nav" id="setNav" aria-label="Settings categories">${nav}</nav></div><div class="settings">${at ? groups[at[0]] : menu}</div></div>`);
 };
 /* ---------- The categories, with what's in each (the phone's list shows it under the name) ---------- */
 const SET_WIDE = 1100;          // the width at which the category list sits beside the settings (money.css matches it)
