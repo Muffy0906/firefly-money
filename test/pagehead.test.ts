@@ -42,7 +42,7 @@ describe('one page head', () => {
   });
   it('on a phone the title shrinks to a slim bar while scrolling down and returns on the way up', () => {
     const phone = readFileSync('app/src/features/phone.ts', 'utf8');
-    expect(phone).toContain("matchMedia('(max-width: 600px)')");
+    expect(phone).toContain("'(max-width: 600px)'");
     expect(phone).toContain("root.classList.toggle('head-slim', on)");
     expect(phone).toMatch(/passive: true/);
     expect(phone).toContain('room > y + 160');      // never folds a page that would then be too short to scroll (flicker)

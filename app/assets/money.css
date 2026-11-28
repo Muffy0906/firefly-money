@@ -2897,7 +2897,7 @@ html[data-theme="dark"] { --e1: var(--rim), var(--lift); --e2: 0 1px 0 rgba(0,0,
   #view > .head :is(.sub-slot, .actions) { transition: opacity .18s ease, visibility 0s; }
   html.head-slim #view > .head { height: 40px; align-items: center; overflow: hidden; }
   html.head-slim #view > .head .head-text h1 { transform: scale(.72); }
-  html.head-slim #view > .head :is(.sub-slot, .actions) { opacity: 0; visibility: hidden; transition: opacity .15s ease, visibility 0s .15s; }
+  html.head-slim #view > .head :is(.sub-slot, .actions) { opacity: 0; visibility: hidden; transition: opacity .16s ease, visibility 0s .16s; }
   html.head-slim #view > .head .head-text { height: 34px; }
 }
 @media (max-width: 600px) and (prefers-reduced-motion: reduce) { #view > .head, #view > .head * { transition: none !important; } }

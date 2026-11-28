@@ -43,7 +43,8 @@ addEventListener('resize', movePill);
    and search button up out of sight (html.scroll-down, phones only in CSS); scrolling back up, or reaching the top, brings them back */
 (function foldOnScroll() {
   let last = scrollY, folded = false, lockUntil = 0;
-  const phone = matchMedia('(max-width: 600px)');
+  const mq = (q: string) => typeof matchMedia === 'function' && matchMedia(q).matches;
+  const phone = { get matches() { return mq('(max-width: 600px)'); } };
   /* The page title shrinks to a slim bar on a phone (html.head-slim, money.css). Its height is the one thing that changes, once per fold
      and not per scroll frame: it is measured here and eased, so the page below glides up instead of jumping. */
   const slim = (on: boolean) => {
@@ -52,7 +53,7 @@ addEventListener('resize', movePill);
     const from = h.offsetHeight;
     h.style.height = ''; root.classList.toggle('head-slim', on);
     const to = h.offsetHeight;
-    if (from === to || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (from === to || mq('(prefers-reduced-motion: reduce)')) return;
     h.style.overflow = 'hidden'; h.style.height = from + 'px'; void h.offsetHeight; h.style.height = to + 'px';
     h.addEventListener('transitionend', () => { h.style.height = ''; h.style.overflow = ''; }, { once: true });
   };
