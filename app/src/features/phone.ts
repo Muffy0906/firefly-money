@@ -2,7 +2,8 @@ import { html, htmlList, raw } from '../core/html';
 import { App, el } from '../core/base';
 import { LS } from '../core/helpers';
 import { BUZZ_DELETE, buzz } from '../core/haptics';
-import { icon, navGroups, navItem, openDrawer } from '../core/dom';
+import { closeDrawer, icon, navGroups, navItem, openDrawer } from '../core/dom';
+import { refreshAll } from '../core/router';
 
 /* ---------- Phone: tab bar, More sheet, swipe to delete ---------- */
 function drawTabbar(active: string) {
@@ -42,17 +43,38 @@ addEventListener('resize', movePill);
 /* Scrolling down the page folds the tab bar away into the + button at the bottom right (#fab) and slides the title bar
    and search button up out of sight (html.scroll-down, phones only in CSS); scrolling back up, or reaching the top, brings them back */
 (function foldOnScroll() {
-  let last = scrollY, folded = false;
+  let last = scrollY, folded = false, lockUntil = 0;
+  const mq = (q: string) => typeof matchMedia === 'function' && matchMedia(q).matches;
+  const phone = { get matches() { return mq('(max-width: 600px)'); } };
+  /* The page title shrinks to a slim bar on a phone (html.head-slim, money.css). Its height is the one thing that changes, once per fold
+     and not per scroll frame: it is measured here and eased, so the page below glides up instead of jumping. */
+  const slim = (on: boolean) => {
+    const h = document.querySelector<HTMLElement>('#view > .head'), root = document.documentElement;
+    if (!h || !phone.matches) { root.classList.remove('head-slim'); if (h) h.style.height = ''; return; }
+    const from = h.offsetHeight;
+    h.style.height = ''; root.classList.toggle('head-slim', on);
+    const to = h.offsetHeight;
+    if (from === to || mq('(prefers-reduced-motion: reduce)')) return;
+    h.style.overflow = 'hidden'; h.style.height = from + 'px'; void h.offsetHeight; h.style.height = to + 'px';
+    h.addEventListener('transitionend', () => { h.style.height = ''; h.style.overflow = ''; }, { once: true });
+  };
   const fold = (on: boolean) => {
     if (on === folded) return;
     folded = on; document.documentElement.classList.toggle('scroll-down', on);
     const tb = el('tabbar'), mini = on && !tb.hidden && !!tb.offsetWidth;     // not on desktop, or with the native app's own tabs
     tb.classList.toggle('mini', mini); el('fab').classList.toggle('on', mini);
+    slim(on);
+    lockUntil = performance.now() + 400;     // the page's height changes under the finger: its scroll events for the next moment are not the user's
   };
   addEventListener('scroll', () => {
     const y = scrollY, dy = y - last;
+    if (performance.now() < lockUntil) { last = y; return; }
     if (y < 60) fold(false);
-    else if (dy > 6) fold(true);
+    else if (dy > 6) {
+      // only fold when the page stays scrollable afterwards, or it would unfold at once and flicker
+      const pg = document.querySelector<HTMLElement>('#view > .pg'), room = pg ? pg.scrollHeight - pg.clientHeight : 1e9;
+      if (!phone.matches || room > y + 160) fold(true); else return;
+    }
     else if (dy < -6) fold(false);
     else return;     // small jitters (rubber banding, momentum ends) keep the last position as the reference
     last = y;
@@ -63,7 +85,7 @@ export function moreSheet() {
   const link = (r: string) => { const [, label, ic] = navItem(r); return html`<a class="row" href="#/${r}" data-onclick="App.closeDrawer()"><span class="name"><span class="ic">${icon(ic)}</span>${label}</span><span class="neutral">›</span></a>`; };
   // the tab bar already has Home, Activity and Budgets
   const groups = navGroups().concat([['', ['settings']]]).map(([t, rs]) => [t, rs.filter(r => !['', 'transactions', 'budgets'].includes(r))] as const).filter(g => g[1].length);
-  openDrawer('More', html`${App.ffPill ? App.ffPill(true) : ''}<button type="button" class="sheet-search" data-onclick="App.openPalette()">${icon('search')}<span>Search everything</span></button>${htmlList(groups.map(([t, rs]) => html`${t ? html`<div class="eyebrow menu-h">${t}</div>` : ''}<div class="list menu">${htmlList(rs.map(link))}</div>`))}<div class="toggles sheet"><button type="button" class="btn" data-tg="privacy" data-onclick="App.togglePrivacy()"></button></div><div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap"><button class="btn" data-onclick="App.closeDrawer();App.recalcAll()">Recalculate everything</button>${el('ffLink').hidden ? '' : html`<a class="btn" href="${el('ffLink').getAttribute('href')}" target="_blank" rel="noopener">Open Firefly III ↗</a>`}${window.MONEY_NATIVE ? html`<button class="btn" data-onclick="App.nativeSettings()">App settings</button>` : ''}<button class="btn" data-onclick="App.signOut()">Sign out</button></div>`);
+  openDrawer('More', html`${App.ffPill ? App.ffPill(true) : ''}<button type="button" class="sheet-search" data-onclick="App.openPalette()">${icon('search')}<span>Search everything</span></button>${htmlList(groups.map(([t, rs]) => html`${t ? html`<div class="eyebrow menu-h">${t}</div>` : ''}<div class="list menu">${htmlList(rs.map(link))}</div>`))}<div class="toggles sheet"><button type="button" class="btn" data-tg="privacy" data-onclick="App.togglePrivacy()"></button><button class="btn" data-onclick="App.refreshPage()">Refresh</button><button class="btn" data-onclick="App.closeDrawer();App.recalcAll()">Recalculate everything</button>${el('ffLink').hidden ? '' : html`<a class="btn" href="${el('ffLink').getAttribute('href')}" target="_blank" rel="noopener">Open Firefly III ↗</a>`}${window.MONEY_NATIVE ? html`<button class="btn" data-onclick="App.nativeSettings()">App settings</button>` : ''}<button class="btn" data-onclick="App.signOut()">Sign out</button></div>`);
   if (App.drawToggles) App.drawToggles();
 }
 // Swipe a row left to show Categorize and Delete behind it, as in Mail; tap anywhere else to put it back
@@ -113,7 +135,7 @@ export function bindSwipe() {
   // Nothing on a row shows that it slides, so say so once, until it is dismissed or the first swipe
   const feed = document.querySelector('#view table.feed');
   if (feed && !LS.get('swipeHint', false) && !document.querySelector('.swipe-hint')) {
-    const p = document.createElement('p'); p.className = 'sub-s swipe-hint'; p.textContent = 'Swipe a row left for Categorize and Delete. ';
+    const p = document.createElement('p'); p.className = 'sub-s swipe-hint'; p.textContent = 'Shortcut: swipe a row left for Categorize and Delete (or tap the row). ';
     const b = document.createElement('button'); b.type = 'button'; b.className = 'link'; b.textContent = 'Got it';
     b.onclick = () => { LS.set('swipeHint', true); p.remove(); };
     p.appendChild(b); feed.before(p);
@@ -152,6 +174,7 @@ export function bindSwipe() {
 
 // The methods markup handlers call (see events.ts), added to App and to its type
 const methods = {
+  refreshPage() { closeDrawer(); refreshAll({ visible: true }).catch(() => {}); },
   drawTabbar,
   moreSheet,
 };

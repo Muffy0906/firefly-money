@@ -66,7 +66,7 @@ describe('Reports layout', () => {
     expect(css).toMatch(/\.ag-scroll \{ height: 150px; margin: -6px;/);
     expect(css).toMatch(/\.ag-scroll \{[^}]*padding: 6px/);
     expect(css).toMatch(/\.ag-none \{ height: 138px/);
-    expect(css).toMatch(/\.panel\.ag-card \{ padding: 10px 12px/);
+    expect(css).toMatch(/\.panel\.ag-card \{ padding: 16px/);
     for (const r of ['1m', 'year', 'all']) expect(String(activityPanel(buys, '2019-01-01', '2026-11-07', { range: r }))).toContain('--agm:14px');
   });
   it('a range change in settings redraws only the Activity card, not the page', () => {

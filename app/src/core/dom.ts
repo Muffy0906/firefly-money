@@ -57,9 +57,11 @@ export const NAV_GROUPS: [string, string[]][] = [['', ['', 'transactions', 'revi
 export const navGroups = (): [string, string[]][] => { let off = false; try { off = localStorage.getItem('money.scorecardPage') === 'false'; } catch (e) { /* storage blocked */ } return NAV_GROUPS.map(([t, rs]) => [t, rs.filter(r => !(off && r === 'scorecard'))]); };
 export const navItem = (r: string): string[] => { const n = NAV.find(x => x[0] === r)!; return HUB_LABEL[r] ? [n[0], HUB_LABEL[r], n[2]] : n; };
 // The tabs across the top of a hub's pages (nothing on a page that stands alone)
-export const hubTabs = (on: string) => { const t = HUBS[hubOf(on)]; return t ? html`<div class="tabs" role="tablist" aria-label="${HUB_LABEL[hubOf(on)] || t[0][1]}">${htmlList(t.map(([r, label]) => html`<a href="#/${r}" role="tab" class="${r === on ? 'on' : ''}" aria-selected="${r === on}">${label}</a>`))}</div>` : ''; };
+export const hubTabs = (on: string) => { const t = HUBS[hubOf(on)]; return t ? html`<div class="tabs" role="tablist" aria-label="${HUB_LABEL[hubOf(on)] || t[0][1]}">${htmlList(t.map(([r, label]) => html`<a href="#/${r}" role="tab" class="${r === on ? 'on' : ''}" aria-selected="${r === on ? 'true' : 'false'}">${label}</a>`))}</div>` : ''; };
 // To do: Review (new transactions to look over) and Categorize (ones without a category), as two tabs of one page
-export const todoTabs = (on: string) => html`<div class="tabs"><a href="#/review" class="${on === 'review' ? 'on' : ''}">Review new</a><a href="#/inbox" class="${on === 'inbox' ? 'on' : ''}">Categorize</a><a href="#/places" class="${on === 'places' ? 'on' : ''}">Places</a></div>`;
+export const todoTabs = (on: string) => html`<div class="tabs" role="tablist" aria-label="To do">${htmlList([['review', 'Review new'], ['inbox', 'Categorize'], ['places', 'Places']].map(([r, label]) => html`<a href="#/${r}" role="tab" class="${r === on ? 'on' : ''}" aria-selected="${r === on ? 'true' : 'false'}">${label}</a>`))}</div>`;
+// The way back from a page that sits under another: one button, in the same place above the title on every page
+export const backLink = (href: string, label: string) => html`<p class="back-row"><a class="back" href="${href}">${ICON_PREV}<span>${label}</span></a></p>`;
 export function drawNav(active: string) {
   const on = hubOf(active), cur = NAV.find(n => n[0] === active) || NAV.find(n => n[0] === on);
   document.title = cur && cur[0] ? cur[1] + ' · Money' : 'Money';      // one title per page, for the tab, history and bookmarks

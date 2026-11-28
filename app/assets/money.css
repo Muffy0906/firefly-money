@@ -1741,10 +1741,12 @@
   .story.paused .st-prog i.run b { animation-play-state: paused; }
   @keyframes stFill { to { width: 100%; } }
   /* An icon, not the × character: a font's × sits on its baseline, so it lands low and differs by system font */
-  .st-x { position: absolute; z-index: 4; top: calc(22px + env(safe-area-inset-top) + var(--edge)); right: var(--st-pad); width: 40px; height: 40px; min-width: 0; min-height: 0; padding: 0; margin: 0;
+  .st-x { position: absolute; z-index: 4; top: calc(22px + env(safe-area-inset-top) + var(--edge)); right: var(--st-pad); width: 44px; height: 44px; min-width: 0; min-height: 0; padding: 0; margin: 0;
     display: grid; place-items: center; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--text) 9%, transparent); color: var(--text); line-height: 0; cursor: pointer; }
   .st-x svg { display: block; width: 16px; height: 16px; }
-  .st-pp { right: calc(var(--st-pad) + 50px); }
+  .st-pp { right: calc(var(--st-pad) + 54px); }
+  .st-prev, .st-next { top: auto; bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .st-prev { right: auto; left: var(--st-pad); }
   .st-deck { position: absolute; inset: 0; }
   .st-card { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 8px;
     padding: calc(80px + env(safe-area-inset-top) + var(--edge)) var(--st-pad) calc(60px + env(safe-area-inset-bottom));
@@ -1875,7 +1877,6 @@
   @media (min-width: 901px) {
     .app { transition: grid-template-columns .34s var(--ease-glide); }
     html.side-glide .app { overflow-x: clip; }
-    html.side-glide main#view { width: var(--glide-w); max-width: none; }     /* one width for the whole fold (prefs.ts toggleSide) */
     .side { transition: padding .34s var(--ease-glide); }
     .brand { flex: none; transition: padding .34s var(--ease-glide), gap .34s var(--ease-glide); }
     .brand > span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; }
@@ -2631,7 +2632,6 @@ html[data-theme="glass"] .ag-c.l3, html[data-theme="glass"] .ag-c.l4 { box-shado
 
 /* Activity card: no title; the range lives in the card's settings. No legend row (meaning is in the grid's label); month labels then a fixed-height 7-row grid (same for every range) */
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-.panel.ag-card { padding: 10px 12px; }
 .ag-none { height: 138px; margin: 0; display: flex; align-items: center; color: var(--muted); font-size: var(--fs-sm); }
 
 /* ---------- Sidebar fits the window's height (desktop): row height, gaps and padding shrink with the viewport so the
@@ -2879,3 +2879,58 @@ html[data-theme="dark"] { --e1: var(--rim), var(--lift); --e2: 0 1px 0 rgba(0,0,
 .head .sub-slot .fx-note { margin: 0 0 0 -8px; min-height: 0; flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; display: block; }
 .head .sub-slot .sub + .fx-note { margin-left: 0; }
 @media (min-width: 901px) { #view > .head > .actions { align-self: flex-start; min-height: 34px; } }
+
+/* Phones: the rate note drops "Totals in USD ·" so the subtitle beside it keeps its room */
+@media (max-width: 600px) { .head .sub-slot .fx-lead { display: none; } }
+
+/* More sheet: one rhythm. 16px under the search box, 24px above each group heading, and every button in one wrapping row at 12px */
+.sheet-search { margin-bottom: 16px; }
+.drawer .menu-h { margin: 16px 0 0; }
+.drawer .toggles.sheet { margin: 24px 0 0; }
+.drawer header :is(h2, .dname, [tabindex="-1"]):focus, .drawer header:focus { outline: none; }     /* the title takes focus so a screen reader lands in the sheet; it is not a control */
+
+/* Phones: scrolling down shrinks the page title to a slim bar (html.head-slim, phone.ts); scrolling up or the top brings it back.
+   Only the title row's height changes, once per fold; the title itself moves by transform and the rest fades. */
+@media (max-width: 600px) {
+  #view > .head { transition: height .28s var(--ease-out); }
+  #view > .head .head-text h1 { transform-origin: left center; transition: transform .28s var(--ease-out); }
+  #view > .head :is(.sub-slot, .actions) { transition: opacity .18s ease, visibility 0s; }
+  html.head-slim #view > .head { height: 40px; align-items: center; overflow: hidden; }
+  html.head-slim #view > .head .head-text h1 { transform: scale(.72); }
+  html.head-slim #view > .head :is(.sub-slot, .actions) { opacity: 0; visibility: hidden; transition: opacity .16s ease, visibility 0s .16s; }
+  html.head-slim #view > .head .head-text { height: 34px; }
+}
+@media (max-width: 600px) and (prefers-reduced-motion: reduce) { #view > .head, #view > .head * { transition: none !important; } }
+
+/* Navigation, one pattern everywhere: back button above the title, tab strips and close buttons at least 44px on a phone */
+.back-row { margin: 0 0 8px; }
+.back { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; margin-left: -4px; padding: 0 12px 0 4px; color: var(--accent); font-weight: 600; text-decoration: none; border-radius: var(--r-pill); }
+.back svg { width: 14px; height: 14px; flex: none; }
+.back:hover { text-decoration: underline; }
+@media (max-width: 600px) {
+  .drawer header .round { width: 44px; height: 44px; }
+  .tabs a { min-height: 44px; display: inline-flex; align-items: center; }
+}
+
+/* ---------- Uniformity pass: one inset per container type ----------
+   Cards: --card-pad (24 desktop, 20 phone, 16 on a 320 phone). Rows and table cells that run edge to edge inside a flush card
+   keep 16px from its edge (12px on a 320 phone) instead of the old 8px, and checkboxes/radios drop the browser's 3px margins. */
+@media (max-width: 360px) { :root { --card-pad: 16px; } }
+@media (max-width: 900px) {
+  .panel.flush .tbl:not(.feed) :is(th, td):first-child { padding-left: 16px; }
+  .panel.flush .tbl:not(.feed) :is(th, td):last-child { padding-right: 16px; }
+}
+@media (max-width: 360px) {
+  .panel.flush .tbl:not(.feed) :is(th, td):first-child { padding-left: 12px; }
+  .panel.flush .tbl:not(.feed) :is(th, td):last-child { padding-right: 12px; }
+  .tbl.bills-tbl .act .btn { padding-inline: 12px; }
+  .tbl.bills-tbl :is(th, td):not(:first-child):not(:last-child) { padding-left: 4px; padding-right: 4px; }
+  .tbl.bills-tbl td:first-child .chip { white-space: normal; }     /* the due-date chip wraps so the Pay now / Edit buttons stay inside the card */
+}
+:is(input[type=checkbox], input[type=radio]) { margin: 0; }
+.panel > .swipe-hint { margin: 0; padding: 12px 16px 4px; }
+.panel.ag-card { padding: 16px; }
+@container (max-width: 260px) { .bill-end { flex-wrap: wrap; justify-content: flex-start; row-gap: 8px; } }
+.panel > .list > .row:last-child { padding-bottom: 0; }     /* the card's own padding is the bottom edge, not 12px more */
+@container (max-width: 240px) { .w[data-w="bills"] .panel-head { margin-bottom: 16px; } }     /* the lead is hidden in a narrow tile: keep the gap it left */
+html:has(#story) .search-btn { display: none; }     /* the full-screen story has its own pause and close at the top right; the search button sat over its progress bar */

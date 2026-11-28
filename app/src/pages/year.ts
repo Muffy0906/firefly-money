@@ -14,7 +14,7 @@ import { netOn } from './recap';
 /* ================= Year in Money =================
    A year told as a story, one full-screen card at a time, like Instagram's: what came in and went out, how much of a
    workday paid for your spending, your top category and places, your biggest month and purchase, days you spent
-   nothing, and how far your net worth moved. Tap the right side (or swipe left) for the next card, the left side for
+   nothing, and how far your net worth moved. Use the arrow buttons (or tap the right side, or swipe left) for the next card, the left side for
    the one before; hold to pause. #/year shows this year so far, #/year?y=2025 another. */
 export type YearSplit = { date: string, amount: number, payee: string, description: string };
 // Taking cash out of an account is money set aside to spend, not something bought: Firefly pays it to the "(cash)" account
@@ -105,7 +105,7 @@ VIEWS.year = async (r, paint) => {
   cards.push(card(html`${line(0, html`<div class="st-kick">${done ? 'That was' : 'So far'}</div>`)}${line(1, html`<h1 class="st-big">${y}</h1>`)}${line(2, html`<div class="st-btns"><button type="button" class="btn" data-onclick="App.yearShare()">Share</button><button type="button" class="btn" data-onclick="App.yearPlay(0)">Watch again</button><button type="button" class="btn primary" data-onclick="App.yearClose()">Done</button></div>`)}${line(3, nav)}`));
   SHARE = [y + ' in Money' + (done ? '' : ' (so far)'), earned ? 'Earned ' + money0(earned) + ', spent ' + money0(spent) + (earned > 0 ? ', kept ' + Math.round(kept / earned * 100) + '%' : '') : 'Spent ' + money0(spent),
     catRows[0] ? 'Top category: ' + catRows[0].name : '', st.often ? 'Most visited: ' + st.often.name + ' (' + st.often.n + ' times)' : '', st.count ? st.free + ' no-spend days' : ''].filter(Boolean).join('\n');
-  paint(html`<div class="story" id="story" role="dialog" aria-label="${y} in Money"><div class="st-prog">${htmlList(cards.map(() => html`<i><b></b></i>`))}</div><button type="button" class="st-x" aria-label="Close" data-onclick="App.yearClose()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg></button><button type="button" class="st-x st-pp" aria-label="Pause" aria-pressed="false" data-onclick="App.yearPause(this)"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/></svg></button><div class="st-deck">${htmlList(cards)}</div></div>`);
+  paint(html`<div class="story" id="story" role="dialog" aria-label="${y} in Money"><div class="st-prog">${htmlList(cards.map(() => html`<i><b></b></i>`))}</div><button type="button" class="st-x" aria-label="Close" data-onclick="App.yearClose()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg></button><button type="button" class="st-x st-pp" aria-label="Pause" aria-pressed="false" data-onclick="App.yearPause(this)"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/></svg></button><div class="st-nav"><button type="button" class="st-x st-prev" aria-label="Previous card" data-onclick="App.yearStep(-1)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg></button><button type="button" class="st-x st-next" aria-label="Next card" data-onclick="App.yearStep(1)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></button></div><div class="st-deck">${htmlList(cards)}</div></div>`);
   play(0);
   const sy = story(); if (sy) { sy.setAttribute('aria-modal', 'true'); sy.tabIndex = -1; sy.focus({ preventScroll: true }); }     // a screen reader lands in the story
 };
@@ -177,6 +177,7 @@ addEventListener('hashchange', () => { if (parseHash().name !== 'year') { clearT
 // Back to the page you came from, or the Overview when the story was opened straight from a link
 function yearClose() { clearTimeout(timer); if ((history.state && history.state.n || 0) > 1) history.back(); else location.hash = '#/'; }
 function yearPlay(i: number) { play(i); }
+function yearStep(d: number) { buzz(5); play(at + d); }
 async function yearShare() {
   try {
     if (navigator.share) { await navigator.share({ title: SHARE.split('\n')[0], text: SHARE }); return; }
@@ -185,7 +186,7 @@ async function yearShare() {
 }
 
 // The methods markup handlers call (see events.ts), added to App and to its type
-const methods = { yearClose, yearPause, yearPlay, yearShare };
+const methods = { yearClose, yearPause, yearPlay, yearShare, yearStep };
 Object.assign(App, methods);
 type Methods = typeof methods;
 declare module '../core/base' { interface AppApi extends Methods {} }

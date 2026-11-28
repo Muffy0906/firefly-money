@@ -17,12 +17,12 @@ export const rateText = (code: string, rate: string) => '1 ' + FX.primary + ' = 
 export function fxNote(): Html | string {
   const st = fxStatus();
   if (!st.foreign.length) return '';
-  let cls = '', text: string;
+  let cls = '', lead = '', text: string;
   if (!st.on) { cls = 'warn'; text = st.foreign.join(', ') + ' left out of totals (converting is off)'; }
   else if (st.missing.length) { cls = 'bad'; text = st.missing.join(', ') + ' not converted: left out of totals'; }
-  else if (st.stale) { cls = 'warn'; text = 'Totals in ' + FX.primary + ' · rates as of ' + when(st.asOf); }
-  else text = 'Totals in ' + FX.primary + ' · ' + (st.rows.length === 1 ? rateText(st.rows[0].code, st.rows[0].rate) : st.rows.length + ' exchange rates');
-  return html`<button type="button" class="fx-note ${cls}" data-onclick="App.fxInfo()" title="Exchange rates used">${cls ? html`<span aria-hidden="true">⚠</span> ` : ''}${text}<span class="fx-go" aria-hidden="true"> ›</span></button>`;
+  else if (st.stale) { cls = 'warn'; lead = 'Totals in ' + FX.primary + ' · '; text = 'rates as of ' + when(st.asOf); }
+  else { lead = 'Totals in ' + FX.primary + ' · '; text = (st.rows.length === 1 ? rateText(st.rows[0].code, st.rows[0].rate) : st.rows.length + ' exchange rates'); }
+  return html`<button type="button" class="fx-note ${cls}" data-onclick="App.fxInfo()" title="Exchange rates used">${cls ? html`<span aria-hidden="true">⚠</span> ` : ''}${lead ? html`<span class="fx-lead">${lead}</span>` : ''}${text}<span class="fx-go" aria-hidden="true"> ›</span></button>`;
 }
 function fxInfo() {
   const st = fxStatus();
