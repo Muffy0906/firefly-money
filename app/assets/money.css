@@ -1877,7 +1877,6 @@
   @media (min-width: 901px) {
     .app { transition: grid-template-columns .34s var(--ease-glide); }
     html.side-glide .app { overflow-x: clip; }
-    html.side-glide main#view { width: var(--glide-w); max-width: none; }     /* one width for the whole fold (prefs.ts toggleSide) */
     .side { transition: padding .34s var(--ease-glide); }
     .brand { flex: none; transition: padding .34s var(--ease-glide), gap .34s var(--ease-glide); }
     .brand > span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; }
