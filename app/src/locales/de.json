@@ -3740,5 +3740,14 @@
   "Needs a few more purchases.": "Braucht ein paar weitere Einkäufe.",
   "Nothing owed, so nothing to rate.": "Nichts geschuldet, also nichts zu bewerten.",
   "Bills & recurring": "Verträge & Daueraufträge",
-  "Categories & rules": "Kategorien & Regeln"
+  "Categories & rules": "Kategorien & Regeln",
+  "Load my most-used pages ahead": "Meine meistgenutzten Seiten vorab laden",
+  "Money remembers which pages you open most, on this server, and fetches them in the background after it opens. Only page names and counts are kept.": "Money merkt sich auf diesem Server, welche Seiten du am häufigsten öffnest, und lädt sie nach dem Start im Hintergrund. Gespeichert werden nur Seitennamen und Zähler.",
+  "Most-used history": "Verlauf der meistgenutzten Seiten",
+  "Forget which pages you use most, on every device": "Vergiss, welche Seiten du am meisten nutzt, auf allen Geräten",
+  "Most-used pages load ahead": "Meistgenutzte Seiten werden vorab geladen",
+  "Pages load only when you open them": "Seiten werden nur beim Öffnen geladen",
+  "Most-used history cleared": "Verlauf der meistgenutzten Seiten gelöscht",
+  "Couldn’t clear it. Try again.": "Löschen nicht möglich. Versuche es erneut.",
+  "Couldn’t reach the server": "Server nicht erreichbar"
 }
