@@ -202,9 +202,7 @@
   .set-nav { display: none; }
   @media (min-width: 1100px) {
     .set-layout { display: grid; grid-template-columns: 184px minmax(0, 720px); gap: 36px; align-items: start; }
-    .set-side { position: sticky; top: 34px; }
-    html.compact .set-side { top: 24px; }
-    .set-side .head { margin-bottom: 20px; padding-left: 12px; }
+    .set-side { position: sticky; top: var(--head-gap); }
     .set-nav { display: flex; flex-direction: column; gap: 2px; }
     .set-nav a { padding: 8px 12px; border-radius: var(--r-md); color: var(--muted); font-size: var(--fs-md); font-weight: 500; text-decoration: none; transition: background var(--t-hover), color var(--t-hover); }
     .set-nav a:hover { background: var(--faint); color: var(--text); }
@@ -1326,7 +1324,7 @@
   html.native body { -webkit-user-select: none; user-select: none; }
   html.native input, html.native textarea, html.native [contenteditable] { -webkit-user-select: text; user-select: text; }
   @media (max-width: 900px) {
-    main#view { padding-top: calc(22px + env(safe-area-inset-top, 0px)) !important;
+    main#view { padding-top: calc(28px + env(safe-area-inset-top, 0px)) !important;
       padding-left: calc(16px + env(safe-area-inset-left, 0px)) !important; padding-right: calc(16px + env(safe-area-inset-right, 0px)) !important; }
     input[type=text], input[type=number], input[type=date], input[type=password], input[type=search], select, textarea { font-size: 16px; }
     .drawer { max-height: calc(100dvh - env(safe-area-inset-top, 0px) - var(--edge) - 12px); }
@@ -1348,7 +1346,6 @@
     html.shell main#view { padding-top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 44px) !important; }
     html.shell #view > .shell-hide { display: none; }
     html.shell .head { margin-bottom: 20px; }
-    html.shell .head h1 { font-size: 32px; font-weight: 600; letter-spacing: .003em; line-height: 1.12; }
     html.shell .tbl.feed tr.dayhead { top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 44px); }
     html.shell .bulkbar { top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 52px); }
     html.shell .ptr { top: calc(env(safe-area-inset-top, 0px) + var(--edge) + 44px); }
@@ -2215,9 +2212,9 @@
   }
   /* The title band: an explicit height with everything on it centred, and the sidebar's brand row on the same centre line */
   @media screen and (min-width: 901px) {
-    :root { --band: 82px; --pb: 112px; }          /* (--pb: the last card scrolls clear of the + button) */
+    :root { --head-top: 32px; --band: calc(var(--head-top) * 2 + 34px); --pb: 112px; }          /* (--pb: the last card scrolls clear of the + button; --band: twice the title row's centre) */
     main#view { padding-top: 0 !important; }
-    #view > .head { min-height: var(--band); align-items: center; }
+    #view > .head { box-sizing: border-box; padding-top: var(--head-top); align-items: flex-start; }
     html .side { padding-top: calc(var(--band) / 2 - 27.5px); }      /* (27.5: the brand name sits that far below the top of the sidebar's content box) */
   }
   @media screen and (max-width: 900px) {
@@ -2870,3 +2867,15 @@ html[data-theme="dark"] { --e1: var(--rim), var(--lift); --e2: 0 1px 0 rgba(0,0,
 
 /* A destructive confirm: still the primary button (same place, same test hooks), in the spend colour */
 #confirm .btn.primary.danger { background: var(--spend); border-color: var(--spend); color: #fff; }
+
+/* ================= One page head =================
+   Title row (34px), then a subtitle slot (28px) that is there on every page, with or without a subtitle or rate note, so the
+   page's content starts at the same y everywhere. On desktop the actions sit on the title row; top padding is --head-top. */
+.head .head-text { min-width: 0; max-width: 100%; }
+.head h1 { font-size: 28px; line-height: 34px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+@media (max-width: 573px) { .head h1 { font-size: 26px; line-height: 34px; } }
+.head .sub-slot { height: 28px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; min-width: 0; overflow: hidden; }
+.head .sub-slot .sub { margin: 0; min-width: 0; flex: 0 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.head .sub-slot .fx-note { margin: 0 0 0 -8px; min-height: 0; flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; display: block; }
+.head .sub-slot .sub + .fx-note { margin-left: 0; }
+@media (min-width: 901px) { #view > .head > .actions { align-self: flex-start; min-height: 34px; } }

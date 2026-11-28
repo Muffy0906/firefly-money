@@ -54,7 +54,7 @@ VIEWS.inbox = async (r, paint) => {
 function renderInbox() {
   const I = S.inbox, L = S.lists!, g = I.items[I.i];
   if (!g) {
-    I.paint(html`${head('To do', '', '')}${todoTabs('inbox')}<section class="panel">${doneState('All caught up', html`${I.done ? 'You categorized ' + I.done + ' transaction' + (I.done === 1 ? '' : 's') + '.' : 'Every transaction has a category.'}`, 70)}</section>`);
+    I.paint(html`${head('To do', 'Nothing left to categorize', '')}${todoTabs('inbox')}<section class="panel">${doneState('All caught up', html`${I.done ? 'You categorized ' + I.done + ' transaction' + (I.done === 1 ? '' : 's') + '.' : 'Every transaction has a category.'}`, 70)}</section>`);
     return;
   }
   const s = g.splits.find((x: Split) => !x.category) || g.splits[0], sug = suggest(s, I.h), top = sug.cats[0];

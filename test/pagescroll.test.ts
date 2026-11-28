@@ -26,9 +26,9 @@ describe('fixed title row, scrolling content', () => {
   it('the sticky day headings stop just under the fade', () => {
     expect(css).toMatch(/html \.tbl\.feed tr\.dayhead \{ top: 14px !important; \}/);
   });
-  it('the title band has an explicit height, everything on it centred, and the sidebar brand on the same centre line', () => {
-    expect(css).toMatch(/--band: 82px/);
-    expect(css).toMatch(/#view > \.head \{ min-height: var\(--band\); align-items: center; \}/);
+  it('the title row sits --head-top below the top, and the sidebar brand on the same centre line', () => {
+    expect(css).toMatch(/--head-top: 32px; --band: calc\(var\(--head-top\) \* 2 \+ 34px\)/);
+    expect(css).toMatch(/#view > \.head \{ box-sizing: border-box; padding-top: var\(--head-top\); align-items: flex-start; \}/);
     expect(css).toMatch(/html \.side \{ padding-top: calc\(var\(--band\) \/ 2 - 27\.5px\)/);
     expect(css).toMatch(/main#view \{ padding-top: 0 !important; \}/);
   });
