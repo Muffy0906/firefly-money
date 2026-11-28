@@ -37,7 +37,7 @@ describe('spacing scale', () => {
 describe('sidebar and scorecard regressions', () => {
   const css = readFileSync('app/assets/money.css', 'utf8');
   it('keeps the half-pixel centring of the collapsed rail icons', () => {
-    expect(css).toContain('html.side-mini .side .nav a { padding-left: 11.5px; padding-right: 0; min-height: 40px; border-radius: 50%; }');
+    expect(css).toContain('html.side-mini .side .nav a { padding-left: 9.5px; padding-right: 0; width: 36px; min-height: 36px; margin-inline: auto; border-radius: 50%; }');
     expect(css).toContain('html.side-mini .side-search { padding-left: 11px; padding-right: 0; }');
     expect(css).toContain('html.side-mini .side .foot .toggles button { padding-left: 12.5px; padding-right: 0; }');
     expect(css).toContain('html.side-mini .side > .ff-pill { gap: 0; padding: 0 7.5px; margin-left: 8px; }');

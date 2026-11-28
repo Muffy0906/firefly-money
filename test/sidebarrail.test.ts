@@ -8,9 +8,9 @@ describe('Collapsed sidebar rail', () => {
   it('leaves a 40px icon column (16 margin + 1 border + 8 padding each side)', () => {
     expect(css).toContain('html.side-mini .app { grid-template-columns: 74px 1fr; }');
   });
-  it('makes each folded link a 40px circle, and a clipped label cannot widen it', () => {
-    expect(css).toMatch(/html\.side-mini \.side \.nav \{ grid-template-columns: minmax\(0, 1fr\); \}/);
-    expect(css).toMatch(/html\.side-mini \.side \.nav a \{ padding-left: 11\.5px; padding-right: 0; min-height: 40px; border-radius: 50%; \}/);
+  it('makes each folded link a 36px circle on a 36px pitch (no gap), and a clipped label cannot widen it', () => {
+    expect(css).toMatch(/html\.side-mini \.side \.nav \{ grid-template-columns: minmax\(0, 1fr\); gap: 0; \}/);
+    expect(css).toMatch(/html\.side-mini \.side \.nav a \{ padding-left: 9\.5px; padding-right: 0; width: 36px; min-height: 36px; margin-inline: auto; border-radius: 50%; \}/);
   });
   it('zooms only the hovered icon: no proximity dock', () => {
     expect(css).toContain('.side .nav a:hover svg, .side-search:hover svg, .side-tg:hover svg { scale: 1.2; }');

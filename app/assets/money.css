@@ -1895,8 +1895,8 @@
     html.side-mini .side-tg { margin-right: 4px; }
     html.side-mini .side-tg svg { transform: scaleX(-1); }
     html.side-mini .side-search { padding-left: 11px; padding-right: 0; }
-    html.side-mini .side .nav { grid-template-columns: minmax(0, 1fr); }     /* a clipped label can't widen the links past the rail */
-    html.side-mini .side .nav a { padding-left: 11.5px; padding-right: 0; min-height: 40px; border-radius: 50%; }     /* a 40px circle: the selected one is a perfect circle round its icon */
+    html.side-mini .side .nav { grid-template-columns: minmax(0, 1fr); gap: 0; }     /* a clipped label can't widen the links past the rail */
+    html.side-mini .side .nav a { padding-left: 9.5px; padding-right: 0; width: 36px; min-height: 36px; margin-inline: auto; border-radius: 50%; }     /* a 36px circle centred in the 40px column, rows touching: a 36px pitch, the selected one a perfect circle round its icon */
     html.side-mini .side .foot .toggles button { padding-left: 12.5px; padding-right: 0; }
     html.side-mini :is(.brand, .side .nav a, .side-search, .side .foot .toggles button) > span, html.side-mini .side-search kbd { opacity: 0; transition: opacity .1s ease; }
     html.side-mini .nav-h { height: 21px; padding-top: 0; padding-bottom: 0; color: transparent; transition: height .34s var(--ease-glide), padding .34s var(--ease-glide), color .1s ease; }
